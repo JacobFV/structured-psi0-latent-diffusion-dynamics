@@ -318,15 +318,14 @@ def register_grpo(p):
     c.add_argument("--seed", type=int, default=0)
     c.set_defaults(fn=cmd_grpo)
 # ------------------------------------------------------------------ causal edits / composition (acceptance track)
-TARGET_BODIES = ("xarm7_pg2", "xarm7_tf3", "panda_tf3")      # D-025: never used for development
 
 
 def _causal_common(a, window_conds, episode_conds):
     import torch
     from rrp.harness.eval import latent_causal as lc
     robots = a.robots.split(",")
-    from rrp.bodies.armdiv import is_armdiv_sealed
-    if a.seed_start < 3_000_000 or any(r in TARGET_BODIES or is_armdiv_sealed(r) for r in robots):
+    from rrp.bodies.armdiv import is_sealed_target
+    if a.seed_start < 3_000_000 or any(is_sealed_target(r) for r in robots):
         raise SystemExit("dev rule (D-025): source/dev bodies and dev seeds >= 3,000,000 only")
     pol, R, P, dev = _load(a)
     from rrp.policies.nets.checkpoint import load_checkpoint
@@ -407,8 +406,8 @@ def cmd_semantic(a):
     from rrp.harness.eval import latent_causal as lc
     from rrp.policies.bundles import load_representation
     robots = a.robots.split(",")
-    from rrp.bodies.armdiv import is_armdiv_sealed
-    if a.seed_start < 3_000_000 or any(r in TARGET_BODIES or is_armdiv_sealed(r) for r in robots):
+    from rrp.bodies.armdiv import is_sealed_target
+    if a.seed_start < 3_000_000 or any(is_sealed_target(r) for r in robots):
         raise SystemExit("dev rule (D-025): source/dev bodies and dev seeds >= 3,000,000 only")
     dev = "cuda" if a.gpu and torch.cuda.is_available() else "cpu"
     if dev == "cuda":

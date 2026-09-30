@@ -36,6 +36,7 @@ TOOLS: dict[tuple[str, str], tuple[str, str]] = {
     ("suite", "legged-mirror-effect"): ("rrp.harness.eval.legged_summaries:mirror_effect_main", "legged mirror effect"),
     ("suite", "robustness"): ("rrp.harness.eval.robustness:main", "physics robustness sweeps"),
     ("suite", "target"): ("rrp.harness.eval.target_eval:main", "sealed target-body evaluation"),
+    ("suite", "sealed-log"): ("rrp.core.sealed:main", "sealed run-once logs: list cells, record an infrastructure failure"),
     ("suite", "system2"): ("rrp.harness.eval.system2:main", "system II (VLM) harness"),
     ("suite", "teacher-quality"): ("rrp.harness.eval.teacher_quality:main", "arm teacher motion-quality gates"),
     ("suite", "dual-teacher-quality"): ("rrp.harness.eval.dual_teacher_quality:main", "dual teacher quality"),

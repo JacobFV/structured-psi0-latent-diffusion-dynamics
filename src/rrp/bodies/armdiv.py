@@ -57,28 +57,10 @@ def armdiv_robots() -> dict:
     return out
 
 
-# D-137 sealed targets (research/splits/armdiv_v1.json). Whole target FAMILIES are protected: every key of the kinova /
-# flexiv / kuka arms and every sealed-range procedural seed (>= 900000) is refused wherever the D-025 target guard applies
-# (ladder dev evaluations, DAgger collections, causal-edit and GRPO development), like xarm7_* / panda_tf3.
-ARMDIV_TARGETS = ("gen3_pg2", "rizon4_tf3", "pa2s900002_pg2", "pa2s900003_tf3")
-_TARGET_FAMILY_PREFIXES = ("gen3_", "rizon4_", "iiwa14_")
-
-
-def is_armdiv_sealed(key: str) -> bool:
-    if key in ARMDIV_TARGETS or key.startswith(_TARGET_FAMILY_PREFIXES):
-        return True
-    if key.startswith("pa2s"):
-        try:
-            return int(key[4:].split("_")[0]) >= 900000
-        except ValueError:
-            return False
-    return False
-
-
-# The D-025 / D-126 sealed targets of the pre-armdiv protocol (xarm7 + panda_tf3): the ONE constant every guard reads
-# (`is_sealed_target`), together with the armdiv families above.
-LEGACY_TARGETS = ("xarm7_pg2", "xarm7_tf3", "panda_tf3")
-
-
+# D-137 sealed targets (research/splits/armdiv_v1.json). The ONE rule lives in `rrp.core.sealed.SealedSplit` ("armdiv_v1", hash
+# pinned): every target robot, every key of a target / excluded family (kinova gen3, flexiv rizon4, kuka iiwa14, xarm7, lite6,
+# fr3, panda_tf3) and every sealed-range procedural seed (pa2s<seed>, seed >= 900000). `is_sealed_target` is what every guard
+# calls (ladder dev evaluations, DAgger collections, causal edits, GRPO development and its anchors, target_eval smoke).
 def is_sealed_target(key: str) -> bool:
-    return key in LEGACY_TARGETS or is_armdiv_sealed(key)
+    from rrp.core.sealed import SealedSplit
+    return SealedSplit.load("armdiv_v1").is_sealed_body(key)

@@ -40,7 +40,8 @@ class AnchorConfig:
     def __post_init__(self):
         if self.action not in ("flag", "stop"):
             raise ValueError(f"anchor action {self.action!r} (flag|stop)")
-        bad = [r for r in self.robots if r in ("xarm7_pg2", "xarm7_tf3", "panda_tf3")]
+        from rrp.bodies.armdiv import is_sealed_target
+        bad = [r for r in self.robots if is_sealed_target(r)]
         if bad:
             raise ValueError(f"sealed target bodies cannot be anchors: {bad}")
         if self.seed_start < 3_000_000:
