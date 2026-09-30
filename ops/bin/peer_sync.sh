@@ -45,16 +45,19 @@ case "${1:-push}" in
   push)
     guard_push
     ssh "$PEER" "mkdir -p $R"
+    # ops/resources.local.json (the tracked budget / enforcement config, `rrp.ops.runtime.CONFIG`) travels with the tree
+    # into every per-agent dir; the shared dir's live copy (the running broker / watchdog read it) is never replaced.
+    keep=()
+    if [ "$R" = "$P/repo" ]; then keep=(--exclude ops/resources.local.json); fi
     rsync -a --bwlimit=100000 --delete \
       --exclude .venv --exclude /.cache --exclude .git --exclude node_modules \
       --exclude 'ops/broker/' --exclude 'ops/logs/' --exclude 'ops/watchdog/' --exclude 'ops/resource-ledger*.jsonl' \
-      --exclude 'ops/resources.local.json' --exclude '/artifacts' --exclude 'research/registry.jsonl' \
+      "${keep[@]}" --exclude '/artifacts' --exclude 'research/registry.jsonl' \
       --exclude '__pycache__/' --exclude '/.rrp_revision' \
       "$ROOT/" "$PEER:$R/"
     revision_json | ssh "$PEER" "cat > $R/.rrp_revision"
     if [ "$R" != "$P/repo" ]; then
-      ssh "$PEER" "cd $R && for d in artifacts .cache; do [ -e \$d ] || ln -s $P/repo/\$d \$d; done
-                   mkdir -p ops && cp -n $P/repo/ops/resources.local.json ops/ 2>/dev/null; true"
+      ssh "$PEER" "cd $R && for d in artifacts .cache; do [ -e \$d ] || ln -s $P/repo/\$d \$d; done"
     fi
     # artifacts/ itself is never synced (peer store), but the run-id alias index is code-like and small
     if [ -f "$ROOT/artifacts/run_index.json" ]; then rsync -a "$ROOT/artifacts/run_index.json" "$PEER:$R/artifacts/" 2>/dev/null || true; fi ;;

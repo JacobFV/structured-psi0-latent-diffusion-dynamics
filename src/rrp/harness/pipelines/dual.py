@@ -30,7 +30,7 @@ import json
 from pathlib import Path
 
 from rrp.harness.pipelines import arm
-from rrp.harness.pipelines.base import StageContext, StageError, apply_gate, register
+from rrp.harness.pipelines.base import StageContext, StageError, apply_gate, register_stage
 
 DUAL_TASKS = ("support_insert", "handover")
 
@@ -41,7 +41,7 @@ def _b1(ctx: StageContext):
 
 
 # ------------------------------------------------------------------------------------------------ data
-@register("dual", "collect", source="scripted_teacher")
+@register_stage("dual", "collect", source="scripted_teacher")
 def collect(ctx: StageContext) -> dict:
     """Scripted dual teacher collection (v2 default; teacher_version v3 opt-in) + the dual dataset gate."""
     cfg = ctx.native
@@ -58,7 +58,7 @@ def collect(ctx: StageContext) -> dict:
     return dict(outputs={"manifest": str(Path(cfg["out_dir"]) / "manifest.json")}, metrics=dict(gate=gate))
 
 
-@register("dual", "pack", source="scripted_teacher")
+@register_stage("dual", "pack", source="scripted_teacher")
 def pack(ctx: StageContext) -> dict:
     """Multi-assembly pack of one or more dual datasets (rrp.data.dual_latent.pack_dual)."""
     from rrp.harness.data.dual_latent import pack_dual
@@ -77,33 +77,33 @@ def pack(ctx: StageContext) -> dict:
 
 
 # ------------------------------------------------------------------------------------------------ training
-@register("dual", "train_rep", source="learned")
+@register_stage("dual", "train_rep", source="learned")
 def train_rep(ctx: StageContext) -> dict:
     """Dual Stage A: the arm trainer on a multi-assembly pack."""
     _b1(ctx)
     return arm.train_rep(ctx)
 
 
-@register("dual", "probes", source="learned")
+@register_stage("dual", "probes", source="learned")
 def probes(ctx: StageContext) -> dict:
     """Per-slot measurement probes on the frozen packet (diagnostic)."""
     return arm.probes(ctx)
 
 
-@register("dual", "train_flow", source="learned")
+@register_stage("dual", "train_flow", source="learned")
 def train_flow(ctx: StageContext) -> dict:
     """Dual system i: the arm flow trainer on a multi-assembly pack."""
     _b1(ctx)
     return arm._flow(ctx)
 
 
-@register("dual", "flow_ft", source="learned")
+@register_stage("dual", "flow_ft", source="learned")
 def flow_ft(ctx: StageContext) -> dict:
     _b1(ctx)
     return arm.flow_ft(ctx)
 
 
-@register("dual", "refit", source="learned")
+@register_stage("dual", "refit", source="learned")
 def refit(ctx: StageContext) -> dict:
     """System-0 refit on the frozen encoder from DAgger buffers (inputs), as the arm refit."""
     _b1(ctx)
@@ -151,21 +151,21 @@ def _evaluate(ctx: StageContext, shards: list[dict], edit: str | None, tag: str)
     return outs
 
 
-@register("dual", "eval_r2", source="learned")
+@register_stage("dual", "eval_r2", source="learned")
 def eval_r2(ctx: StageContext) -> dict:
     """Deployable route (system i packets -> system 0) on dev pairs/seeds."""
     outs = _evaluate(ctx, _shards(ctx, "shards"), None, "r2")
     return dict(outputs=outs, metrics=dict(shards=len(outs)), source_detail=ctx.inp("flow"))
 
 
-@register("dual", "heldout", source="learned")
+@register_stage("dual", "heldout", source="learned")
 def heldout(ctx: StageContext) -> dict:
     """Budget-0 transfer to held-out pairs (xarm7 family, panda_tf3 attachment, aloha)."""
     outs = _evaluate(ctx, _shards(ctx, "heldout_shards"), None, "heldout")
     return dict(outputs=outs, metrics=dict(shards=len(outs)), source_detail=ctx.inp("flow"))
 
 
-@register("dual", "edits", source="learned")
+@register_stage("dual", "edits", source="learned")
 def edits(ctx: StageContext) -> dict:
     """Packet edits (control = no edit) on the same seeds; options.packet_edits (default [swap_slots])."""
     shards = _shards(ctx, "shards")

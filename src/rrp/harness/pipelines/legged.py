@@ -30,7 +30,7 @@ import json
 from pathlib import Path
 
 from rrp.core.sealed import SealedSplit
-from rrp.harness.pipelines.base import apply_gate, StageContext, StageError, register
+from rrp.harness.pipelines.base import apply_gate, StageContext, StageError, register_stage
 
 EVAL = ["-m", "rrp.cli", "suite", "legged"]
 
@@ -206,7 +206,7 @@ def check_rows_contact(ctx: StageContext, rows: list[dict], where: str) -> dict:
     return dict(contact_versions=sorted(str(x) for x in seen))
 
 
-@register("legged", "collect", source="scripted_teacher")
+@register_stage("legged", "collect", source="scripted_teacher")
 def collect(ctx: StageContext) -> dict:
     """Legged latent dataset shards (waypoint teacher + tracker; DART sigmas cycled over seeds). The seed range is
     split into shards of `shard_size` (default: one shard) run `workers` at a time, as scripts/legged_latent_collect.sh
@@ -307,7 +307,7 @@ def check_tracker_sha(ctx: StageContext) -> str | None:
     return got
 
 
-@register("legged", "validate_tracker", source="learned_tracker")
+@register_stage("legged", "validate_tracker", source="learned_tracker")
 def validate_tracker(ctx: StageContext) -> dict:
     """Tracker validation (rrp.evaluation.tracker_validation protocol v2 + the W6 robustness check) and the D-112 tracker
     gate. options: body, actor (default: the installed tracker for the contact version), kind (learned|cpg), seeds (5),
@@ -342,7 +342,7 @@ def validate_tracker(ctx: StageContext) -> dict:
                 source_detail=v.get("tracker_version"))
 
 
-@register("legged", "train_tracker", source="learned_tracker")
+@register_stage("legged", "train_tracker", source="learned_tracker")
 def train_tracker(ctx: StageContext) -> dict:
     """D-126 #13: tracker training through run-dag. options: body, recipe (a name in rrp.harness.train.tracker_recipes:
     CPU_RECIPES or WARP_RECIPES, or a JSON path; optional), args ({option dest: value}, explicit overrides; True = bare flag),
@@ -403,7 +403,7 @@ def train_tracker(ctx: StageContext) -> dict:
                 source_detail=f"learned_tracker:{meta['body']}:{rel}")
 
 
-@register("legged", "eval_tracker", source="learned_tracker")
+@register_stage("legged", "eval_tracker", source="learned_tracker")
 @sealed_evaluation(_tracker_scope)
 def eval_tracker(ctx: StageContext) -> dict:
     """W13: C-MuJoCo evaluation of a tracker / task expert (full self-collision; never the training simulator). options: task
@@ -451,7 +451,7 @@ def eval_tracker(ctx: StageContext) -> dict:
     return dict(outputs=outs, metrics=metrics, source_detail=f"{task}:{body}:{actor}")
 
 
-@register("legged", "train_bc", source="bc")
+@register_stage("legged", "train_bc", source="bc")
 def train_bc(ctx: StageContext) -> dict:
     """Legged BC POSITIVE CONTROL (no packet; behaviour cloning of the scripted teacher -> tracker targets)."""
     from rrp.harness.train.legged_bc import train as fn
@@ -462,7 +462,7 @@ def train_bc(ctx: StageContext) -> dict:
     return dict(outputs={"policy": pol}, metrics=_json_safe(res), source_detail=pol)
 
 
-@register("legged", "train_rep", source="learned")
+@register_stage("legged", "train_rep", source="learned")
 def train_rep(ctx: StageContext) -> dict:
     """Legged Stage A (E, R, P)."""
     from rrp.harness.train.legged_latent_train import train_rep as fn
@@ -474,7 +474,7 @@ def train_rep(ctx: StageContext) -> dict:
     return dict(outputs={"representation": rep}, metrics=_json_safe(res), source_detail=rep)
 
 
-@register("legged", "probes", source="learned")
+@register_stage("legged", "probes", source="learned")
 def probes(ctx: StageContext) -> dict:
     """Post-hoc measurement probe on the frozen encoder (nosem diagnostic)."""
     from rrp.harness.train.legged_latent_train import fit_probe
@@ -492,19 +492,19 @@ def _flow(ctx: StageContext) -> dict:
     return dict(outputs={"policy": pol}, metrics=_json_safe(res), source_detail=pol)
 
 
-@register("legged", "train_flow", source="learned")
+@register_stage("legged", "train_flow", source="learned")
 def train_flow(ctx: StageContext) -> dict:
     """Legged system i."""
     return _flow(ctx)
 
 
-@register("legged", "flow_ft", source="learned")
+@register_stage("legged", "flow_ft", source="learned")
 def flow_ft(ctx: StageContext) -> dict:
     """Legged system i continued/fine-tuned (config carries its init)."""
     return _flow(ctx)
 
 
-@register("legged", "dagger_collect", source="bc")
+@register_stage("legged", "dagger_collect", source="bc")
 def dagger_collect(ctx: StageContext) -> dict:
     """Legged DAgger buffer: rollouts (route bc | oracle_bc | generated), labels = stateless BC expert."""
     o = ctx.opts
@@ -521,7 +521,7 @@ def dagger_collect(ctx: StageContext) -> dict:
     return dict(outputs={}, metrics=dict(body=o["body"], seeds=o["seeds"]), source_detail=ctx.inp("bc"))
 
 
-@register("legged", "refit", source="learned")
+@register_stage("legged", "refit", source="learned")
 def refit(ctx: StageContext) -> dict:
     """Legged system-0 refit on the frozen encoder from DAgger buffers."""
     from rrp.harness.train.legged_dagger import refit as fn
@@ -589,21 +589,21 @@ def _ladder(ctx: StageContext, default_route: str) -> dict:
                 metrics=_json_safe(summ), source=src, source_detail=ctx.inp("flow", required=False) or ctx.inp("bc", required=False) or rel)
 
 
-@register("legged", "eval_r1", source="oracle")
+@register_stage("legged", "eval_r1", source="oracle")
 @sealed_evaluation(_range_scope)
 def eval_r1(ctx: StageContext) -> dict:
     """R1 ORACLE DIAGNOSTIC (stateless BC chunk encoded -> system 0)."""
     return _ladder(ctx, "r1")
 
 
-@register("legged", "eval_r2", source="learned")
+@register_stage("legged", "eval_r2", source="learned")
 @sealed_evaluation(_range_scope)
 def eval_r2(ctx: StageContext) -> dict:
     """R2 deployable route (flow -> system 0)."""
     return _ladder(ctx, "r2")
 
 
-@register("legged", "heldout", source="learned")
+@register_stage("legged", "heldout", source="learned")
 @sealed_evaluation(_range_scope)
 def heldout(ctx: StageContext) -> dict:
     """R2 on a held-out body (the body must not be in the training bodies given in options.train_bodies)."""
@@ -612,7 +612,7 @@ def heldout(ctx: StageContext) -> dict:
     return _ladder(ctx, "r2")
 
 
-@register("legged", "edits", source="learned")
+@register_stage("legged", "edits", source="learned")
 def edits(ctx: StageContext) -> dict:
     """Causal packet edits with irrelevant-edit controls (scripts/legged_edit_suite.sh) + paired effects."""
     o = ctx.opts

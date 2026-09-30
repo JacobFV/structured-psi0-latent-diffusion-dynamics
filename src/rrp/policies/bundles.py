@@ -47,6 +47,22 @@ def bundle_factor_specs(E, R, P) -> list:
     return [*E.factor_specs(), *R.factor_specs(), *P.specs]
 
 
+def require_stamp(saved_versions: dict | None, specs, default_specs, *, allow_mismatch: bool = False, what: str = "checkpoint") -> None:
+    """The one loader guard of the arm / dual / legged bundles and flow / BC policies (docs/architecture.md 14.2).
+    A checkpoint stamped by `save_checkpoint` (`versions["factors"]` starts with a structure hash) must equal `specs`'
+    hash (`relations.require_factors`). An UNSTAMPED one (written before the stamp existed) is read as its family's
+    default preset: `specs` must be that preset's list (`default_specs`), else it is refused. `allow_mismatch` is the
+    deliberate cross-structure load (a controlled ablation)."""
+    from rrp.policies.relations.base import FactorError, compat_hash, require_factors
+    saved = (saved_versions or {}).get("factors")
+    if isinstance(saved, str) and saved.startswith("fx-"):
+        require_factors(saved_versions, specs, allow_mismatch)
+    elif not allow_mismatch and compat_hash(specs) != compat_hash(default_specs):
+        raise FactorError(f"{what}: unstamped checkpoint (versions['factors'] = {saved!r}) reads as its family's default "
+                          f"preset {compat_hash(default_specs)!r}, but the requested factor list is {compat_hash(specs)!r}; "
+                          "pass allow_mismatch to load anyway")
+
+
 def assert_shared_factors(named: dict) -> str:
     """Compared methods of one recipe must share their factor set: `named` maps method -> resolved specs; raises
     `FactorError` naming the methods whose structure hash differs, else returns the common hash. A comparison in which
@@ -60,7 +76,7 @@ def assert_shared_factors(named: dict) -> str:
     return next((compat_hash(s) for s in named.values()), "")
 
 
-def load_representation(path: Path, dev):
+def load_representation(path: Path, dev, allow_factor_mismatch: bool = False):
     st = load_checkpoint(path, map_location=dev)
     cfg = LatentConfig(**st["config"]["latent"])
     from rrp.policies.system0 import make_realizer
@@ -68,9 +84,11 @@ def load_representation(path: Path, dev):
     E, R, P = TargetEncoder(cfg).to(dev), make_realizer(cfg.dz, cfg.realizer_layers, st["config"].get("realizer_arch"),
                                                         cfg.realizer_factors).to(dev), \
         ReadoutProbe(cfg.dz, cfg.knots, specs=specs, **probe_kw).to(dev)
-    if str((st.get("versions") or {}).get("factors", "")).startswith("fx-"):     # checkpoints before A1 carry no hash
-        from rrp.policies.relations.base import require_factors
-        require_factors(st["versions"], bundle_factor_specs(E, R, P))
+    from rrp.policies.relations.base import resolve
+    ef0 = ["preset:arm", "id.slot_handle"] if cfg.slot_handles else None            # the default lists of an unstamped bundle
+    require_stamp(st.get("versions"), bundle_factor_specs(E, R, P),
+                  [*resolve(ef0, default="arm", family="arm"), *resolve(None, default="s0-arm"), *P.specs],
+                  allow_mismatch=allow_factor_mismatch, what=str(path))
     E.load_state_dict(st["model"]["E"]); R.load_state_dict(st["model"]["R"])
     P.load_state_dict(_remap_probe_state_dict(st["model"]["P"]))
     R.anchor = bool(st["config"].get("realizer_anchor", False))    # ladder: anchored realizer input (col 28)
@@ -137,6 +155,7 @@ def checkpoint_provenance(st: dict, path=None, verify: bool = True):
 def load_rep(path, dev):
     st = torch.load(str(path), map_location=dev, weights_only=False)
     prov = checkpoint_provenance(st, path)           # raises on a fingerprint mismatch; legacy files are marked
+    require_stamp(prov.versions, (), (), what=str(path))     # these nets are the `legged-none` ones: a relational stamp is refused
     if prov.legacy:
         print(f"[legged] {path}: legacy checkpoint ({prov.notes}); compatibility IDs are fingerprinted at load",
               flush=True)

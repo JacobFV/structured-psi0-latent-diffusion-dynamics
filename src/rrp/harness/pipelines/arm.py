@@ -30,7 +30,7 @@ import shutil
 from collections import Counter
 from pathlib import Path
 
-from rrp.harness.pipelines.base import apply_gate, StageContext, StageError, register
+from rrp.harness.pipelines.base import apply_gate, StageContext, StageError, register_stage
 from rrp.harness.train.baseline_campaign import SFT_LR, SFT_STEPS   # the one copy (BC SFT budget -> updates, lr)
 
 LADDER = ["-m", "rrp.cli", "suite", "ladder"]
@@ -117,7 +117,7 @@ def _versions(res: dict) -> dict:
 
 
 # ------------------------------------------------------------------------------------------------ data
-@register("arm", "collect", source="scripted_teacher")
+@register_stage("arm", "collect", source="scripted_teacher")
 def collect(ctx: StageContext) -> dict:
     """Scripted-teacher dataset generation (privileged teacher; public featurizer)."""
     cfg = ctx.native
@@ -134,7 +134,7 @@ def collect(ctx: StageContext) -> dict:
     return dict(outputs={"manifest": str(Path(cfg["out_dir"]) / "manifest.json")}, metrics=dict(gate=gate))
 
 
-@register("arm", "pack", source="scripted_teacher")
+@register_stage("arm", "pack", source="scripted_teacher")
 def pack(ctx: StageContext) -> dict:
     """Pack a dataset into memory-mapped training chunks (rrp data pack)."""
     cfg = ctx.native
@@ -146,7 +146,7 @@ def pack(ctx: StageContext) -> dict:
 
 
 # ------------------------------------------------------------------------------------------------ training
-@register("arm", "train_rep", source="learned")
+@register_stage("arm", "train_rep", source="learned")
 @_pinned
 def train_rep(ctx: StageContext) -> dict:
     """Stage A: encoder E + system 0 R + probes P."""
@@ -160,7 +160,7 @@ def train_rep(ctx: StageContext) -> dict:
     return dict(outputs={"representation": rep}, metrics=_json_safe(res), versions=_versions(res), source_detail=rep)
 
 
-@register("arm", "probes", source="learned")
+@register_stage("arm", "probes", source="learned")
 def probes(ctx: StageContext) -> dict:
     """Measurement probes on the frozen, detached packet (diagnostic)."""
     from rrp.harness.train.latent_train import fit_probes_on_frozen
@@ -191,14 +191,14 @@ def _flow(ctx: StageContext) -> dict:
     return dict(outputs=outs, metrics=_json_safe(res), versions=_versions(res), source_detail=outs["policy"])
 
 
-@register("arm", "train_flow", source="learned")
+@register_stage("arm", "train_flow", source="learned")
 @_pinned
 def train_flow(ctx: StageContext) -> dict:
     """System i: conditional flow over the packet (from scratch)."""
     return _flow(ctx)
 
 
-@register("arm", "flow_ft", source="learned")
+@register_stage("arm", "flow_ft", source="learned")
 @_pinned
 def flow_ft(ctx: StageContext) -> dict:
     """System i fine-tune (init_from; optional generator-DAgger contexts gen_dagger)."""
@@ -207,7 +207,7 @@ def flow_ft(ctx: StageContext) -> dict:
     return _flow(ctx)
 
 
-@register("arm", "refit", source="learned")
+@register_stage("arm", "refit", source="learned")
 @_pinned
 def refit(ctx: StageContext) -> dict:
     """System-0 refit on the frozen encoder from DAgger buffers ."""
@@ -239,7 +239,7 @@ def _threads_env(ctx: StageContext, threads: int | None):
     return ctx.env(CUDA_VISIBLE_DEVICES="", **({"OMP_NUM_THREADS": threads, "MKL_NUM_THREADS": threads} if threads else {}))
 
 
-@register("arm", "dagger_collect", source="bc")
+@register_stage("arm", "dagger_collect", source="bc")
 @_pinned
 def dagger_collect(ctx: StageContext) -> dict:
     """System-0 DAgger buffers: rollouts of the CURRENT system 0 (mode bc: R1 packets E(BC chunk); mode gen: system i's
@@ -361,21 +361,21 @@ def _r2(ctx: StageContext, heldout: bool) -> dict:
     return dict(outputs=outputs, metrics=metrics, source="learned", source_detail=flow)
 
 
-@register("arm", "eval_r2", source="learned")
+@register_stage("arm", "eval_r2", source="learned")
 @_pinned
 def eval_r2(ctx: StageContext) -> dict:
     """R2 (deployable): generated packet from system i -> system 0, on training bodies / dev seeds."""
     return _r2(ctx, heldout=False)
 
 
-@register("arm", "heldout", source="learned")
+@register_stage("arm", "heldout", source="learned")
 @_pinned
 def heldout(ctx: StageContext) -> dict:
     """R2 on held-out bodies (not in the training set)."""
     return _r2(ctx, heldout=True)
 
 
-@register("arm", "eval_r1", source="oracle")
+@register_stage("arm", "eval_r1", source="oracle")
 def eval_r1(ctx: StageContext) -> dict:
     """R1 ORACLE DIAGNOSTIC with the stateless BC expert: packet = E(BC chunk) -> system 0 (ladder_eval_orcbc.sh)."""
     o = ctx.opts
@@ -389,7 +389,7 @@ def eval_r1(ctx: StageContext) -> dict:
     return dict(outputs=outputs, metrics=metrics, source="oracle", source_detail=f"E({rep})+bc:{bcl}")
 
 
-@register("arm", "edits", source="learned")
+@register_stage("arm", "edits", source="learned")
 def edits(ctx: StageContext) -> dict:
     """Task-context semantic-edit suite on the deployable route (`rrp latent semantic-edits --route generated`),
     sharded over (robot, seed range)."""
@@ -442,7 +442,7 @@ def _anchor(ctx: StageContext) -> dict | None:
     return a
 
 
-@register("arm", "grpo", source="learned")
+@register_stage("arm", "grpo", source="learned")
 def grpo(ctx: StageContext) -> dict:
     """D-126 #6: GRPO fine-tuning with anchor / forgetting evaluations. options.method latent (system i on the packet,
     system 0 = inputs.representation, frozen) or bc (direct-action BC through rrp.harness.train.adapt, the matched-budget
@@ -495,7 +495,7 @@ def grpo(ctx: StageContext) -> dict:
     return dict(outputs=outs, metrics=_json_safe(metrics), source_detail=src)
 
 
-@register("arm", "target_eval", source="learned")
+@register_stage("arm", "target_eval", source="learned")
 @_pinned
 def target_eval(ctx: StageContext) -> dict:
     """D-126 #9/#10: sealed-protocol evaluation (python -m rrp.cli suite target) of the latent route (route
@@ -533,7 +533,7 @@ def target_eval(ctx: StageContext) -> dict:
                 source=src, source_detail=detail)
 
 
-@register("arm", "target_adapt", source="learned")
+@register_stage("arm", "target_adapt", source="learned")
 @_pinned
 def target_adapt(ctx: StageContext) -> dict:
     """D-126 #9/#10: few-shot adaptation on target demos with the sealed protocol's budgets and acquisition (nested
@@ -601,7 +601,7 @@ def target_adapt(ctx: StageContext) -> dict:
                 versions=_versions(res) if isinstance(res, dict) else {})
 
 
-@register("arm", "train_bc", source="bc")
+@register_stage("arm", "train_bc", source="bc")
 @_pinned
 def train_bc(ctx: StageContext) -> dict:
     """D-126 #10: direct-action BC source training (the stateless BC expert recipe: baseline_campaign.source_config =

@@ -24,7 +24,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from rrp.harness.pipelines.base import StageContext, StageError, apply_gate, register
+from rrp.harness.pipelines.base import StageContext, StageError, apply_gate, register_stage
 
 TRAIN = ["-m", "rrp.cli", "train", "psi0"]
 
@@ -112,7 +112,7 @@ def _collect_labels(ctx: StageContext) -> dict:
                 source="privileged_teacher:sim_replay")
 
 
-@register("psi0", "collect", source="learned")
+@register_stage("psi0", "collect", source="learned")
 def collect(ctx: StageContext) -> dict:
     """Training data of the task: `options.data` features (frozen-VLM feature cache; default) or labels (probe labels)."""
     kind = ctx.opts.get("data", "features")
@@ -121,19 +121,19 @@ def collect(ctx: StageContext) -> dict:
     return (_collect_features if kind == "features" else _collect_labels)(ctx)
 
 
-@register("psi0", "train_rep", source="learned")
+@register_stage("psi0", "train_rep", source="learned")
 def train_rep(ctx: StageContext) -> dict:
     """Stage A: E, R and the packet statistics; the structured arm freezes it."""
     return _fit(ctx, "stageA", outputs=("stage_a.pt", "z_stats.pt", "summary.json"))
 
 
-@register("psi0", "train_bc", source="learned")
+@register_stage("psi0", "train_bc", source="learned")
 def train_bc(ctx: StageContext) -> dict:
     """Direct arm: same features, same split, same steps as the structured arm (matched control)."""
     return _fit(ctx, "direct", outputs=("final.pt", "summary.json"))
 
 
-@register("psi0", "train_flow", source="learned")
+@register_stage("psi0", "train_flow", source="learned")
 def train_flow(ctx: StageContext) -> dict:
     """Structured arm: packet z from system i, realised by the frozen Stage A. Blocked unless the heldout gate passed."""
     apply_gate(ctx, gate_report(read_gate(ctx.root / ctx.inp("gate")), ctx.inp("gate")))
@@ -146,7 +146,7 @@ def _diag(ctx: StageContext, cmd: str, name: str, extra: list[str]) -> dict:
     return dict(outputs={name: str(out.relative_to(ctx.root))}, metrics={})
 
 
-@register("psi0", "probes", source="learned")
+@register_stage("psi0", "probes", source="learned")
 def probes(ctx: StageContext) -> dict:
     """Packet probes on E means / generated packets and the metadata-only control (diagnostic)."""
     extra = ["--stage-a", ctx.inp("stage_a"), "--train-summary", ctx.inp("summary"), "--labels-dir", ctx.inp("labels"),
@@ -156,7 +156,7 @@ def probes(ctx: StageContext) -> dict:
     return _diag(ctx, "probes", "probes.json", extra)
 
 
-@register("psi0", "heldout", source="oracle")
+@register_stage("psi0", "heldout", source="oracle")
 def heldout(ctx: StageContext) -> dict:
     """Held-out open-loop L1 per action group; the R(E(chunk)) route is an ORACLE diagnostic. With no `structured` input this is
     the pre-head gate: heldout.json must carry gate {gap, margin} and gap >= margin (GateFailed otherwise)."""
@@ -172,7 +172,7 @@ def heldout(ctx: StageContext) -> dict:
     return res
 
 
-@register("psi0", "eval_r2", source="learned")
+@register_stage("psi0", "eval_r2", source="learned")
 def eval_r2(ctx: StageContext) -> dict:
     """Closed loop on the SIMPLE task (Isaac Sim): options.arm released (upstream checkpoint) | direct | structured."""
     o = ctx.opts

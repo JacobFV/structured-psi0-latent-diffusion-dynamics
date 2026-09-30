@@ -22,7 +22,7 @@ from pathlib import Path
 
 from rrp.core.runconfig import META, register_family
 from rrp.core.sealed import SealedSplit
-from rrp.harness.pipelines.base import StageContext, StageError, register
+from rrp.harness.pipelines.base import StageContext, StageError, register_stage
 from rrp.harness.pipelines.legged import _json_safe, _seed_list, check_contact_version, physics_env
 
 FAMILY = "humanoid"
@@ -102,7 +102,7 @@ def check_waypoint_free(data: str | Path, bodies) -> None:
 
 
 # ---------------------------------------------------------------------------------------------------- stages
-@register(FAMILY, "collect", source="scripted_teacher")
+@register_stage(FAMILY, "collect", source="scripted_teacher")
 def collect(ctx: StageContext) -> dict:
     """Teacher demos, one shard per (body, seed). options: task, bodies, trackers ({body: '<body>:<version>'}), seeds (range spec),
     sigmas, workers, max_steps. Sealed bodies only on target-adaptation seeds (SealedSplit)."""
@@ -149,7 +149,7 @@ def collect(ctx: StageContext) -> dict:
                 source_detail=f"scripted_teacher:{task} -> " + "|".join(f"{b}:{t}" for b, t in sorted(trackers.items())))
 
 
-@register(FAMILY, "pack", source="scripted_teacher")
+@register_stage(FAMILY, "pack", source="scripted_teacher")
 def pack(ctx: StageContext) -> dict:
     """Nested target-demo packs and their acquisition record. options: task, bodies, budgets, updates ({budget: matched updates});
     input `data` (a collect output)."""
@@ -179,7 +179,7 @@ def _guard(ctx: StageContext, data, bodies, steps) -> None:
             (ctx.root / ctx.inp("pack")).read_bytes()).hexdigest()), indent=1, sort_keys=True))
 
 
-@register(FAMILY, "train_rep", source="learned")
+@register_stage(FAMILY, "train_rep", source="learned")
 def train_rep(ctx: StageContext) -> dict:
     """Legged Stage A on humanoid shards (options.adapt: matched-update accounting)."""
     from rrp.harness.train.legged_latent_train import train_rep as fn
@@ -190,7 +190,7 @@ def train_rep(ctx: StageContext) -> dict:
     return dict(outputs={"representation": rep}, metrics=_json_safe(res), source_detail=rep)
 
 
-@register(FAMILY, "train_flow", source="learned")
+@register_stage(FAMILY, "train_flow", source="learned")
 def train_flow(ctx: StageContext) -> dict:
     """Legged system i on a frozen humanoid representation."""
     from rrp.harness.train.legged_latent_train import load_legged_rep, train_flow as fn
@@ -203,7 +203,7 @@ def train_flow(ctx: StageContext) -> dict:
     return dict(outputs={"policy": pol}, metrics=_json_safe(res), source_detail=pol)
 
 
-@register(FAMILY, "train_bc", source="bc")
+@register_stage(FAMILY, "train_bc", source="bc")
 def train_bc(ctx: StageContext) -> dict:
     """Whole-policy BC positive control on humanoid shards (source bc)."""
     from rrp.harness.train.legged_bc import train as fn
@@ -240,14 +240,14 @@ def _transfer(ctx: StageContext, scope: str) -> dict:
                 source_detail="transfer:" + str(cfg.get("name")))
 
 
-@register(FAMILY, "eval_transfer", source="learned", flags=["contact_version"])
+@register_stage(FAMILY, "eval_transfer", source="learned", flags=["contact_version"])
 def eval_transfer(ctx: StageContext) -> dict:
     """Level 1 / Level 2 transfer matrix on the non-sealed bodies, development scenes (options.transfer = the config; options.variant /
     train_seed restrict a recipe point to its own cells)."""
     return _transfer(ctx, "dev")
 
 
-@register(FAMILY, "sealed_eval", source="learned", flags=["contact_version"])
+@register_stage(FAMILY, "sealed_eval", source="learned", flags=["contact_version"])
 def sealed_eval(ctx: StageContext) -> dict:
     """The same matrix on the sealed bodies, evaluation scenes, each cell once (options.sealed: true is required)."""
     return _transfer(ctx, "sealed")

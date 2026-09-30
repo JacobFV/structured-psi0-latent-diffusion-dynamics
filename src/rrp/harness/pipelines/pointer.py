@@ -36,7 +36,7 @@ import time
 from pathlib import Path
 
 from rrp.core.sealed import SealedSplit, SealedSplitError
-from rrp.harness.pipelines.base import StageContext, StageError, register
+from rrp.harness.pipelines.base import StageContext, StageError, register_stage
 
 TRAIN = ["-m", "rrp.cli", "train", "pointer"]
 SPLIT_PATH = "research/splits/cworld_pointer_v1.json"   # = rrp.harness.train.pointer.SPLIT_PATH (that module needs torch)
@@ -115,7 +115,7 @@ def _outputs(out: Path, ctx: StageContext, *, meta: bool = True) -> dict:
 
 
 # ------------------------------------------------------------------------------------------------ data
-@register("pointer", "collect", source="scripted_teacher")
+@register_stage("pointer", "collect", source="scripted_teacher")
 def collect(ctx: StageContext) -> dict:
     """Scripted-teacher demos per task (held-out variants and eval seeds skipped by the split guard)."""
     p = dict(ctx.rc.params)
@@ -134,7 +134,7 @@ def collect(ctx: StageContext) -> dict:
 
 
 # ------------------------------------------------------------------------------------------------ training
-@register("pointer", "train_rep", source="learned")
+@register_stage("pointer", "train_rep", source="learned")
 def train_rep(ctx: StageContext) -> dict:
     """E + R + P on demo chunks; variant semfix (probe loss on z, bounded NLL) | nosem (weights 0)."""
     if ctx.rc.variant not in ("semfix", "nosem"):
@@ -143,7 +143,7 @@ def train_rep(ctx: StageContext) -> dict:
     return dict(outputs=_outputs(out, ctx), source_detail=str(out.relative_to(ctx.root)))
 
 
-@register("pointer", "train_flow", source="learned")
+@register_stage("pointer", "train_flow", source="learned")
 def train_flow(ctx: StageContext) -> dict:
     """System i (rectified flow): on the frozen representation's posterior means (target latent) or on the engineered
     encoding (target eng, realised by the SCRIPTED engineered system 0)."""
@@ -155,14 +155,14 @@ def train_flow(ctx: StageContext) -> dict:
     return dict(outputs=_outputs(out, ctx), source_detail=str(out.relative_to(ctx.root)))
 
 
-@register("pointer", "train_bc", source="bc")
+@register_stage("pointer", "train_bc", source="bc")
 def train_bc(ctx: StageContext) -> dict:
     """BC baseline: context -> 7-tick chunk, the same public inputs and demos."""
     out = _train(ctx, "bc", "bc.pt", _flags(ctx.rc.params))
     return dict(outputs=_outputs(out, ctx), source_detail=str(out.relative_to(ctx.root)))
 
 
-@register("pointer", "probes", source="learned")
+@register_stage("pointer", "probes", source="learned")
 def probes(ctx: StageContext) -> dict:
     """Post-hoc packet probes + the metadata-only control (diagnostic); `inputs.flow` probes generated packets."""
     extra = _flags(ctx.rc.params, skip=("factors",)) + ["--representation", ctx.inp("representation")]
@@ -172,7 +172,7 @@ def probes(ctx: StageContext) -> dict:
     return dict(outputs=_outputs(out, ctx, meta=False))
 
 
-@register("pointer", "edits", source="learned")
+@register_stage("pointer", "edits", source="learned")
 def edits(ctx: StageContext) -> dict:
     """Causal packet edits: probe-guided retargeting of a received packet, realised by system 0 in closed loop."""
     extra = _flags(ctx.rc.params, skip=("factors",)) + ["--representation", ctx.inp("representation"), "--flow", ctx.inp("flow")]
@@ -292,14 +292,14 @@ def _evaluate(ctx: StageContext, kind: str) -> dict:
     return dict(outputs=outs, metrics=metrics)
 
 
-@register("pointer", "eval_r1", source="oracle")
+@register_stage("pointer", "eval_r1", source="oracle")
 def eval_r1(ctx: StageContext) -> dict:
     """R1 rung (ORACLE, diagnostic): teacher chunk -> encoder -> system 0. With inputs.representation the system 0 is the
     LEARNED realizer, without it the SCRIPTED engineered one."""
     return _evaluate(ctx, "pointer_oracle")
 
 
-@register("pointer", "eval_r2", source="learned")
+@register_stage("pointer", "eval_r2", source="learned")
 def eval_r2(ctx: StageContext) -> dict:
     """Deployable route on the split's seeds: options.policy pointer_latent (default) | pointer_bc."""
     kind = ctx.opts.get("policy", "pointer_latent")

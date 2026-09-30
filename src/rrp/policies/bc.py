@@ -12,11 +12,13 @@ import numpy as np
 import torch
 
 from rrp.core.action import ActionChunk, GroupCommand
+from rrp.policies.bundles import require_stamp
 from rrp.policies.features.featurizer import featurizer_for
 from rrp.policies.nets.checkpoint import load_checkpoint
 from rrp.policies.nets.batch import collate_inputs
 from rrp.policies.nets.codec import ActionCodec, CodecConfig
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
+from rrp.policies.relations.base import resolve
 
 
 @dataclass
@@ -48,10 +50,13 @@ class LearnedPolicy:
         self.blend = BlendConfig(chunk_blend, blend_ticks, blend_decay)   # D-126 #7; "none" = historical chunks
 
     @classmethod
-    def from_checkpoint(cls, path, device="cpu", **kw):
+    def from_checkpoint(cls, path, device="cpu", allow_factor_mismatch: bool = False, **kw):
         st = load_checkpoint(path, map_location=device)
         cfg = st["config"]
-        model = FlowPolicy(PolicyConfig.from_dict(cfg["policy"])).to(device)
+        pc = PolicyConfig.from_dict(cfg["policy"])
+        require_stamp(st.get("versions"), pc.specs(), resolve(None, default="arm", family=pc.family),
+                      allow_mismatch=allow_factor_mismatch, what=str(path))
+        model = FlowPolicy(pc).to(device)
         model.load_state_dict(st["model"])
         codec = None
         if cfg.get("codec_checkpoint"):

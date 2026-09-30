@@ -8,12 +8,14 @@ import numpy as np
 import torch
 
 from rrp.core.latent_action import LatentActionChunk, AssemblyHandle, EntityHandle
+from rrp.policies.bundles import require_stamp
 from rrp.policies.features.featurizer import cached_featurizer
 from rrp.policies.features.multi import assembly_handles, multi_featurizer
 from rrp.policies.nets.checkpoint import load_checkpoint
 from rrp.policies.nets.batch import collate_inputs
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 from rrp.policies.nets.latent_batch import assembly_batch
+from rrp.policies.relations.base import resolve
 
 
 class LatentPolicy:
@@ -31,7 +33,7 @@ class LatentPolicy:
         self.latencies = []
 
     @classmethod
-    def from_checkpoint(cls, path, device="cpu", **kw):
+    def from_checkpoint(cls, path, device="cpu", allow_factor_mismatch: bool = False, **kw):
         st = load_checkpoint(path, map_location=device)
         rep = load_checkpoint(st["config"]["representation"], map_location="cpu")
         # training snapshots (policy_last.pt) carry no result: versions come from the representation
@@ -39,6 +41,8 @@ class LatentPolicy:
         from rrp.policies.nets.semantic_latent import LatentConfig
         lcfg = LatentConfig(**rep["config"]["latent"])
         pc = PolicyConfig.from_dict(dict(st["config"]["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz))
+        require_stamp(st.get("versions"), pc.specs(), resolve(None, default="arm", family=pc.family),
+                      allow_mismatch=allow_factor_mismatch, what=str(path))
         m = FlowPolicy(pc).to(device)
         m.load_state_dict(st["model"])
         from rrp.policies.system0 import bundle_versions, is_fingerprinted

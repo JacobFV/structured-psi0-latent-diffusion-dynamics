@@ -244,6 +244,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv=None):
+    if os.environ.get("RRP_RUN_CONTEXT"):       # a descendant of a pipeline stage runs under that stage's RunConfig (14.2)
+        from rrp.harness.pipelines.base import apply_run_context
+        apply_run_context()
     from rrp.cli import tools
     handled, code = tools.dispatch(list(sys.argv[1:] if argv is None else argv))
     if handled:
