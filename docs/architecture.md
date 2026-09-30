@@ -497,3 +497,157 @@ estimated; privileged values live only in `labels`) and apply factors through `F
 deployable policy refuses `gt` sources. Labels are written once against `envs.base.StateView`; scene parts compose
 (`compose`) under a progressive `Curriculum` in the one `relations_data` stage.
 
+## 13. repository schema (D-145; manifest `schema.toml`, enforced by `tests/unit/test_layout.py`)
+
+One file schema for the whole repository. Every tracked path must match `schema.toml`; anything else is either
+re-expressed in the schema or moved under `.old/`. The layout test is xfail until the purge (13.6) lands.
+
+### 13.1 top level
+
+| path | holds | rule |
+|---|---|---|
+| `src/rrp/` | all code (sections 1–6, 12); task graphs as package data `src/rrp/tasks/graphs/*.json` | no program outside the `rrp` CLI |
+| `tests/` | `unit/`, `integration/`, `gpu/`, `browser/`, `data/` (goldens and JSON fixtures only) | tests never read `.old/` |
+| `recipes/` | every run definition: `templates/*.yaml` (DAG templates), `<track>/*.yaml` (thin instances), `presets/*.json` (shared `params` fragments: model sizes, eval protocols) | no hand-written per-run config |
+| `docs/` | `architecture.md`, `relations.md`, `strategy.md`, `experiments_roadmap.md`, `robot_training_considerations.md` | fold, do not add |
+| `research/` | `decisions.md` (append-only, never moved), `registry.jsonl`, `relations_catalog.md`, `sources*.json`, `tasks.json`, `splits/` (sealed splits and paired-data specs), `methods/`, `corrections/`, `reports/evidence_matrix.md`, `tracks/<track>.md` for the tracks in `schema.toml [tracks]` + `BRIEF.md` | a closed track's note moves to `.old/` |
+| `artifacts/` | the append-only evidence store (13.4) | small raw results only; weights / datasets are never tracked |
+| `ops/` | `resource-ledger.jsonl`, `resources.local.json`, `bin/*.sh` (peer transport, asset fetch, external setup: shell that must run without the python env) | runtime state is git-ignored |
+| `viz/` | `room/` (the room), `workbench/` (the loopback workbench UI, was `ui/`), `specs/`, `CONTRACT.md`, `radar_axes.json` | |
+| `.old/` | legacy (13.5) | never read by live code |
+| files | `AGENTS.md`, `CLAUDE.md`, `README.md`, `STATUS.md`, `pyproject.toml`, `schema.toml`, `.gitignore` | |
+
+Removed top-level areas: `configs/`, `dags/`, `scripts/`, `tasks/`, `ui/`.
+
+### 13.2 ontology: what a run is
+
+A run is one stage of an experiment on a point of the axes below; its identity is data, never a file name.
+
+| axis | values come from | today's field |
+|---|---|---|
+| policy | `rrp.policies.base.POLICIES` (`bc`, `latent`, `legged_latent`, `psi0_structured`, `pointer_latent`, ...) | `family` + stage set |
+| env | `rrp.envs.base.ENVS` | `family` |
+| task | `rrp.tasks.spec.TASKS` | recipe `vars.task` |
+| body set | `rrp.bodies` catalog keys / a split in `research/splits/` | recipe `vars.body` / `train_robots` |
+| factor set | `rrp.policies.relations` presets / a `factors:` list; identity = `compat_hash` (`fx-…`). The former `variant` (sem / nosem / semfix) is a factor set (probe readout weights and `lv_min`) | `variant`, `params.*.factors` |
+| seed | integer | `seed` |
+| stage `[-tag]` | `rrp.core.runconfig.PIPELINE_STAGES` | `stage`, `tag` |
+| track / lineage | `schema.toml [tracks]`; lineage = the chain of stages sharing data and representation, named `<policy>-<body set>-<factor set>[-<note>]` | `track`, `lineage` |
+
+- **Run id** = `<track>/<lineage>/<stage>[-<tag>]_s<seed>`; **output** = `artifacts/runs/<run id>/` (already what
+  `RunConfig.out` derives). The run directory holds `config.json` (the rendered `RunConfig`: all axes, flags, params,
+  input run ids, `config_hash`, `versions["factors"]`, git sha) — written by the stage, never by hand.
+- **A run config is rendered, not written.** `RunConfig` (`rrp.core.runconfig`, schema `runconfig-1`) is the one
+  config type; recipes produce it by template + matrix expansion over the axes (`rrp run-dag <recipe> --dry-run`
+  prints every node's config; `--point seed=…` selects). `load_legacy` / `classify_legacy` / `LEGACY_FLAG_DEFAULTS` /
+  `LegacyInfo` are deleted with the configs they read.
+- **Inputs are run ids**, resolved by `artifacts/run_index.json` (aliases of pre-pipeline runs, was
+  `configs/run_index.json`) or directly to `artifacts/<id>`.
+
+### 13.3 recipes
+
+```
+recipes/templates/<family>_<purpose>.yaml    dag-1 templates: arm_lineage, arm_targets_bc, arm_targets_latent, arm_grpo,
+                                             dual_lineage, legged_lineage (gated), legged_heldout, tracker_gated,
+                                             pointer_lineage, psi0_step2, relations_factor
+recipes/<track>/<name>.yaml                  instance: `extends: ../templates/<x>.yaml` + header + vars / matrix only
+recipes/presets/<name>.json                  shared params fragments (policy-small, codec-small, eval protocol latent_slice1)
+```
+
+Instance header (required keys, checked): `name`, `schema`, `track`, `policy`, `env`, `task`, `bodies`, `factors`,
+`extends`; at most 80 lines — a pipeline belongs in a template. `extends` chains (today `arm_lineage_v7div` →
+`v6` → `v2` → `arm_lineage`) are flattened into one template with vars. Per-body copies (`legged_v2_{anymal,go2,
+t1,t1sl}`) and per-version copies (`armexpert_v{4,5,6}dart`, `arm_lineage_v2/v6`) are instances or legacy.
+Overlays (`dags/overlays/*`) become template vars. One-off drivers (`scripts/*_chain.sh`, `humanoid_*.sh`) become
+recipe nodes calling `rrp` commands.
+
+### 13.4 artifacts (tracked vs not)
+
+Tracked: `artifacts/runs/**` result files (`json, jsonl, md, txt, log, gz, out, csv, png`, ≤ 4 MB), `artifacts/video/*`
+(+ `INDEX.md`), `artifacts/trackers/**` (tracker metadata), `artifacts/assets/**`, `artifacts/receipts/**`,
+`artifacts/requirements.json`, `artifacts/run_index.json`. Never tracked: weights, datasets, packed data, episodes
+(`.gitignore`; peer store / `~/work/rrp-data`). The store is append-only evidence: the 170 run directories that
+predate the schema are frozen by name in `schema.toml` (decisions cite their paths; they are not renamed and do not
+move to `.old/`); a new run directory must start with a track name from `[tracks]`.
+
+### 13.5 current vs legacy
+
+| area | CURRENT (stays / re-expressed) | LEGACY (→ `.old/<same path>`) |
+|---|---|---|
+| `configs/` (280) | `model/policy-small-structured.json`, `model/codec-small.json`, `eval/latent_slice1.json`, `eval/primary.json` → `recipes/presets/`; `run_index.json` → `artifacts/`; `resources.local.json` → `ops/` | everything else (ladder, latent, legged_*, adapt, data, t1_diag, vlm, other model files) |
+| `dags/` (39) | `templates/*` → `recipes/templates/` (renamed per 13.3); instances needed by open / paused tracks re-expressed under `recipes/<track>/` | per-lineage and per-version copies, overlays, smoke and parity DAGs |
+| `scripts/` (36) | `peer_*.sh`, `fetch_menagerie.sh`, `psi0_ext.sh` → `ops/bin/`; `export_ui_types.py`, `viz_record_specs.py`, `render_*episode.py`, `humanoid_*_eval.py`, `contact_waypoint_eval.py` → `rrp` tool commands | `demo/`, `armdiv_*`, `humanoid_*.sh`, `render_contact_compare.py` after their recipes exist |
+| `research/` | `decisions.md`, `registry.jsonl`, `relations_catalog.md`, `sources*.json`, `tasks.json`, `splits/` (+ `pairs/` moved in), `methods/`, `corrections/`, `reports/evidence_matrix.md`, `tracks/{humanoid,armdiv,psi0,pointer,relations,BRIEF}.md` | every other `tracks/*.md` and `tracks/*/` (incl. `rel-r*`, `ladder/`, `armdiag/`), `scripts/`, other `reports/`, `naming.md` |
+| `docs/` | the five files of 13.1; sections 7–10 of this page (D-140 delete list, stage table, hand-off, moved paths) move out | `handoff/`, `demo/`, the D-140 tables |
+| `tests/` | everything except: | `tests/data/legacy_scripts/` + `test_ladder_cli_parity.py` (RETIRED: the ports are pinned by goldens) |
+| `ops/` | ledger | `host-preflight-initial.json` |
+| `tasks/`, `ui/` | → `src/rrp/tasks/graphs/`, `viz/workbench/` | – |
+
+Tests and goldens that pin legacy configs:
+
+| test | decision |
+|---|---|
+| `test_dag.py::test_arm_dag_reproduces_legacy_configs`, `test_dag_*`, `test_dag_templates`, `test_d126_*`, `test_dual_v3` | RE-ANCHOR: before any move, record `recipe.<name>` goldens (digest of every rendered node config of each kept recipe) on the current tree, where the existing tests still prove equality with the legacy files; then point the tests at `recipes/` and delete the legacy-equality assertions |
+| `test_runconfig.py` legacy round-trip over `configs/` | RETIRE with `load_legacy`; keep the schema / flag / variant tests on rendered recipe nodes |
+| `test_relations_r2_latent.py` frozen `LatentConfig.version()` table over `configs/**` | RE-ANCHOR to `tests/data/latent_versions.json` (the `latent` dicts + expected versions, generated once from the legacy files): bundle compatibility IDs of existing checkpoints stay pinned |
+| `test_legged_frozen_latent.py` (`configs/legged_fixsem`) | RE-ANCHOR to the rendered `legged_lineage` recipe nodes |
+| `test_ladder_cli_parity.py` | RETIRE |
+| `tests/data/golden.json` | unchanged except the added `recipe.*` keys |
+
+Tracks (`schema.toml [tracks]`): `humanoid` (W13, paused), `armdiv` (paused), `psi0` (paused: structured-arm fix),
+`pointer` (paused: follow-ups; note `research/tracks/cworld.md` is renamed), `relations` (open). Each paused track's
+RESUME section is rewritten as recipe commands (`rrp run-dag recipes/<track>/<name>.yaml [--point …]`) BEFORE its
+legacy DAGs / scripts move. All other tracks are closed: their notes move to `.old/`, their decisions stay in
+`research/decisions.md`.
+
+### 13.6 purge units (each: layout test for its area green, unit suite green, `rrp run-dag --dry-run` of every kept recipe)
+
+| id | unit | deps | owns |
+|---|---|---|---|
+| P1 | recipe goldens + templates | – | `dags/**` → `recipes/templates/**`, `harness/dag.py` (recipe root, `extends`), `tests/unit/test_dag*.py`, `test_d126_*.py`, `test_dual_v3.py`, `test_legged_frozen_latent.py`, `.old/dags/` |
+| P2 | configs purge + RunConfig legacy removal | P1 | `configs/**`, `recipes/presets/`, `artifacts/run_index.json`, `ops/resources.local.json`, `core/runconfig.py`, `tests/unit/test_runconfig.py`, `test_relations_r2_latent.py`, `tests/data/latent_versions.json`, config path literals in `cli/{latent,train}.py`, `harness/eval/target_eval.py`, `harness/pipelines/arm.py`, `harness/train/{baseline_campaign,tracker_training}.py`, `.old/configs/` |
+| P3 | scripts purge | – | `scripts/**`, `ops/bin/`, `cli/tools.py` (new tool entries), script path literals in `harness/dag.py` (peer_run only, after P1) and `harness/pipelines/legged.py`, `tests/unit/test_provenance.py`, `tests/integration/test_ui_contract.py`, `tests/conftest.py`, `.old/scripts/` |
+| P4a | humanoid recipes | P1, P3 | `recipes/humanoid/`, `research/tracks/humanoid.md` |
+| P4b | armdiv recipes | P1, P3 | `recipes/armdiv/`, `research/tracks/armdiv.md` |
+| P4c | psi0 + pointer recipes | P1, P3 | `recipes/psi0/`, `recipes/pointer/`, `recipes/templates/{psi0_step2,pointer_lineage}.yaml`, `research/tracks/{psi0,pointer}.md` (`cworld.md` renamed) |
+| P4d | relations recipes | P1 | `recipes/relations/`, `recipes/templates/relations_factor.yaml`, `research/tracks/relations.md` (new; folds the open items of `rel-*.md`) |
+| P5 | research purge | P4a–d | `research/**` except the P4 notes and `decisions.md`; `viz/export/{knowledge,scan,dags,psi0}.py` path literals; docstring references to moved notes in tests; `.old/research/` |
+| P6 | tasks + workbench move | – | `tasks/` → `src/rrp/tasks/graphs/`, `ui/` → `viz/workbench/`, `pyproject.toml`, `core/paths.py`, `tests/browser/`, `viz/workbench` references |
+| P7 | tests + ops leftovers | – | `tests/data/legacy_scripts/`, `tests/unit/test_ladder_cli_parity.py`, `ops/host-preflight-initial.json`, `.old/tests/`, `.old/ops/` |
+| P8 | docs + top-level | P1–P7 | `docs/**`, `README.md`, `STATUS.md`, `AGENTS.md`, `CLAUDE.md`, `.old/docs/`, `.old/README.md` (final index), every remaining textual reference to a moved path |
+| P9 | close | P8 | remove the xfail marker in `tests/unit/test_layout.py`; dry-run every recipe; record the result under D-145 |
+
+Briefs:
+- **P1.** First commit: add `recipe.<name>` goldens — for each DAG that 13.5 keeps (all of `dags/templates/*` and
+  the instances the open / paused tracks name in their RESUME sections: `arm_lineage_v7div*`, `armdiv_*_v7div*`,
+  `d126_tracker_*`, plus one instance per template for coverage), digest every rendered node config
+  (`harness.dag` expansion, sorted JSON) into `tests/data/golden.json` on the UNCHANGED tree. Then `git mv` templates to
+  `recipes/templates/` with the 13.3 names, flatten `extends` chains into template vars, make the DAG loader resolve
+  recipes from `recipes/`, move every other DAG to `.old/dags/` (with `.old/dags/README.md`: group → what → citing
+  decisions). The goldens must not change; delete the legacy-equality assertions only after that.
+- **P2.** Move `configs/**` to `.old/configs/` (README by group: ladder / latent / legged_* / adapt / data / t1_diag /
+  vlm / model, with the decisions that cite them). Before moving, generate `tests/data/latent_versions.json` from the
+  latent configs and re-anchor `test_relations_r2_latent.py` on it. Presets, run index and resources move as in
+  13.5; update the path literals listed. Delete `load_legacy`, `classify_legacy`, `_legacy_variant`,
+  `iter_legacy_configs`, `LEGACY_FLAG_DEFAULTS`, `LegacyInfo`, `LEGACY_ONLY_STAGES` and their tests.
+- **P3.** `git mv` the transport / fetch scripts to `ops/bin/` and fix callers; turn the listed python scripts into
+  `rrp` tool commands (`cli/tools.py` table; module under the package that owns the logic; no `__main__`); move the
+  rest to `.old/scripts/` with a README. Do not move a script a paused track's RESUME still names until P4 has
+  replaced it (coordinate through the merge lock: P4 units delete those lines).
+- **P4a–c.** For the track, read its note's RESUME section and write `recipes/<track>/*.yaml` instances (header per
+  13.3) whose nodes are the exact commands of the resume steps, as `rrp` commands; rewrite the RESUME section as
+  `rrp run-dag recipes/<track>/<name>.yaml …` lines; `--dry-run` each and paste the node list into the note. No
+  training, no simulation (host rules).
+- **P4d.** New track `relations`: a template running `relations_data` → arm flow training with a factor-set axis →
+  probe / interference report; instances for the first-wave presets (`geo`, `ix`, `task`, `ui`); note
+  `research/tracks/relations.md` with the open items collected from `rel-*.md` lead_questions.
+- **P5.** Move closed-track notes and their subdirectories, `research/scripts/`, superseded reports and `naming.md`
+  to `.old/research/` (README table: track → what → decisions → state at closure); move `pairs/` into `splits/`
+  (update `configs/data` consumers if any remain live); fix exporter path literals so the room reads only open tracks.
+- **P6.** Task graphs become package data (`data_path` reads `rrp/tasks/graphs`; drop the wheel force-include);
+  `ui/` moves to `viz/workbench/` with its build / test paths.
+- **P7.** Retire the ladder CLI parity test and its frozen scripts; move the initial preflight record.
+- **P8.** Move `docs/handoff/`, `docs/demo/` and sections 7–10 of this page to `.old/docs/`; fold the still-binding
+  handoff rules into `AGENTS.md`; rewrite `README.md` / `STATUS.md` to the schema; finish `.old/README.md`; grep the
+  tree for every removed top-level path and fix or delete the reference.
+

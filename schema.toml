@@ -1,0 +1,104 @@
+# Repository schema (D-145; docs/architecture.md section 13). The ONE file schema of this repo: every tracked path must
+# match an `allow` pattern below; tests/unit/test_layout.py enforces it. Glob syntax: `*` = one path segment (no "/"),
+# `**` = any depth. Legacy material lives only under `.old/` (mirrors its old path; never read by live code).
+version = "repo-schema-1"
+
+[top]
+files = ["AGENTS.md", "CLAUDE.md", "README.md", "STATUS.md", "pyproject.toml", "schema.toml", ".gitignore"]
+dirs = ["src", "tests", "recipes", "docs", "research", "artifacts", "ops", "viz", ".old"]
+
+# ------------------------------------------------------------------ experiment identity
+# track = one line of work (research/tracks/<track>.md, recipes/<track>/, artifacts/runs/<track>/).
+# state: open (running / resumable now) | paused (owner wants it; resume recipe in recipes/<track>/) .
+# A track that closes moves its note and recipes to .old/ and leaves this table.
+[tracks]
+humanoid = { state = "paused", workstream = "W13", decisions = ["D-138", "D-139"] }
+armdiv = { state = "paused", workstream = "W7/armdiv", decisions = ["D-137"] }
+psi0 = { state = "paused", workstream = "W10", decisions = ["D-141"] }
+pointer = { state = "paused", workstream = "pointer / ComputerWorld", decisions = ["D-142"] }
+relations = { state = "open", workstream = "relation-factor experiments", decisions = ["D-144"] }
+
+# ------------------------------------------------------------------ allowed paths per area
+[area.src]
+allow = ["src/rrp/*.py", "src/rrp/**/*.py", "src/rrp/tasks/graphs/*.json"]
+
+[area.tests]
+allow = ["tests/__init__.py", "tests/conftest.py", "tests/support.py", "tests/unit/__init__.py", "tests/unit/test_*.py", "tests/unit/_*.py",
+         "tests/integration/__init__.py", "tests/integration/test_*.py", "tests/gpu/test_*.py",
+         "tests/browser/*", "tests/data/golden.json", "tests/data/*.json"]
+
+[area.recipes]
+# run definitions: DAG templates + thin instances; no hand-written per-run config files.
+allow = ["recipes/README.md", "recipes/templates/*.yaml", "recipes/presets/*.json", "recipes/*/*.yaml"]
+header = ["name", "schema", "track", "policy", "env", "task", "bodies", "factors"]   # required top-level keys (instances)
+instance_max_lines = 80                                                               # instances carry vars, not pipelines
+
+[area.docs]
+allow = ["docs/architecture.md", "docs/relations.md", "docs/strategy.md", "docs/experiments_roadmap.md",
+         "docs/robot_training_considerations.md"]
+
+[area.research]
+allow = ["research/decisions.md", "research/registry.jsonl", "research/relations_catalog.md",
+         "research/sources.lock.json", "research/sources.vlm.json", "research/tasks.json",
+         "research/splits/*.json", "research/methods/*.md", "research/corrections/*.md",
+         "research/reports/evidence_matrix.md", "research/tracks/BRIEF.md", "research/tracks/*.md"]
+# research/tracks/<name>.md: <name> must be a key of [tracks]
+
+[area.artifacts]
+# append-only evidence store: small raw results cited by decisions / reports. Never weights or datasets (.gitignore).
+allow = ["artifacts/requirements.json", "artifacts/run_index.json", "artifacts/runs/**", "artifacts/video/*",
+         "artifacts/trackers/**", "artifacts/assets/**", "artifacts/receipts/**"]
+run_extensions = ["json", "jsonl", "md", "txt", "log", "gz", "out", "csv", "png"]
+max_bytes = 4000000
+# new runs: artifacts/runs/<track>/<lineage>/<stage>[-tag]_s<seed>/ with <track> in [tracks]. The run directories
+# below predate the schema; they are frozen (citations in research/decisions.md point at them) and may not grow.
+oversize_frozen = ["artifacts/runs/armexpert/v6dart/collect-v6dart_s1/manifest.json",
+                   "artifacts/runs/armexpert/v5dart/collect-v5dart_s1/manifest.json"]
+frozen_runs = [
+  "acceptance_causal_sem_v1i", "acceptance_latency", "acceptance_semantic_sem_v1rep", "acceptance_semantic_teacher", "acceptance_sprint_arm_teacher", "acceptance_sprint_arm_v4nosem_oracle",
+  "acceptance_sprint_arm_v4sem_oracle", "acceptance_sprint_sem_b1fix_oracle", "acceptance_sprint_sem_bc18k_parm6", "acceptance_sprint_sem_bc_paired", "acceptance_sprint_sem_bc_pp", "acceptance_sprint_sem_best_orcbc",
+  "acceptance_sprint_sem_gen_jf_panda", "acceptance_sprint_sem_gen_jf_parm6", "acceptance_sprint_sem_gen_jf_parm6_ext", "acceptance_sprint_sem_teacher_paired", "acceptance_sprint_sem_teacher_pp", "acceptance_sprint_sem_v4nosem_oracle",
+  "acceptance_sprint_sem_v4sem_oracle", "adapt_expo_suffix_xarm7pg2_v3", "adapt_expo_suffix_xarm7pg2_v4", "adapt_expo_xarm7pg2_v1", "adapt_grpo_exact_suffix_xarm7pg2_v4", "adapt_grpo_prefix_suffix_xarm7pg2_v3",
+  "adapt_grpo_suffix_xarm7pg2_v3", "adapt_grpo_xarm7pg2_v1", "adapt_start_bc_xarm7pg2_only_v1", "adapt_start_bc_xarm7pg2_only_v2", "adapt_start_bc_xarm7pg2_v1", "adapt_synthetic_v1",
+  "armdiag", "armexpert", "armexpert_bcv2", "armexpert_bcv2_eval", "armexpert_diag", "armexpert_gc2eval",
+  "armexpert_gc2eval_ckpt_sha.txt", "armexpert_grasp", "baselines_bc_ladder", "baselines_bcsem_final", "baselines_bcsem_u12000", "binding_diag",
+  "binding_latent_sem_v2", "binding_v1_reeval", "contact_v2", "d126deploy_smoke", "dev3_structured_direct", "dev4_structured_direct_snap",
+  "dev6_structured_medium", "dualarm_teacher_ref", "ladder_dagger_bc1", "ladder_dagger_bc2", "ladder_dagger_gen1", "ladder_flow_jointfix",
+  "ladder_flow_jointfix_gdag1", "ladder_flow_jointfix_gdag2h", "ladder_flow_jointfix_gdag3h", "ladder_latent_sem_b1fix_anchor", "ladder_rz_bindv4nosem_bcdag1", "ladder_rz_bindv4sem_bcdag1",
+  "ladder_rz_jointfix_bcdag1", "ladder_rz_jointfix_bcdag1_long", "ladder_rz_jointfix_bcdag2", "ladder_rz_jointfix_big32k", "ladder_rz_jointfix_big_pack", "ladder_rz_jointfix_dagger1",
+  "ladder_rz_jointfix_gendag1_noqd", "ladder_rz_jointfix_gendag2_noqd", "ladder_rz_jointfix_gendag3_noqd", "ladder_rz_jointfix_noqd", "ladder_rz_jointfix_znoise", "ladder_smoke",
+  "ladder_v1", "latent_nosem_v1", "latent_scale_analysis.json", "latent_sem_v1", "latent_slice1_b1fix", "lead_latency_final",
+  "lead_teacher_reanchor", "legged_bc_go2_v1", "legged_edits", "legged_fixrep_compare_go2.json", "legged_fixrep_compare_go2.md", "legged_fixrep_compare_hexapod6.json",
+  "legged_fixrep_compare_hexapod6.md", "legged_fixrep_flow_fixsem_go2_s1", "legged_fixrep_flow_fixsem_go2_s2", "legged_fixrep_flow_fixsem_hexapod6_s1", "legged_fixrep_flow_fixsem_hexapod6_s2", "legged_fixrep_flow_nosem_go2_s1",
+  "legged_fixrep_flow_nosem_go2_s2", "legged_fixrep_flow_nosem_hexapod6_s1", "legged_fixrep_flow_nosem_hexapod6_s2", "legged_fixrep_rep_fixsem_go2_s1", "legged_fixrep_rep_fixsem_go2_s2", "legged_fixrep_rep_fixsem_hexapod6_s1",
+  "legged_fixrep_rep_fixsem_hexapod6_s2", "legged_fixrep_rep_nosem_go2_s1", "legged_fixrep_rep_nosem_go2_s2", "legged_fixrep_rep_nosem_hexapod6_s1", "legged_fixrep_rep_nosem_hexapod6_s2", "legged_fixsem_compare_go2.json",
+  "legged_fixsem_compare_go2.md", "legged_fixsem_compare_hexapod6.json", "legged_fixsem_compare_hexapod6.md", "legged_fixsem_diag", "legged_fixsem_flow_sem_go2_lv4", "legged_fixsem_flow_sem_hexapod6_lv4",
+  "legged_fixsem_rep_sem_go2_lv4", "legged_fixsem_rep_sem_hexapod6_lv4", "legged_fixsem_video", "legged_gate", "legged_ladder", "legged_parity_go2",
+  "legged_rep_nosem_go2_v2", "legged_rep_nosem_hexapod6_v2", "legged_rep_nosem_t1_v2", "legged_rep_nosem_t1_v2s1", "legged_rep_nosem_t1_v2s2", "legged_rep_nosem_t1_v2s3",
+  "legged_rep_sem_go2_v2", "legged_rep_sem_hexapod6_v2", "legged_rep_sem_t1_v2", "legged_rep_sem_t1_v2s1", "legged_rep_sem_t1_v2s2", "legged_rep_sem_t1_v2s3",
+  "legged_rz_nosem_t1_dag1", "legged_rz_nosem_t1_dag2", "legged_rz_nosem_t1s1_dag1", "legged_rz_sem_t1_dag1", "legged_rz_sem_t1_dag2", "legged_rz_sem_t1s1_dag1",
+  "legged_vlm_dataset_summary.json", "legged_vlm_rep_nosem_v1", "legged_vlm_rep_sem_v1", "legged_vlm_system2_smoke", "legged_vlm_teacher_ref", "pipeline",
+  "pointer_s1", "pointer_v1", "provenance_smoke", "psi0mig_diag", "restructure_ckpt_audit", "restructure_parity",
+  "robust", "s5_matrix", "sprint_bodies_teacher_ref", "support_insert_smoke", "t1_diag", "t1_edits_compare_policy.json",
+  "t1_edits_compare_policy.md", "t1_edits_compare_snap_s4000.json", "t1_edits_compare_snap_s4000.md", "t1_edits_video", "t1diag_flow_sem_lv4", "t1diag_flow_sem_lv4_s1",
+  "t1diag_flow_sem_lv4_s3", "t1diag_flow_sem_w0", "t1diag_rep_sem_lv4", "t1diag_rep_sem_lv4_s1", "t1diag_rep_sem_lv4_s3", "t1diag_rz_nosem_ctl",
+  "t1diag_rz_nosem_ctl12k", "t1diag_rz_nosem_genz", "t1diag_rz_sem_ctl", "t1diag_rz_sem_ctl12k", "t1diag_rz_sem_genz", "teacher_reference",
+  "w12_dualaudit", "w12_smoke"
+]
+
+[area.ops]
+allow = ["ops/resource-ledger.jsonl", "ops/resources.local.json", "ops/bin/*.sh"]
+
+[area.viz]
+allow = ["viz/CONTRACT.md", "viz/radar_axes.json", "viz/specs/*.yaml", "viz/room/**", "viz/workbench/**"]
+
+[area.old]
+allow = [".old/README.md", ".old/**"]
+groups_need_readme = true        # every .old/<group>/ has a README.md: what it was, which decisions cite it, moved-in commit
+
+# ------------------------------------------------------------------ live code never reads legacy
+[forbid]
+# string literals in live trees that point at removed top-level areas or at .old
+live_trees = ["src", "tests", "recipes", "ops/bin"]
+patterns = ["\\.old/", "[\"'](configs|dags|scripts|tasks|ui)/"]
+exempt = ["tests/unit/test_layout.py"]
