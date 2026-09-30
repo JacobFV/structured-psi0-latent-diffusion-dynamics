@@ -46,7 +46,11 @@ class LearnedTracker:
         st = torch.load(str(path), map_location="cpu", weights_only=False)
         meta = st["meta"]
         self.morph = None
-        if meta.get("obs_format") == "morph_v1":        # W13 shared morphology-conditioned tracker (rrp.envs.morph_obs)
+        # U1: the actor also reads the upper-body joint state (binding.upper_obs), appended after the extra block
+        self.upper_obs = bool(meta.get("upper_obs"))
+        if meta.get("obs_format") == "morph_v1":
+            if self.upper_obs:
+                raise TrackerMismatch("morph_v1 trackers have no upper-body block (upper_obs)")        # W13 shared morphology-conditioned tracker (rrp.envs.morph_obs)
             from rrp.envs.mujoco.morph_obs import OBS_DIM, NS, MorphSpec
             if meta["obs_dim"] != OBS_DIM + int(meta.get("extra_obs_dim") or 0) or meta["act_dim"] != NS:
                 raise TrackerMismatch("morph_v1 tracker dims do not match rrp.envs.morph_obs")
@@ -54,7 +58,8 @@ class LearnedTracker:
             self.transfer = body_key not in (meta.get("train_bodies") or [])   # evaluated on a body it never trained on
         elif meta["body"] != body_key:
             raise TrackerMismatch(f"tracker trained for {meta['body']}, not {body_key}")
-        elif meta["act_dim"] != binding.n or meta["obs_dim"] != binding.obs_dim + int(meta.get("extra_obs_dim") or 0):
+        elif meta["act_dim"] != binding.n or meta["obs_dim"] != (binding.obs_dim + int(meta.get("extra_obs_dim") or 0)
+                                                                  + (binding.upper_dim if self.upper_obs else 0)):
             raise TrackerMismatch("tracker dims do not match body binding")
         self.meta = meta
         # W13 task experts: PRIVILEGED extra inputs (e.g. a height scan) appended to the observation; the caller sets
@@ -123,6 +128,8 @@ class LearnedTracker:
         o = self.b.public_obs(data, cmd, self.last_a, self.phase, bool(self.meta.get("clock_gate")))
         if self.extra_fn is not None:
             o = np.concatenate([o, self.extra_fn(data)]).astype(np.float32)
+        if self.upper_obs:
+            o = np.concatenate([o, self.b.upper_obs(data)]).astype(np.float32)
         x = np.clip((o - self.mean) / self.std, -5, 5).astype(np.float32)
         with self.torch.no_grad():
             a = self.net(self.torch.from_numpy(x)[None])[0].numpy().astype(np.float64)

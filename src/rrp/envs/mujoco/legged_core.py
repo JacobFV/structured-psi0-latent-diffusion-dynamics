@@ -67,6 +67,9 @@ class LeggedBinding:
         self.pol_dadr = model.jnt_dofadr[pj]
         hj = model.actuator_trnid[self.held_act, 0] if len(self.held_act) else np.zeros(0, int)
         self.held_qadr = model.jnt_qposadr[hj] if len(hj) else np.zeros(0, int)
+        self.held_dadr = model.jnt_dofadr[hj] if len(hj) else np.zeros(0, int)
+        self.held_lo = model.actuator_ctrlrange[self.held_act, 0].copy() if len(hj) else np.zeros(0)
+        self.held_hi = model.actuator_ctrlrange[self.held_act, 1].copy() if len(hj) else np.zeros(0)
         jn = lambda j: model.joint(j).name[len(prefix):]
         self.q0 = np.array([L["default_pose"][jn(j)] for j in pj])
         self.q0_held = np.array([L["default_pose"][jn(j)] for j in hj]) if len(hj) else np.zeros(0)
@@ -133,6 +136,7 @@ class LeggedBinding:
         return L["nominal_height"]
 
     obs_dim = property(lambda self: 3 + 3 + 3 + 3 * self.n + 2)
+    upper_dim = property(lambda self: 2 * len(self.held_act))        # U1: the upper-body joint state block (q - q0, qdot * 0.05)
     priv_dim = property(lambda self: 3 + 1 + self.nf + 2)
 
     def set_default(self, d: mujoco.MjData, z: float | None = None, xy=(0.0, 0.0), yaw: float = 0.0,
@@ -160,6 +164,31 @@ class LeggedBinding:
         g = quat_rotate_inv(quat, np.array([0, 0, -1.0]))
         return np.concatenate([gyro * 0.25, g, np.asarray(cmd) * CMD_SCALE, d.qpos[self.pol_qadr] - self.q0,
                                d.qvel[self.pol_dadr] * 0.05, last_action, clock_features(phase, cmd, clock_gate)]).astype(np.float32)
+
+    def upper_obs(self, d: mujoco.MjData) -> np.ndarray:
+        """U1 (actor meta `upper_obs`): the upper-body (held-actuator group `upper`) joint state, appended AFTER the proprio block
+        and the optional terrain scan: q - q_default, qdot * 0.05. Same layout in LeggedSession and the Warp env."""
+        return np.concatenate([d.qpos[self.held_qadr] - self.q0_held, d.qvel[self.held_dadr] * 0.05]).astype(np.float32)
+
+    def payload_bodies(self) -> np.ndarray:
+        """U1: bodies that carry the training payload (a hand-held load): the leaves of the `upper` kinematic tree that sit
+        laterally off the root axis at the default pose (|y| > 0.08 m in the root frame): the two hands / wrists / forearms; the
+        head, neck and waist leaves lie on the axis and are excluded. Name-independent; empty without an upper group."""
+        if not hasattr(self, "_payload_bids"):
+            m = self.model
+            hb = [int(m.jnt_bodyid[m.actuator_trnid[a, 0]]) for a in self.held_act]
+
+            def ancestors(x):
+                while x > 0:
+                    x = int(m.body_parentid[x])
+                    yield x
+            leaves = [x for x in hb if not any(x in set(ancestors(y)) for y in hb if y != x)]
+            d = mujoco.MjData(m)
+            self.set_default(d, z=1.0)
+            mujoco.mj_kinematics(m, d)
+            rel = lambda x: abs(float(d.xpos[x][1] - d.xpos[self.root_bid][1]))
+            self._payload_bids = np.array(sorted(x for x in leaves if rel(x) > 0.08), dtype=int)
+        return self._payload_bids
 
     def targets(self, action, ref=None, target_margin: float = 0.0) -> np.ndarray:
         """target_margin (W13, actor meta): clip targets to [lo + m span, hi - m span] (0 = the servo range, unchanged)."""

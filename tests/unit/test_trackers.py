@@ -279,6 +279,7 @@ class _FakeEnv:
         self.N, self.nf, self.nA, self.dt = N, 2, 3, 0.02
         self.b = type("B", (), dict(kind="biped", obs_dim=10, priv_dim=4))()
         self.extra_dim = extra_dim
+        self.upper_dim = 0
         self.obs_dim, self.priv_dim = 10 + extra_dim, 4 + 1 + extra_dim
         self.meta = dict(contact_model="contact_v2", actuator_limits="sourced_v1")
         self.adaptations = []

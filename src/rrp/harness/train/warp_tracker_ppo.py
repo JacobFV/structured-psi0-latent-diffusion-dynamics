@@ -95,6 +95,11 @@ def build_args(argv=None):
                     "gap (h_gap expert; privileged gap terms in the critic only), rrp.envs.warp.task_env")
     ap.add_argument("--terrain-scan", action="store_true", help="append the public terrain_scan_v1 (D-146) to the actor input "
                     "(always on for --task steps)")
+    ap.add_argument("--upper-body", action="store_true", help="U1 wholebody training: random upper-body (arms, waist, head) targets "
+                    "and a payload in the sim, the upper joint state appended to the actor input (actor meta upper_obs)")
+    ap.add_argument("--upper-amp", type=float, default=0.4, help="upper-body goal offset, fraction of each joint's half range")
+    ap.add_argument("--upper-speed", type=float, default=1.5, help="upper-body target slew limit, rad/s")
+    ap.add_argument("--payload-frac", type=float, default=0.08, help="max payload as a fraction of the robot mass")
     ap.add_argument("--level-every", type=int, default=25, help="task curriculum window (iterations)")
     ap.add_argument("--level-up", type=float, default=0.7, help="window success rate to raise the task level")
     ap.add_argument("--level-down", type=float, default=0.3)
@@ -123,7 +128,8 @@ def make_env(args):
                turn_frac=args.turn_frac, slow_frac=args.slow_frac, nconmax=args.nconmax, njmax=args.njmax,
                teacher_stop=args.teacher_stop, clock_gate=args.clock_gate, target_margin=args.target_margin,
                land_vel=args.land_vel, force_cap=args.force_cap, force_cap_bw=args.force_cap_bw,
-               terrain_scan=args.terrain_scan)
+               terrain_scan=args.terrain_scan, upper_body=args.upper_body, upper_amp=args.upper_amp,
+               upper_speed=args.upper_speed, payload_frac=args.payload_frac)
     groups = None
     env_cls = None
     if args.task == "steps":
@@ -206,9 +212,11 @@ def train(args, env, *, groups=None, dev, engine: str):
     meta = dict(body=args.body or "shared", obs_dim=env.obs_dim, priv_dim=env.priv_dim, act_dim=env.nA, control_dt=env.dt, hidden=list(hidden),
                 kind=env.b.kind, algo="ppo_asymmetric_actor_critic",
                 actor_inputs="public: imu gyro, imu gravity, command, joint pos/vel, last action, gait clock"
-                             + (", terrain_scan_v1 (sensor model: noise, dropout, 1-tick latency)" if env.extra_dim else ""),
+                             + (", terrain_scan_v1 (sensor model: noise, dropout, 1-tick latency)" if env.extra_dim else "")
+                             + (", upper-body joint state (q - q0, qdot)" if env.upper_dim else ""),
                 critic_inputs="public + privileged: base lin vel, height, foot contacts, friction, push flag + reward-schedule alpha"
-                              + (", exact noise-free terrain scan" if env.extra_dim else "") + (", task terms" if args.task else ""),
+                              + (", exact noise-free terrain scan" if env.extra_dim else "") + (", task terms" if args.task else "")
+                              + (", payload fraction, upper-body target offset" if env.upper_dim else ""),
                 source_label="learned_tracker (trained with privileged critic)", args={k: v for k, v in vars(args).items()
                                                                                        if k != "recipe_record"},
                 contact_model=env.meta.get("contact_model"), reward_version="gait_v2", init_from=args.init_shared,
@@ -225,6 +233,8 @@ def train(args, env, *, groups=None, dev, engine: str):
                 gpu=(torch.cuda.get_device_name(0) if dev.type == "cuda" else str(dev)))
     if env.extra_dim:
         meta["terrain_scan"] = terrain_scan_spec()
+    if env.upper_dim:
+        meta.update(upper_obs=True, upper_body=env.upper_meta())
     if groups is not None:
         from rrp.envs.mujoco.morph_obs import OBS_FORMAT
         meta.update(obs_format=OBS_FORMAT, groups=groups, train_bodies=sorted({k for ks, _ in groups for k in ([ks] if isinstance(ks, str) else ks)}),

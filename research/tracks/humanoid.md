@@ -421,3 +421,20 @@ DAG humanoid_tracker_gate_pool: 6 nodes (source recipes/humanoid/tracker_gate_po
   anything is written. One output directory holds one task (`assert_one_task`). Test: `tests/unit/test_legged_collect_tasks.py`.
 - Open: h_steps / h_gap have `TaskSpec.max_steps=None` (set in `tasks/humanoid.py`, U2); M2/M3/C1 graphs with >3 events or >2 targets need a
   wider `EVENT_SLOTS`/`GLOBAL_DIM` (touches HL/HX nets).
+
+## U1 (D-146, 2026-09-30): upper-body control `control="wholebody"`
+- `LeggedSession(control="wholebody")` (MuJoCo) = `legs` plus the `upper` joint_position group (the body's held joints: arms, waist, head), both 50 Hz,
+  PD through the same actuators. A command carries either or both groups; a group left out keeps its last target (default stance after reset);
+  `upper` is clipped to the held actuator ctrlrange; `legs`-only commands are bit-identical to `control="legs"` (test). Held-joint counts: t1 11,
+  g1 17, h1 9, op3 8, apollo 20, adam_lite 13, n1 11, talos 20, phum_0 9. `perturb.install_legged` replaces the tick and holds `upper` at the default
+  pose, so wholebody + that hook raises RuntimeError instead of silently ignoring the target.
+- Tracker observation: an actor whose meta says `upper_obs` reads the upper joint state `(q - q0, qdot * 0.05)` appended AFTER the terrain block
+  (`LeggedBinding.upper_obs`, `LearnedTracker`; dims checked; morph_v1 refuses it), so `init_shared` warm starts zero-pad the new columns.
+- Warp (`WarpTrackerEnv(upper_body=True)`, trainer `--upper-body --upper-amp --upper-speed --payload-frac`): the upper joints follow a RANDOM
+  slew-limited target trajectory (goal every 1-3 s, 20 % rest), a random payload in [0, 8 % of the robot mass] is added on the two hand-side bodies
+  (mass plus a 0.1 m point-load inertia), the actor sees the upper state, the critic also sees payload fraction and target offset. Meta: `upper_obs`,
+  `upper_body` (source `random`). Recipes `{t1,g1,h1,op3,apollo,adam_lite}_clock_gpu_ub` (t1/g1/h1 warm-start the latest gait actors, the others v4 from scratch).
+  Peer smoke (t1, 256 worlds, 6 iters): env, trainer, actor export and `LearnedTracker` load work; the random arm targets cause more early falls than
+  a payload alone (16/256 vs 3/256 episodes ended by tick 130 with the untrained warm start), the expected training signal. No training was run.
+- Known gap: the procedural `phum_*` bodies with arms (phum_0/2/3/4/7) fail scene compile (`capabilities: 'manipulate'` is not an AssemblySpec
+  literal, `humanoid_gen.py`); the CPU `LeggedEnv`/`tracker-cpu` trainer is not extended (humanoid training is on Warp).

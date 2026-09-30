@@ -302,6 +302,31 @@ WARP_RECIPES["t1_gap_gpu_v1"] = dict(WARP_RECIPES["h1_gap_gpu_v1"], body="t1",
                                          force_cap=-2.0, force_cap_bw=2.5, land_vel=-2.0)
 
 
+# U1 wholebody trackers (`*_ub`; docs/architecture.md 14.4): the same gait recipe with the upper body (arms, waist, head) driven
+# by RANDOM slew-limited targets and a random hand payload (<= 8% of the robot mass) so the legs learn to balance under
+# manipulation-like disturbances; the actor also takes the upper joint state (obs tail, actor meta upper_obs). Warm starts pad
+# the new input columns with zeros (init_shared), so a legs-only gait is the exact starting policy. Where no accepted gait exists
+# (op3, apollo, adam_lite) the v4 clock recipe runs from scratch. NOT run: training is paused; the gate is the D-112 tracker gate
+# measured with the upper body held AND moving, in C MuJoCo (LeggedSession control="wholebody" reads the same obs block).
+_UB = dict(upper_body=True, upper_amp=0.4, upper_speed=1.5, payload_frac=0.08)
+_R6 = _R5.replace("impact=-2.0", "impact=-4.0").replace("limit_margin=-4.0", "limit_margin=-8.0")
+
+
+def _ub_ft(body: str, init: str, **kw) -> dict:
+    d = _ft(body, init, alpha_schedule="fixed:0.5", teacher_stop=0.3, clock_gate=True, land_vel=-2.0, iters=800, init_std=0.3,
+            reward_set=_R6, **_UB, **kw)
+    d["_what"] = f"{body}: the latest gait fine-tune with random upper-body targets + payload; upper joint state in the actor input"
+    return d
+
+
+WARP_RECIPES["t1_clock_gpu_ub"] = _ub_ft("t1", "artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt", target_margin=0.05, force_cap=-2.0,
+                                         force_cap_bw=2.5)
+WARP_RECIPES["g1_clock_gpu_ub"] = _ub_ft("g1", "artifacts/runs/humanoid_p1b_g1_v4ft/actor_v4ftfinal.pt", target_margin=0.05)
+WARP_RECIPES["h1_clock_gpu_ub"] = _ub_ft("h1", "artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt", target_margin=0.03)
+for _b in ("op3", "apollo", "adam_lite"):
+    WARP_RECIPES[f"{_b}_clock_gpu_ub"] = _clock(_b, teacher_stop=0.3, clock_gate=True, reward_set=_R5, **_UB)
+
+
 _LAZY = dict(shared_morph_v1=_shared_v1, shared_morph_v2=_shared_v2)
 assert not set(CPU_RECIPES) & set(WARP_RECIPES)
 RECIPES: dict[str, dict | None] = {**CPU_RECIPES, **WARP_RECIPES}

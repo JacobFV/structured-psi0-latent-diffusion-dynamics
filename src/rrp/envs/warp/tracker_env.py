@@ -71,6 +71,9 @@ def _shared_stream(wp):
     return _STREAM["w"]
 
 
+PAYLOAD_ARM = 0.1          # m: lever arm of the training payload's added inertia
+
+
 class WarpTrackerEnv:
     """`body`: one body key, or a list of keys with IDENTICAL topology (e.g. phum bodies of one topology): world w simulates
     variant w % K; per-variant model fields (MORPH_FIELDS, copied from each variant's own compiled model) and per-world
@@ -80,7 +83,8 @@ class WarpTrackerEnv:
                  push: bool = True, obs_noise: float = 1.0, cmd_mix: str = "default", teacher_stop: float = MIN_STOP_SHARE,
                  turn_frac: float = 0.25, slow_frac: float = 0.0, randomize: bool = True, nconmax: int = 48,
                  njmax: int = 320, model_fn=None, extra_batch=(), clock_gate: bool = False, target_margin: float = 0.0,
-                 land_vel: float = 0.0, force_cap: float = 0.0, force_cap_bw: float = 2.5, terrain_scan: bool = False):
+                 land_vel: float = 0.0, force_cap: float = 0.0, force_cap_bw: float = 2.5, terrain_scan: bool = False,
+                 upper_body: bool = False, upper_amp: float = 0.4, upper_speed: float = 1.5, payload_frac: float = 0.08):
         wp, mjw = _wp()
         self.wp, self.mjw = wp, mjw
         self.dev = torch.device("cuda")
@@ -114,6 +118,16 @@ class WarpTrackerEnv:
         # checks the 20 ms-filtered per-foot peak <= 3.0 BW; touchdown-only impact terms did not bound it)
         self.force_cap, self.force_cap_bw = float(force_cap), float(force_cap_bw)
         self.push, self.obs_noise, self.randomize = push, obs_noise, randomize
+        # U1 wholebody training (architecture 14.4): the `upper` group (the held joints: arms, waist, head) follows a RANDOM
+        # scripted target trajectory (`random` source, training disturbance, not a policy output) and a payload (a random
+        # mass on the two hand-side bodies) is drawn per episode. The actor sees the upper joint state (obs tail, public, as
+        # LeggedBinding.upper_obs); the critic also sees the payload fraction and the target offset (privileged).
+        self.upper_body = bool(upper_body)
+        self.upper_amp, self.upper_speed, self.payload_frac = float(upper_amp), float(upper_speed), float(payload_frac)
+        if self.upper_body and not len(b.held_act):
+            raise ValueError(f"upper_body needs an upper group; body {keys[0]!r} has no held actuators")
+        if self.upper_body and not len(b.payload_bodies()):
+            raise ValueError(f"upper_body needs payload bodies (lateral hand links); body {keys[0]!r} has none")
         self.dt = 0.02
         self.substeps = max(1, int(round(self.dt / m.opt.timestep)))
         self.max_steps = int(episode_s / self.dt)
@@ -123,6 +137,8 @@ class WarpTrackerEnv:
         bset = set(("geom_friction", "geom_solref", "body_mass", "body_inertia", "body_ipos") if randomize else ())
         if self.K > 1:
             bset |= set(MORPH_FIELDS)
+        if self.upper_body:
+            bset |= {"body_mass", "body_inertia"}
         bset |= set(extra_batch)
         self.mw = mjw.put_model(m, batch_sizes={k: self.N for k in sorted(bset)})
         vid_np = np.arange(self.N) % self.K
@@ -172,8 +188,17 @@ class WarpTrackerEnv:
         if randomize:
             self.m_fric, self.m_solref = T(self.mw.geom_friction), T(self.mw.geom_solref)
             self.m_mass, self.m_inertia, self.m_ipos = T(self.mw.body_mass), T(self.mw.body_inertia), T(self.mw.body_ipos)
+        elif self.upper_body:
+            self.m_mass, self.m_inertia = T(self.mw.body_mass), T(self.mw.body_inertia)
+        if self.upper_body:
+            self.held_lo = vw([bk.held_lo for bk in bs_])
+            self.held_hi = vw([bk.held_hi for bk in bs_])
+            self.pl_bodies = i64(b.payload_bodies())
+            self.pl_mass0 = vw([mk.body_mass[b.payload_bodies()] for mk in ms])                # (N, npb)
+            self.pl_inertia0 = vw([mk.body_inertia[b.payload_bodies()] for mk in ms])          # (N, npb, 3)
         self.pol_act, self.pol_qadr, self.pol_dadr = i64(b.pol_act), i64(b.pol_qadr), i64(b.pol_dadr)
         self.held_act = i64(b.held_act) if len(b.held_act) else None
+        self.held_qadr, self.held_dadr = i64(b.held_qadr), i64(b.held_dadr)
         self.qa, self.da, self.nA, self.nf = b.qa, b.da, b.n, b.nf
         self.scale = float(b.action_scale)
         self.foot_sids = i64(b.foot_sids)
@@ -218,6 +243,8 @@ class WarpTrackerEnv:
         self.push_flag, self.ep_ret, self.lat = z(N), z(N), torch.zeros(N, dtype=torch.long, device=self.dev)
         self.turn_cmd = torch.zeros(N, dtype=torch.bool, device=self.dev)
         self.fric_scale = torch.ones(N, device=self.dev)
+        if self.upper_body:
+            self.up_tgt, self.up_goal, self.up_timer, self.payload = self.q0_held.clone(), self.q0_held.clone(), z(N), z(N)
         self._gm_reset()
         # one mjw.step captured as a CUDA graph. Graph capture needs a non-default stream: the process's torch stream is set
         # to a dedicated stream that warp shares, so torch writes (ctrl, resets) and warp steps are ordered without host syncs
@@ -228,8 +255,9 @@ class WarpTrackerEnv:
                 mjw.step(self.mw, self.dw)
         self.graph = cap.graph
         self.extra_dim = SCAN_DIM if terrain_scan else 0
-        self.obs_dim = b.obs_dim + self.extra_dim
-        self.priv_dim = b.priv_dim + 1 + self.extra_dim
+        self.upper_dim = b.upper_dim if self.upper_body else 0
+        self.obs_dim = b.obs_dim + self.extra_dim + self.upper_dim          # [public | terrain scan | upper joint state]
+        self.priv_dim = b.priv_dim + 1 + self.extra_dim + ((1 + len(b.held_act)) if self.upper_body else 0)
         self._scan_off = torch.as_tensor(SCAN_OFFSETS, device=self.dev, dtype=torch.float32)
         self._scan_pub = torch.zeros(self.N, self.extra_dim, device=self.dev)
         self.reset_all()
@@ -330,8 +358,48 @@ class WarpTrackerEnv:
             self.m_ipos[:, rb] = torch.where(M, self.ipos0 + self._u(n, 3, lo=-0.02, hi=0.02), self.m_ipos[:, rb])
             self.fric_scale = torch.where(mask, mu / 0.9, self.fric_scale)
             self.lat = torch.where(mask, torch.randint(0, 5, (n,), generator=self.gen, device=self.dev), self.lat)
+        if self.upper_body:
+            self._reset_upper(mask)
         self._sample_cmd(mask)
         self._scan_sync(mask)
+
+    def _reset_upper(self, mask):
+        """Episode start of the masked worlds: the upper joints hold the default pose, a payload in [0, payload_frac x mass] is
+        split over the hand-side bodies (added as a point mass PAYLOAD_ARM from the link centre: mass and inertia)."""
+        n, M = self.N, mask[:, None]
+        pl = self._u(n) * self.payload_frac * self.mass
+        self.payload = torch.where(mask, pl, self.payload)
+        npb = self.pl_mass0.shape[1]
+        add = self.payload[:, None] / npb
+        self.m_mass[:, self.pl_bodies] = torch.where(M, self.pl_mass0 + add, self.m_mass[:, self.pl_bodies])
+        inertia = self.pl_inertia0 + (add * PAYLOAD_ARM ** 2)[:, :, None]         # a point load PAYLOAD_ARM from the link centre (com unchanged)
+        self.m_inertia[:, self.pl_bodies] = torch.where(M[:, :, None], inertia, self.m_inertia[:, self.pl_bodies])
+        self.up_tgt = torch.where(M, self.q0_held, self.up_tgt)
+        self.up_goal = torch.where(M, self.q0_held, self.up_goal)
+        self.up_timer = torch.where(mask, torch.zeros_like(self.up_timer), self.up_timer)
+
+    def _upper_targets(self):
+        """One 50 Hz tick of the random upper-body target trajectory: every 1-3 s a new goal (20% rest at the default pose, else
+        the default plus a uniform offset of upper_amp x the joint half-range), the applied target slews toward it at
+        upper_speed rad/s and stays inside the actuator range. Computed for every world and blended (no host sync)."""
+        n = self.N
+        new = self.up_timer <= 0
+        span = (self.held_hi - self.held_lo) * 0.5
+        off = self.upper_amp * (2 * self._u(n, len(self.q0_held[0])) - 1) * span
+        goal = torch.clamp(self.q0_held + off, self.held_lo, self.held_hi)
+        goal = torch.where((self._u(n) < 0.2)[:, None], self.q0_held, goal)
+        self.up_goal = torch.where(new[:, None], goal, self.up_goal)
+        tm = torch.randint(50, 150, (n,), generator=self.gen, device=self.dev).float()
+        self.up_timer = torch.where(new, tm, self.up_timer) - 1
+        lim = self.upper_speed * self.dt
+        self.up_tgt = torch.clamp(self.up_tgt + (self.up_goal - self.up_tgt).clamp(-lim, lim), self.held_lo, self.held_hi)
+        return self.up_tgt
+
+    def upper_meta(self) -> dict:
+        """Recorded in the actor meta: how the upper-body targets and the payload were generated (a random training source)."""
+        return dict(source="random", targets="goal every 1-3 s (20% rest), slew-limited, clipped to the actuator range",
+                    amp=self.upper_amp, speed=self.upper_speed, payload_frac=self.payload_frac,
+                    payload_bodies=[int(i) for i in self.b.payload_bodies()], obs="q - q0, qdot * 0.05 (noise 0.01 / 0.05)")
 
     def reset_all(self):
         self._reset(torch.ones(self.N, dtype=torch.bool, device=self.dev))
@@ -356,7 +424,17 @@ class WarpTrackerEnv:
                        self.clock_obs()], -1)
         if self.obs_noise:
             o = o + torch.randn(o.shape, generator=self.gen, device=self.dev) * self._nz * self.obs_noise
-        return torch.cat([o, self.extra_obs()], -1) if self.extra_dim else o
+        o = torch.cat([o, self.extra_obs()], -1) if self.extra_dim else o
+        return torch.cat([o, self.upper_obs()], -1) if self.upper_body else o
+
+    def upper_obs(self):
+        """The public upper-body joint state (numpy twin: LeggedBinding.upper_obs), with the same encoder noise as the legs."""
+        q = self.qpos[:, self.held_qadr] - self.q0_held
+        qd = self.qvel[:, self.held_dadr] * 0.05
+        if self.obs_noise:
+            q = q + torch.randn(q.shape, generator=self.gen, device=self.dev) * 0.01 * self.obs_noise
+            qd = qd + torch.randn(qd.shape, generator=self.gen, device=self.dev) * 0.05 * self.obs_noise
+        return torch.cat([q, qd], -1)
 
     def clock_obs(self):
         c = torch.stack([torch.sin(2 * math.pi * self.phase), torch.cos(2 * math.pi * self.phase)], -1)
@@ -418,7 +496,11 @@ class WarpTrackerEnv:
         p = torch.cat([self._base_vel_body(), (self.qpos[:, self.qa + 2] - self.nominal_h)[:, None], fc.float(),
                        (self.fric_scale - 1)[:, None], self.push_flag[:, None],
                        torch.full((self.N, 1), self.alpha, device=self.dev)], -1)
-        return torch.cat([p, self.terrain_exact()], -1) if self.extra_dim else p     # the critic keeps the exact scan
+        if self.extra_dim:
+            p = torch.cat([p, self.terrain_exact()], -1)                              # the critic keeps the exact scan
+        if self.upper_body:                                                           # payload fraction + upper target offset
+            p = torch.cat([p, (self.payload / self.mass)[:, None], self.up_tgt - self.q0_held], -1)
+        return p
 
     # ------------------------------------------------------------------ contacts
     def _stance(self):
@@ -463,10 +545,12 @@ class WarpTrackerEnv:
         if self.extra_dim:       # the scan the actor sees after this step is the one taken from the pre-step pose
             self._scan_pub = self._scan_model(self.terrain_exact())
         old_full = self.ctrl.clone()
-        if self.held_act is not None:
+        if self.held_act is not None and not self.upper_body:
             old_full[:, self.held_act] = self.q0_held
         new_full = old_full.clone()
         new_full[:, self.pol_act] = new_t
+        if self.upper_body:
+            new_full[:, self.held_act] = self._upper_targets()
         pw = torch.zeros(N, device=self.dev)
         dadr = self.pol_dadr
         maxlat = 4                                      # latency draws are 0-4 substeps: afterwards every world has new targets
@@ -786,6 +870,8 @@ class MorphMultiEnv:
 
     def __init__(self, groups: list, seed: int = 1, obs_noise: float = 1.0, env_cls=None, **env_kw):
         from rrp.envs.mujoco.morph_obs import CTX_DIM, DYN_DIM, NS, OBS_DIM, MorphSpec
+        if env_kw.get("upper_body"):
+            raise ValueError("morph_v1 (shared tracker) has no upper-body block: upper_body needs a per-body tracker")
         self.envs, self.specs, self.slices, self.names = [], [], [], []
         self.obs_noise = obs_noise
         n0 = 0
@@ -815,6 +901,7 @@ class MorphMultiEnv:
             n0 += e.N
         self.N, self.nA, self.nf = n0, NS, 2
         self.extra_dim = int(self.envs[0].extra_dim)
+        self.upper_dim = 0                                  # (upper_body is refused above)
         self.obs_dim, self.dyn_dim, self.ctx_dim = OBS_DIM + self.extra_dim, DYN_DIM, CTX_DIM
         self.priv_dim = self.envs[0].priv_dim
         self.dev = self.envs[0].dev

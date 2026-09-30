@@ -39,6 +39,8 @@ from rrp.envs.mujoco.sensors import DetectorConfig, ObjectTracker
 
 WAYPOINT_COLORS = {"orange": (0.95, 0.5, 0.1, 0.9), "cyan": (0.1, 0.8, 0.85, 0.9)}
 TRACKER_HZ = 50.0
+CONTROLS = ("base_velocity", "legs", "wholebody")
+DIRECT_CONTROLS = ("legs", "wholebody")     # one step() per 50 Hz tick, absolute joint targets
 
 
 def _waypoint(scene, name, xy, rgba):
@@ -127,14 +129,17 @@ class LeggedSession(Session):
         "legs" = one step() per 50 Hz tracker tick carrying absolute joint targets for the policy joints (group "legs"),
         no tracker (the body tracker stays loaded as `body_tracker`). Observations, sensing, the task runtime and the
         fall check keep their 10 Hz schedule (`boundary` is True on the ticks where they ran); with no command the
-        declared fallback holds the default stance (also during the reset settle).
+        declared fallback holds the default stance (also during the reset settle). "wholebody" (U1) = "legs" plus the group
+        "upper" (the body's held joints: arms, waist, head; joint_position, PD at 50 Hz); a command carries either or both
+        groups, a group left out keeps its last target (the default stance after reset). Not available with perturb.install_legged
+        (its tick holds the upper joints at the default pose), which raises RuntimeError.
         tracker (HT): "<body>:<version>" id of a registered actor (rrp.envs.mujoco.legged_tracker.TRACKERS); None = the body's
         default actor for the scene's contact model. terrain_scan (D-146): the PUBLIC terrain sensor (11 x 7 elevation grid,
         declared channel `0:terrain_scan`, capability `terrain_scan`); None = on exactly when the tracker's actor takes the
         scan as input (meta extra_obs_dim 77 + terrain_scan layout), True on any other tracker only publishes the channel;
-        a scan-input actor with terrain_scan=False raises TrackerMismatch. Not available with control="legs"."""
-        if control not in ("base_velocity", "legs"):
-            raise ValueError(f"control {control!r} not in ('base_velocity', 'legs')")
+        a scan-input actor with terrain_scan=False raises TrackerMismatch. Only with control="base_velocity"."""
+        if control not in CONTROLS:
+            raise ValueError(f"control {control!r} not in {CONTROLS}")
         self.control = control
         self.tracker_spec = tracker
         self._terrain_req = terrain_scan
@@ -165,6 +170,8 @@ class LeggedSession(Session):
         touch = [mr.prefix + n for n in mr.meta["legged"]["touch_sensors"]]
         self.binding = LeggedBinding(m, mr.meta, mr.prefix)
         self.body_key = self.scenario.meta["body_key"]
+        if self.control == "wholebody" and not len(self.binding.held_act):
+            raise ValueError(f"control='wholebody' needs an upper group; body {self.body_key!r} has no held actuators")
         self.tracker = load_tracker(self.body_key, self.binding, mr.meta, self.tracker_kind,
                                     **({"tracker": self.tracker_spec} if self.tracker_spec else {}))
         self._attach_terrain()
@@ -172,9 +179,10 @@ class LeggedSession(Session):
         self.tracker_contract = tc
         self.tracker_version_str = f"{tc.id}:{tc.version}:{self.tracker.version}:{mr.robot_spec.spec_hash}"
         self.body_tracker = self.tracker
-        if self.control == "legs":
+        self.upper_target = self.binding.q0_held.copy()
+        if self.control in DIRECT_CONTROLS:
             self.tracker = DirectTargets(self.binding)
-            self.tracker_version_str = f"{jt.id}:{jt.version}:legs_direct:{mr.robot_spec.spec_hash}"
+            self.tracker_version_str = f"{jt.id}:{jt.version}:{self.control}_direct:{mr.robot_spec.spec_hash}"
         if self.actuator_mode != "ideal":
             from rrp.bodies.actuator import ActuatorModel
             self.actuator_model = ActuatorModel(m, self.binding, 1, None, name=mr.meta["name"], randomize=False,
@@ -211,10 +219,15 @@ class LeggedSession(Session):
         return self.tracker_version_str
 
     def _action_spaces(self) -> list[ActionSpace]:
-        if self.control == "legs":
+        if self.control in DIRECT_CONTROLS:
             b = self.binding
-            return [ActionSpace(group="legs", kind="joint_position", width=int(b.n), robot=0, rate_hz=TRACKER_HZ,
-                                low=np.asarray(b.lo, float).tolist(), high=np.asarray(b.hi, float).tolist(), units="rad")]
+            sp = [ActionSpace(group="legs", kind="joint_position", width=int(b.n), robot=0, rate_hz=TRACKER_HZ,
+                              low=np.asarray(b.lo, float).tolist(), high=np.asarray(b.hi, float).tolist(), units="rad")]
+            if self.control == "wholebody":
+                sp.append(ActionSpace(group="upper", kind="joint_position", width=len(b.held_act), robot=0, rate_hz=TRACKER_HZ,
+                                      low=np.asarray(b.held_lo, float).tolist(), high=np.asarray(b.held_hi, float).tolist(),
+                                      units="rad"))
+            return sp
         return [ActionSpace.from_group(g, robot=0, rate_hz=self.control_hz) for g in self.tracker_contract.command_groups]
 
     @property
@@ -238,6 +251,7 @@ class LeggedSession(Session):
         r.controller.prev = r.controller.current_targets(self.data)
         r.controller.target = dict(r.controller.prev)
         self.tracker.reset(0.0)
+        self.upper_target = b.q0_held.copy()
         if self.terrain is not None:
             self.terrain.reset(self.data, seed)
         self.cmd = np.zeros(3)
@@ -478,7 +492,7 @@ class LeggedSession(Session):
         else:
             self.data.ctrl[b.pol_act] = tgt
         if len(b.held_act):
-            self.data.ctrl[b.held_act] = b.q0_held
+            self.data.ctrl[b.held_act] = self.upper_target
         n = max(1, int(round(1.0 / (TRACKER_HZ * self.model.opt.timestep))))
         for _ in range(n):
             if act is not None:
@@ -494,27 +508,45 @@ class LeggedSession(Session):
         from rrp.bodies.actuator import mode_record
         return mode_record(self.actuator_mode, self.model, self.binding, self.robots[0].meta["name"], self.actuator_latency_ms)
 
-    def validate_legs(self, cmd: NativeCommand) -> np.ndarray:
+    def validate_direct(self, cmd: NativeCommand) -> dict[str, np.ndarray]:
+        """"legs": exactly the legs group. "wholebody": a non-empty subset of {legs, upper}. Every group is width-checked, finite,
+        and clipped to its actuator range."""
         if cmd.controller_version != self.tracker_version_str:
             raise StaleActionError(f"controller version {cmd.controller_version} != {self.tracker_version_str}")
-        if set(cmd.groups) != {"legs"}:
-            raise ControllerRejection(f"legs control accepts only the legs group, got {sorted(cmd.groups)}",
-                                      code="unknown_group")
-        v = np.asarray(cmd.groups["legs"], float)
         b = self.binding
-        if v.shape != (b.n,):
-            raise ControllerRejection(f"legs width {v.shape} != {b.n}", code="wrong_width")
-        if not np.isfinite(v).all():
-            raise ControllerRejection("non-finite command", code="nonfinite")
-        return np.clip(v, b.lo, b.hi)
+        lim = {"legs": (b.n, b.lo, b.hi)}
+        if self.control == "wholebody":
+            lim["upper"] = (len(b.held_act), b.held_lo, b.held_hi)
+        if not cmd.groups or not set(cmd.groups) <= set(lim) or (self.control == "legs" and set(cmd.groups) != {"legs"}):
+            raise ControllerRejection(f"{self.control} control accepts the groups {sorted(lim)}, got {sorted(cmd.groups)}",
+                                      code="unknown_group")
+        out = {}
+        for g, x in cmd.groups.items():
+            v = np.asarray(x, float)
+            if v.shape != (lim[g][0],):
+                raise ControllerRejection(f"{g} width {v.shape} != {lim[g][0]}", code="wrong_width")
+            if not np.isfinite(v).all():
+                raise ControllerRejection("non-finite command", code="nonfinite")
+            out[g] = np.clip(v, lim[g][1], lim[g][2])
+        return out
+
+    def validate_legs(self, cmd: NativeCommand) -> np.ndarray:
+        return self.validate_direct(cmd)["legs"]
 
     def _step_legs(self, command) -> StepResult:
         rejected, source, executed = None, None, None
+        if self.control == "wholebody" and "_tracker_tick" in self.__dict__:
+            raise RuntimeError("control='wholebody' cannot run with an instance-level _tracker_tick (perturb.install_legged "
+                               "holds the upper joints at the default pose)")
         if command is not None:
             try:
-                self.tracker.pending = self.validate_legs(command)
+                tg = self.validate_direct(command)
+                if "legs" in tg:
+                    self.tracker.pending = tg["legs"]
+                if "upper" in tg:
+                    self.upper_target = tg["upper"]
                 source = command.source
-                executed = {"legs": self.tracker.pending.tolist()}
+                executed = {g: v.tolist() for g, v in tg.items()}
             except ControllerRejection as e:
                 rejected = e.code
         self._tracker_tick(self.cmd)
@@ -551,7 +583,7 @@ class LeggedSession(Session):
         rejected, source, executed = None, None, None
         if isinstance(command, dict):
             command = command.get(0)
-        if self.control == "legs":
+        if self.control in DIRECT_CONTROLS:
             return self._step_legs(command)
         if command is None:
             row = self.executor.pop()
@@ -583,6 +615,8 @@ class LeggedSession(Session):
         c = snap.components
         c["controller_state"] = [dict(joint_targets=c["controller_state"][0], tracker=self.tracker.state(),
                                       cmd=self.cmd.tolist(), fell=self.fell)]
+        if self.control == "wholebody":
+            c["controller_state"][0]["upper"] = self.upper_target.tolist()
         if self.actuator_model is not None:     # D-126 #14: pending-target queue (absent in ideal mode: snapshots unchanged)
             a = self.actuator_model
             c["controller_state"][0]["actuator"] = dict(
@@ -615,6 +649,7 @@ class LeggedSession(Session):
         self.tracker.load(st["tracker"])
         self.cmd = np.array(st["cmd"])
         self.fell = st["fell"]
+        self.upper_target = np.array(st["upper"]) if "upper" in st else self.binding.q0_held.copy()
         if self.actuator_model is not None and st.get("actuator"):
             a, sa = self.actuator_model, st["actuator"]
             self.actuator_latency_ms = sa["latency_ms"]
@@ -637,7 +672,7 @@ class LeggedSession(Session):
 
 
 class DirectTargets:
-    """Tracker slot of the "legs" control mode: applies the commanded joint targets for one tracker tick; without a
+    """Tracker slot of the "legs" and "wholebody" control modes (the upper group never passes through it): applies the commanded joint targets for one tracker tick; without a
     command the declared fallback holds the default stance (the behaviour of the former tracker-slot policy adapters
     before they were armed, so the reset settle is unchanged)."""
     source = "direct"
