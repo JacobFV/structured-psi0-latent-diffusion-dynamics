@@ -43,3 +43,30 @@ def test_tracker_validation_episodes(golden):
     rows = _rows()
     assert rows["fall"]["fell"] and rows["fall"]["fell_t"] == 0.0 and not rows["stand"]["fell"]
     golden("loop.legged.tracker_validation", _digest(rows))
+
+
+def test_trial_is_a_rollout_episode_and_no_owned_loop_steps_a_session():
+    """The trial is an ordinary Episode (labelled scripted, ended by the judge); and none of the legged / humanoid loop
+    files steps a session or the physics itself outside an Env (`mj_step` lives in the bench env's `step`)."""
+    import re
+    from pathlib import Path
+
+    from rrp.bodies.legged import legged_body, standalone_model
+    from rrp.envs.mujoco.legged_core import LeggedBinding
+    from rrp.envs.mujoco.legged_tracker import CPGTracker
+    from rrp.harness.eval import tracker_validation as tv
+    from rrp.harness.rollout import rollout
+
+    model, _, meta = standalone_model(legged_body("hexapod6"), contact="v1")
+    b = LeggedBinding(model, meta)
+    b.min_h = 10.0
+    eps = rollout(lambda sd: tv._BenchEnv(model, b, CPGTracker(b, meta), sd), tv._ScriptedCommand([0.1, 0, 0]),
+                  tv._tracker_task(), [1, 2], batch=2, max_steps=5, hooks=[tv._Meter(5, [0.1, 0, 0])])
+    assert [(e.outcome, e.failure_reason, e.steps, e.source, e.env_id) for e in eps] == \
+        [("fell", "fell", 1, "scripted_teacher", "mujoco/tracker_bench")] * 2
+    root = Path(tv.__file__).parent.parent
+    for f in ("eval/legged_latent_eval.py", "eval/robustness.py", "eval/video_legged.py", "eval/deploy_eval.py",
+              "train/legged_dagger.py", "eval/tracker_validation.py"):
+        src = (root / f).read_text()
+        assert not re.search(r"\b(s|sess|session|env)\.step\(", src), f
+        assert src.count("mj_step(") == (1 if f.endswith("tracker_validation.py") else 0), f

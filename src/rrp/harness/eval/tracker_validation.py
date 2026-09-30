@@ -33,6 +33,7 @@ import json
 import math
 import sys
 import time
+import types
 from pathlib import Path
 
 import mujoco
@@ -41,6 +42,11 @@ import numpy as np
 from rrp.envs.mujoco.legged_core import LeggedBinding, quat_rotate_inv, yaw_of
 from rrp.envs.mujoco.legged_tracker import CPGTracker, LearnedTracker, TRACKER_DIR
 from rrp.bodies.legged import legged_body, standalone_model
+from rrp.core.action import NativeCommand
+from rrp.core.provenance import Source
+from rrp.envs.base import ActionSpace, BodyInfo, EnvSpec, StepResult
+from rrp.policies.base import Act, PolicyInfo, Requirements
+from rrp.tasks.spec import Judgement, TaskSpec
 
 
 def scripts(b: LeggedBinding):
@@ -57,107 +63,220 @@ def scripts(b: LeggedBinding):
     }
 
 
-def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, record=False, act=None):
-    rng = np.random.default_rng(seed)
-    d = mujoco.MjData(model)
-    b.set_default(d, yaw=rng.uniform(-math.pi, math.pi), noise=0.03, rng=rng)
-    mujoco.mj_forward(model, d)
-    tracker.reset(phase=0.0)
-    if act is not None:
-        act.reset(0, d.ctrl[b.pol_act].copy())
-    dt = 0.02
-    sub = max(1, int(round(dt / model.opt.timestep)))
-    steps = int(script["T"] / dt)
-    cmd = np.array(script["cmd"], float)
-    mass = float(model.body_subtreemass[b.root_bid])
-    vxs, wzs, slips, energy = [], [], [], 0.0
-    cp_slip, speeds, contact_hist = [], [], []
-    air = np.zeros(b.nf)
-    apex = np.zeros(b.nf)
-    swings, apexes, touchdowns = [], [], 0
-    w_load = 0.02 * mass * 9.81
-    p0 = d.qpos[b.qa:b.qa + 2].copy()
-    fell, fell_t = False, None
-    traj = []
-    peak_fn, peak_raw, margin = 0.0, 0.0, float("inf")
-    fwin = max(1, int(round(FORCE_WINDOW_S / model.opt.timestep)))      # 20 ms moving average (D-112 revision)
-    fbuf = []
-    rng_j = np.maximum(b.jhi - b.jlo, 1e-9)
-    lim_j = b.jhi > b.jlo
-    for k in range(steps):
-        t = k * dt
-        if "push" in script and abs(t - script["push"][0]) < dt / 2:
-            yaw = yaw_of(d.qpos[b.qa + 3:b.qa + 7])
-            s = script["push"][1]
-            d.qvel[b.da:b.da + 2] += [-math.sin(yaw) * s, math.cos(yaw) * s]
-        tgt = tracker.act(d, cmd)
+_DT = 0.02          # tracker tick (50 Hz)
+
+
+class _BenchEnv:
+    """Env (rrp.envs.base) on the bare standalone model: the body tracker (frozen learned or CPG, optionally behind an
+    actuator model) is the env's own controller, so the command is a `base_velocity` (vx, vy, wz), as on LeggedSession with
+    control="base_velocity". A validation deliberately runs WITHOUT a scene, a task runtime or the session (the tracker is
+    gated before any high-level policy exists); everything it measures is read from the model / data by hooks below."""
+
+    ENV_ID = "mujoco/tracker_bench"
+
+    def __init__(self, model, b: LeggedBinding, tracker, seed: int, act=None):
+        rng = np.random.default_rng(seed)
+        self.model, self.b, self.tracker, self.act = model, b, tracker, act
+        self.d = mujoco.MjData(model)
+        b.set_default(self.d, yaw=rng.uniform(-math.pi, math.pi), noise=0.03, rng=rng)
+        mujoco.mj_forward(model, self.d)
+        tracker.reset(phase=0.0)
         if act is not None:
-            act.command(0, tgt)
+            act.reset(0, self.d.ctrl[b.pol_act].copy())
+        self.sub = max(1, int(round(_DT / model.opt.timestep)))
+        self.k, self.fell, self.fell_t = 0, False, None      # ticks done; fell_t = start time of the tick that fell
+        self.on_substep = None                               # hooks meter every physics substep through this
+        self.spec = EnvSpec(
+            env_id=self.ENV_ID, backend="mujoco", task="tracker_validation",
+            bodies=[BodyInfo(robot=0, family=b.meta["family"], key=b.meta["name"],
+                             robot_spec_hash=str(b.meta.get("spec_hash", "bare_standalone_model")))],
+            control_hz=1 / _DT, capabilities=["proprio"],
+            action_spaces=[ActionSpace(group="base_velocity", kind="base_velocity", width=3, rate_hz=1 / _DT)],
+            provenance=dict(physics=dict(mujoco_timestep=float(model.opt.timestep), substeps=self.sub),
+                            tracker=getattr(tracker, "version", None), contact_model=b.meta.get("contact_model"),
+                            actuator=None if act is None else act.params))
+
+    def observe(self):
+        return types.SimpleNamespace(sensor_time=float(self.d.time))
+
+    def reset(self, seed=None):
+        raise NotImplementedError("a bench env is built reset (one episode per env)")
+
+    def close(self):
+        pass
+
+    def step(self, command):
+        d, b, model = self.d, self.b, self.model
+        tgt = self.tracker.act(d, np.array(command.groups["base_velocity"], float))
+        if self.act is not None:
+            self.act.command(0, tgt)
         else:
             d.ctrl[b.pol_act] = tgt
-        for _ in range(sub):
-            if act is not None:
-                d.ctrl[b.pol_act] = act.substep_ctrl(0, d)
+        for _ in range(self.sub):
+            if self.act is not None:
+                d.ctrl[b.pol_act] = self.act.substep_ctrl(0, d)
             mujoco.mj_step(model, d)
-            energy += float(np.sum(np.abs(d.actuator_force[b.pol_act] * d.qvel[b.pol_dadr]))) * model.opt.timestep
-            fn_s = b.stance(d)[1]                                            # W6 gate: per-foot normal force (N)
-            peak_raw = max(peak_raw, float(np.max(fn_s)))
-            fbuf.append(fn_s)
-            if len(fbuf) > fwin:
-                fbuf.pop(0)
-            if len(fbuf) == fwin:
-                peak_fn = max(peak_fn, float(np.max(np.mean(fbuf, axis=0))))
+            if self.on_substep is not None:
+                self.on_substep(d)
+        bad = b.stance(d)[3]
+        if bad or d.qpos[b.qa + 2] < b.min_h or b.tilt(d) > b.tilt_limit or not np.isfinite(d.qpos).all():
+            self.fell, self.fell_t = True, self.k * _DT
+        self.k += 1
+        return StepResult(observation=self.observe(), qpos=None, time=float(d.time))
+
+
+class _ScriptedCommand:
+    """The fixed command script of a trial as a (scripted, non-learned) policy: the same command every tick."""
+
+    info = PolicyInfo("tracker_script", "scripted_teacher", "tracker_validation/v2",
+                      Requirements(frozenset({"base_velocity"}), observations=frozenset()))
+
+    def __init__(self, cmd):
+        self.cmd = NativeCommand(controller_version="tracker_validation/v2", source=Source.SCRIPTED_TEACHER,
+                                 groups={"base_velocity": [float(x) for x in cmd]})
+
+    def reset(self, spec, task, seeds, *, envs=None):
+        pass
+
+    def act(self, obs):
+        return {i: Act(self.cmd) for i in obs}
+
+
+def _tracker_task():
+    """Ends only on a fall or when the tick budget of the script is spent (rollout `max_steps`)."""
+    def judge(env, t, max_seconds):
+        if env.fell:
+            return Judgement(True, "fell", "fell", None, False)
+        if t >= max_seconds:
+            return Judgement(True, "timeout", "timeout", None, False)
+        return Judgement(False)
+    return TaskSpec("tracker_validation", {_BenchEnv.ENV_ID: {}}, math.inf, judge, note="frozen-tracker validation trial",
+                    failure_reasons=("fell", "timeout"))
+
+
+class _Kick:
+    """The `push` of a script: a lateral base velocity kick (m/s) on the tick that starts at t_push."""
+
+    def __init__(self, t_push: float, speed: float):
+        self.t_push, self.speed = t_push, speed
+
+    def on_reset(self, i, env, obs):
+        self.env = env
+
+    def on_act(self, i, obs, act):
+        e = self.env
+        if abs(e.k * _DT - self.t_push) < _DT / 2:
+            yaw = yaw_of(e.d.qpos[e.b.qa + 3:e.b.qa + 7])
+            e.d.qvel[e.b.da:e.b.da + 2] += [-math.sin(yaw) * self.speed, math.cos(yaw) * self.speed]
+
+
+class _Meter:
+    """Every measurement of a trial (protocol v2): per-substep energy and 20 ms-averaged peak foot force, per-tick
+    tracking, slip, gait and joint-limit margin; `on_end` returns the trial's raw metrics."""
+
+    def __init__(self, steps: int, cmd, record: bool = False):
+        self.steps, self.cmd, self.record = steps, np.array(cmd, float), record
+
+    def on_reset(self, i, env, obs):
+        model, b, d = env.model, env.b, env.d
+        self.env = env
+        self.mass = float(model.body_subtreemass[b.root_bid])
+        self.vxs, self.wzs, self.slips, self.energy = [], [], [], 0.0
+        self.cp_slip, self.speeds, self.contact_hist = [], [], []
+        self.air, self.apex = np.zeros(b.nf), np.zeros(b.nf)
+        self.swings, self.apexes, self.touchdowns = [], [], 0
+        self.w_load = 0.02 * self.mass * 9.81
+        self.p0 = d.qpos[b.qa:b.qa + 2].copy()
+        self.traj = []
+        self.peak_fn, self.peak_raw, self.margin = 0.0, 0.0, float("inf")
+        self.fwin = max(1, int(round(FORCE_WINDOW_S / model.opt.timestep)))      # 20 ms moving average (D-112 revision)
+        self.fbuf = []
+        self.rng_j = np.maximum(b.jhi - b.jlo, 1e-9)
+        self.lim_j = b.jhi > b.jlo
+        env.on_substep = self.substep
+
+    def substep(self, d):
+        b, model = self.env.b, self.env.model
+        self.energy += float(np.sum(np.abs(d.actuator_force[b.pol_act] * d.qvel[b.pol_dadr]))) * model.opt.timestep
+        fn_s = b.stance(d)[1]                                            # W6 gate: per-foot normal force (N)
+        self.peak_raw = max(self.peak_raw, float(np.max(fn_s)))
+        self.fbuf.append(fn_s)
+        if len(self.fbuf) > self.fwin:
+            self.fbuf.pop(0)
+        if len(self.fbuf) == self.fwin:
+            self.peak_fn = max(self.peak_fn, float(np.max(np.mean(self.fbuf, axis=0))))
+
+    def on_step(self, i, env, act, step):
+        b, model, d = env.b, env.model, env.d
+        k = env.k - 1
+        t = k * _DT
         v = b.base_lin_vel_body(d)
         w = d.qvel[b.da + 3:b.da + 6]
         fc, fn, slip_cp, bad = b.stance(d)
         clr = b.foot_clearance(d)
         qj = d.qpos[b.pol_qadr]
-        if lim_j.any():
-            margin = min(margin, float(np.min((np.minimum(qj - b.jlo, b.jhi - qj) / rng_j)[lim_j])))
-        if k > 0.4 * steps:
-            vxs.append(v[0])
-            wzs.append(w[2])
-            speeds.append(float(np.hypot(*d.qvel[b.da:b.da + 2])))
-            loaded = fn > w_load
-            cp_slip += [float(x) for x in slip_cp[loaded]]
-            contact_hist.append(fc.copy())
-            first = fc & (air > 0)
-            for i in np.flatnonzero(first):
-                swings.append(air[i])
-                apexes.append(apex[i])
-                touchdowns += 1
-        apex = np.where(fc, 0.0, np.maximum(apex, clr))
-        air = np.where(fc, 0.0, air + dt)
-        for i, fb in enumerate(b.foot_bids):
-            if fc[i]:
+        if self.lim_j.any():
+            self.margin = min(self.margin, float(np.min((np.minimum(qj - b.jlo, b.jhi - qj) / self.rng_j)[self.lim_j])))
+        if k > 0.4 * self.steps:
+            self.vxs.append(v[0])
+            self.wzs.append(w[2])
+            self.speeds.append(float(np.hypot(*d.qvel[b.da:b.da + 2])))
+            loaded = fn > self.w_load
+            self.cp_slip += [float(x) for x in slip_cp[loaded]]
+            self.contact_hist.append(fc.copy())
+            first = fc & (self.air > 0)
+            for i_ in np.flatnonzero(first):
+                self.swings.append(self.air[i_])
+                self.apexes.append(self.apex[i_])
+                self.touchdowns += 1
+        self.apex = np.where(fc, 0.0, np.maximum(self.apex, clr))
+        self.air = np.where(fc, 0.0, self.air + _DT)
+        for i_, fb in enumerate(b.foot_bids):
+            if fc[i_]:
                 vel = np.zeros(6)
                 mujoco.mj_objectVelocity(model, d, mujoco.mjtObj.mjOBJ_BODY, fb, vel, 0)
-                slips.append(float(np.linalg.norm(vel[3:5])))
-        if record and k % 5 == 0:
-            traj.append([round(t, 2), *map(float, d.qpos[b.qa:b.qa + 3])])
-        if bad or d.qpos[b.qa + 2] < b.min_h or b.tilt(d) > b.tilt_limit or not np.isfinite(d.qpos).all():
-            fell, fell_t = True, t
-            break
-    dist = float(np.linalg.norm(d.qpos[b.qa:b.qa + 2] - p0))
-    ch = np.array(contact_hist) if contact_hist else np.zeros((0, b.nf))
-    duty = ch.mean(0) if len(ch) else np.full(b.nf, np.nan)
-    slip_cp_m = float(np.mean(cp_slip)) if cp_slip else None
-    spd = float(np.mean(speeds)) if speeds else None
-    gait = dict(slip_cp_mps=slip_cp_m, body_speed_mps=spd,
-                slip_ratio=(slip_cp_m / max(spd, 0.02)) if (slip_cp_m is not None and spd is not None) else None,
-                duty_factor=[float(x) for x in duty], duty_min=float(np.min(duty)) if len(ch) else None,
-                duty_max=float(np.max(duty)) if len(ch) else None,
-                air_time_s=float(np.mean(swings)) if swings else 0.0,
-                swing_apex_m=float(np.mean(apexes)) if apexes else 0.0,
-                step_hz=touchdowns / max(len(ch) * dt, 1e-9) / b.nf if len(ch) else 0.0)
-    out = dict(fell=fell, fell_t=fell_t, dist_m=dist, mean_vx=float(np.mean(vxs)) if vxs else None,
-               mean_wz=float(np.mean(wzs)) if wzs else None, slip_mps=float(np.mean(slips)) if slips else None,
-               cot=float(energy / (mass * 9.81 * max(dist, 1e-3))) if dist > 0.2 else None,
-               peak_force_bw=peak_fn / (mass * 9.81), peak_force_raw_bw=peak_raw / (mass * 9.81), joint_limit_margin_min=margin if math.isfinite(margin) else None,
-               cmd=cmd.tolist(), **gait)
-    if record:
-        out["traj"] = traj
-    return out
+                self.slips.append(float(np.linalg.norm(vel[3:5])))
+        if self.record and k % 5 == 0:
+            self.traj.append([round(t, 2), *map(float, d.qpos[b.qa:b.qa + 3])])
+
+    def on_end(self, i, env, ep):
+        b, d = env.b, env.d
+        dist = float(np.linalg.norm(d.qpos[b.qa:b.qa + 2] - self.p0))
+        ch = np.array(self.contact_hist) if self.contact_hist else np.zeros((0, b.nf))
+        duty = ch.mean(0) if len(ch) else np.full(b.nf, np.nan)
+        slip_cp_m = float(np.mean(self.cp_slip)) if self.cp_slip else None
+        spd = float(np.mean(self.speeds)) if self.speeds else None
+        gait = dict(slip_cp_mps=slip_cp_m, body_speed_mps=spd,
+                    slip_ratio=(slip_cp_m / max(spd, 0.02)) if (slip_cp_m is not None and spd is not None) else None,
+                    duty_factor=[float(x) for x in duty], duty_min=float(np.min(duty)) if len(ch) else None,
+                    duty_max=float(np.max(duty)) if len(ch) else None,
+                    air_time_s=float(np.mean(self.swings)) if self.swings else 0.0,
+                    swing_apex_m=float(np.mean(self.apexes)) if self.apexes else 0.0,
+                    step_hz=self.touchdowns / max(len(ch) * _DT, 1e-9) / b.nf if len(ch) else 0.0)
+        g = self.mass * 9.81
+        out = dict(fell=env.fell, fell_t=env.fell_t, dist_m=dist,
+                   mean_vx=float(np.mean(self.vxs)) if self.vxs else None,
+                   mean_wz=float(np.mean(self.wzs)) if self.wzs else None,
+                   slip_mps=float(np.mean(self.slips)) if self.slips else None,
+                   cot=float(self.energy / (g * max(dist, 1e-3))) if dist > 0.2 else None,
+                   peak_force_bw=self.peak_fn / g, peak_force_raw_bw=self.peak_raw / g,
+                   joint_limit_margin_min=self.margin if math.isfinite(self.margin) else None, cmd=self.cmd.tolist(), **gait)
+        if self.record:
+            out["traj"] = self.traj
+        return dict(trial=out)
+
+
+def run_episode(model, b: LeggedBinding, tracker, script: dict, seed: int, record=False, act=None):
+    """One validation trial through harness.rollout: the scripted command policy on a bare-model bench env whose own
+    controller is the tracker; kick and metrics are hooks. Returns the trial's metrics row."""
+    from rrp.harness.rollout import rollout
+    steps = int(script["T"] / _DT)
+    hooks = ([_Kick(*script["push"])] if "push" in script else []) + [_Meter(steps, script["cmd"], record)]
+    ep, = rollout(lambda sd: _BenchEnv(model, b, tracker, sd, act), _ScriptedCommand(script["cmd"]), _tracker_task(),
+                  [seed], batch=1, max_steps=steps, hooks=hooks)
+    if ep.outcome == "crash":
+        raise RuntimeError(f"tracker validation trial crashed ({ep.failure_reason}): {ep.metrics.get('note', '')}")
+    return ep.metrics["trial"]
 
 
 def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str | None = "v1", actuator: str = "v1",
