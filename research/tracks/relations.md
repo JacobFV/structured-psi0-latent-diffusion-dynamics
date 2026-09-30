@@ -26,10 +26,11 @@ held-out bodies (`heldout`). `base` (preset:arm only) is the paired control at e
 (`recipes/pointer/`), not an arm instance. Legged / humanoid sets (`legged-r19`: `leg.foothold leg.com_support`) run through
 `recipes/templates/legged_lineage.yaml` once a body set is chosen; no instance yet.
 
-CAVEAT recorded in the DAG ledger: the `relgen` node writes the label shards (stage `relations_data`, R1), but no
-trainer reads them yet (see the R1 note: the hook is in `harness/data/mix.py`, the trainers wire it in A1 / HL), so probe-sourced
-factors (`geo.depth3d`, `ix.*`, `task.next_contact`) still train without their label shards until that lands: their
-estimate heads start at zero and an `aug` factor is a no-op at step 0. A null before then is NOT evidence against the factor.
+Relgen reaches the trainer (R2 RG, below): per set the F0 node takes the `relgen` shards through `inputs.relgen` and a
+`params.curriculum`; the `base` control and the shared stageA take none. Factor lists are the ones the arm family can build:
+`resolve(family="arm")` rejects `geo.normal_align` as `given` (no `normal` ctx field; it is `source: probe` here), `ix.handover`
+(no `handover_pairs` label) and `time.same_track` (no site), so those three are not in the F0 lists (the full presets failed at
+model build, which no run had reached before). State: planned for the real recipes, smoke on the peer (R2 RG note).
 
 ## resume
 
@@ -49,8 +50,8 @@ each `fset` in base, geo and seed in 1, 2: `F0@<fset>.s<seed>` -> `dev@...` and 
 ## open items (collected from the rel-* notes and sweep-flags)
 
 1. ~~`relations_data` is not a stage~~ (R10) closed by R1 below: a registered stage (`arm`, `legged`, `pointer`, `psi0`,
-   `relations`) and the trainer hook `relation_batches`; what remains is each trainer calling the hook (A1 arm, HL legged) and
-   the observation gap (R1 note).
+   `relations`) and the trainer hook `relation_batches`; the arm trainers call the hook (R2 RG note); HL legged and the
+   observation gap for non-arm families remain.
 2. **Probe-sourced `edges:support-v1`** (rel-geo, R17): `ix.force_flow` reads the support graph from the PRIVILEGED label
    only (`nets/batch.py::support_edges`, a pure function, not on `RelCtx.edges`); the deployable half (from `ix.support`'s own
    bilinear pair score) needs a read hook in `relations/ops.py` (`BilinearOp` returns q/k features, `FieldReadouts` skips
@@ -130,9 +131,51 @@ Closes open item 1. Nothing about the training loop changed in F0 (no new params
   appends as before. An unparseable line is logged as a rejected steer, not applied.
 - `rrp run-dag` now loads the pipeline modules before planning (`cli/dag.py`), otherwise a stage a module registers on import
   (this one) is unknown to the recipe planner.
-- OBSERVATION GAP (open): shard rows carry labels and tokens but not observations, so a trainer cannot forward a shard row as
-  is. Options: re-render the observation from `(env, task, seed, step)` in the trainer, or train shard-only heads on the tokens.
-  Decision belongs to the trainer owners (A1, HL); `estimates_loss` masks main rows without labels and shard rows count only
-  where they carry one.
+- OBSERVATION GAP: closed for the arm family by the R2 RG note below (shard rows now carry the featurizer input).
 - Not run: no peer smoke of the real collector path (the host does no simulation); the tests drive `SnapshotCollector` with a
   fake env and the stage with a fake collector.
+
+## R2 RG: relgen reaches the arm trainers (readiness round 2)
+
+Closes the R1 observation gap for the arm family and the hook wiring (open item 1).
+- Forwardable rows: a shard row stores the snapshot's `PolicyInput` arrays plus its ctx token entity ids (`relgen-shard-2`; a
+  shard-1 manifest or a row without `policy_input` is refused, no reader for the old layout). `SnapshotCollector` takes the
+  observation from `on_reset(obs)` / `on_step(step.observation)` and featurizes it once per episode with the env's
+  `featurizer_for`; morph tokens map to assemblies through the inverse `feat.bindings`, scene tokens to `view.token_entity`,
+  task/interact tokens carry no entity. `relations_data_stage` collects inside `apply_run_context(rc)` (the run's kinfeat).
+  `label_episode` calls `transform_def(name)`, so an unknown generator name raises instead of being skipped.
+- `collate_rows(rows, family)` (`harness/data/mix.py`) builds one Batch through `collate_inputs` and scatters each row's labels
+  into the padded ctx layout (`extra["relation_labels"]["ctx"]`); a non-ctx label raises. `RelationBatches` (from
+  `relation_batches(cfg, out_dir, specs, batch_size=, family=, main=, start_step=)`; None without `params.curriculum`) gives
+  `draw(dev) -> (record, shard batch | None)` and `loss(rc, step)` = `estimates_loss` over the shard rows, then
+  `observe_estimates(step, metrics)`. A scheduled factor whose net wrote no estimate (source `given`, or no readout) raises
+  ("give the factor `source: probe`"): it would otherwise train at zero loss without anyone noticing. `inputs.relgen` without
+  `params.curriculum`, and `prefetch`, raise.
+- Trainers (`latent_train.py` stage A and flow, `behavior.py`): each step the main batch is the scheduler's `counts["main"]`
+  rows of the trainer's own data (flow / stage A) and the factor loss is `(Bm*L_main + n_shard*L_factor) / B`; the shard rows go
+  through the same context forward (`E.context` for stage A, `FlowPolicy.prepare(assembly_batch(b)).rc` for flow and BC) with NO
+  action / flow loss, so the action loss of a mix row is zero and the factor loss is on. Logs gain `relgen`, `n_relgen` and the
+  `probe_<factor>` terms; `schedule.jsonl` / `steer.jsonl` are in the run dir and `start_step` resumes.
+- Recipes: `relations_factor.yaml` per set F0 has `inputs.relgen: '@relgen:relgen'` and `params.curriculum` (geo:
+  depth3d, normal_align; ix: contact, held_by, support; task: next_contact; `interval` 1000 = the snapshot cadence so a resume
+  loses no metrics, `ramp_steps` 20000). Stage A is not fed in the template (its E has only `preset:arm`); the trainer supports
+  it through `encoder_factors`. `recipes/relations/relations_geo_smoke.yaml` is the plumbing smoke.
+- Tests (`tests/unit/test_relgen_trainers.py`, `test_relgen_stage.py`; CPU, about 13 s): 3 steps each of stage A, flow and BC on
+  a tiny pack plus real shards from fixture sessions: factor loss > 0 and differentiable, no labels in the action-loss batch,
+  `schedule.jsonl` steps `[0, 2]`, `Scheduler.replay_records` reproduces the composition; the recipes feed F0 and the F0 lists
+  build in the arm family.
+- Peer smoke (`relations_geo_smoke`, `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/r2-rg`): relgen on 6 teacher episodes x 3
+  snapshots wrote 72 rows (geo.depth3d / normal_align / orient / pos3d 18 each; geo.above is not a producer) in 11 s; F0 (120
+  steps, batch 16, width 64, the armdiv semfix stage-A representation, v7div pack) completed in 11 s with `schedule.jsonl` at
+  steps 0..100 (shares 0.4 -> 0.16 as the full-world floor ramps) and the step-100 record `n_relgen 7`, `relgen 327.7`,
+  `probe_geo.depth3d 329.2`, `probe_geo.normal_align -1.4`, flow 1.6. Plumbing only: a 120-step net is not a result. The first
+  launch found that `rrp stage run` validates the RunConfig before loading the pipeline modules, so the stage `relations_data`
+  is unknown to a leased job (`base.py`, not RG's): the smoke used a peer-side `sitecustomize` preloading
+  `rrp.harness.pipelines.relations` (RRP_PEER_PYTHONPATH, not in the repo).
+- Open: (1) the init-time factor loss (about 330 for depth3d) is two orders above the flow loss: a loss weight
+  (`curriculum.weight`) is probably needed before the real run; (2) `observe_estimates` reads `<factor>_acc` only, so the
+  field-estimate factors (depth3d, normal_align, pos3d, orient) give the scheduler no competence signal (`metrics` is empty in
+  `schedule.jsonl`); (3) `FlowPolicy.loss` discards the `estimates_loss` metrics, so the trainer does a second
+  prepare + estimates pass on the shard rows only (`nets/flow.py` is RC's); (4) `train_bc`'s arm.py config ignores `inputs`, so
+  BC shards come through `params.curriculum.shards`; the BC main batch cannot be resized (shard share weights the loss only);
+  (5) task / interact tokens carry no entity id; (6) legged / HD2 need their own collate (HL).
