@@ -149,7 +149,7 @@ def _default_data(b):
 
 
 @pytest.mark.menagerie
-@pytest.mark.parametrize("extra", [2, LC.SCAN_DIM])      # 2: the fake engine's own stand-in extra block (a privileged kind); 77: the public scan
+@pytest.mark.parametrize("extra", [3, LC.SCAN_DIM])      # 3: a privileged extra block (caller-supplied); 77: the public scan
 def test_morph_v2_actor_input_equals_the_warp_group_obs(tmp_path, extra, monkeypatch):
     """LearnedTracker's assembled input [morph_v1 | extra | upper block] on an MjData == MorphMultiEnv._group_obs (the trainer's obs)
     for the same state (fake CPU engine; the state is random, the root upright so the IMU gravity agrees)."""

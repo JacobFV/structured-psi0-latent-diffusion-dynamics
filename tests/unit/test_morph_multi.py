@@ -13,12 +13,13 @@ import torch
 
 pytestmark = pytest.mark.menagerie
 
+from rrp.envs.mujoco.legged_core import SCAN_DIM  # noqa: E402
 from rrp.envs.mujoco.morph_obs import (CTX_DIM, DYN_DIM, NS, OBS_DIM, UP_MAX, UP_PRIV_DIM, UPPER_DIM,  # noqa: E402
                                        MorphSpec, obs_format)
 from rrp.envs.warp.tracker_env import ADAPT, MorphMultiEnv  # noqa: E402
 from rrp.envs.warp.model import build_model  # noqa: E402
 
-EXTRA = 2          # a public extra-observation block (terrain-scan stand-in) so its concatenation is exercised too
+EXTRA = SCAN_DIM   # the public terrain-scan block (declared by the engines as `public_extra`) so its concatenation is exercised too
 
 
 class FakeEngine:
@@ -34,6 +35,7 @@ class FakeEngine:
         self.pol_dadr = torch.as_tensor(np.asarray(b.pol_dadr), dtype=torch.long)
         self.q0 = torch.as_tensor(np.asarray(b.q0), dtype=torch.float32).expand(self.N, -1).clone()
         self.extra_dim, self.priv_dim = EXTRA, b.priv_dim + 1 + EXTRA + priv_pad
+        self.public_extra = ("terrain_scan",)
         self.cfg0, self.dt = None, 0.02
         g = torch.Generator().manual_seed(seed)
         self.qpos = torch.randn(self.N, self.m.nq, generator=g)
