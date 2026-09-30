@@ -34,7 +34,7 @@ import numpy as np
 
 from rrp.harness.data.mix import RelgenError, write_shard
 from rrp.harness.data.relgen import (LABELS, PARTS, TRANSFORMS, Label, Sample, TokenIndex, label_record, label_runs_in,
-                                     load_families)
+                                     load_families, transform_def)
 from rrp.harness.pipelines.base import StageContext, StageError, apply_run_context, register_stage
 from rrp.policies.relations.base import FactorSpec, get_factor, resolve
 
@@ -46,17 +46,22 @@ STAGE_FAMILIES = ("relations", "arm", "legged", "pointer", "psi0")
 class EpisodeSnapshot:
     """One episode moment to label: env id, task, seed/step (provenance) and the privileged view + token index a
     label needs. `view` duck-types `rrp.envs.base.StateView` (only `.caps` and the accessors the run's labels
-    actually call are required, so a fixture StateView is enough for the unit suite)."""
+    actually call are required, so a fixture StateView is enough for the unit suite). `policy_input` is the family's
+    collate input for this moment (the featurizer's output on the snapshot's observation), and `index.sets["ctx"]` the
+    entity id of each of its tokens (bank order, unpadded): the shard stores both next to the labels so a trainer can
+    forward the row and supervise it (`write_shard`, `mix.collate_rows`)."""
     env: str
     task: str
     seed: int
     view: Any
     index: TokenIndex
+    policy_input: Any
     step: int = 0
 
 
 def _base_sample(ep: EpisodeSnapshot, active: tuple[str, ...]) -> Sample:
-    return {"inputs": {"env": ep.env, "task": ep.task, "seed": ep.seed, "step": ep.step, "tokens": ep.index.sets},
+    return {"inputs": {"env": ep.env, "task": ep.task, "seed": ep.seed, "step": ep.step,
+                       "policy_input": ep.policy_input, "tokens": ep.index.sets},
             "labels": {},
             "provenance": {"active": list(active), "parts": [], "transforms": [], "labels": [],
                            "env": ep.env, "task": ep.task, "seed": ep.seed, "step": ep.step}}
@@ -114,9 +119,9 @@ def label_episode(ep: EpisodeSnapshot, factor_specs: Sequence[FactorSpec], *,
         sample["provenance"]["parts"] = [g for g in fdef.gen if g in PARTS]
         rows = [sample]
         for gname in fdef.gen:
-            tdef = TRANSFORMS.get(gname)
-            if tdef is None:
+            if gname in PARTS:
                 continue
+            tdef = transform_def(gname)                       # an unknown transform name raises ValueError
             nxt: list[Sample] = []
             for row in rows:
                 variants = tdef.fn(row, rng, dict(fspec.p)) or [row]
@@ -157,27 +162,56 @@ def relations_data(factors: Sequence[str | dict | FactorSpec] | None, episodes: 
     return _write_all(by_factor, Path(out_root), seed)
 
 
+def arm_featurize(feat, view, obs) -> tuple[Any, list[str | None]]:
+    """The arm family's collate input for `obs` and the privileged entity id of each of its tokens, in bank order
+    (`nets.batch.BANKS`; unpadded, what `TokenIndex.sets["ctx"]` and the labels index). A morphology assembly token is
+    the task entity bound to that assembly (`feat.bindings`), a scene token the entity `view.token_entity("scene",
+    slot)` names for its object slot, and the featurizer's explicit null scene token, the joint tokens and the task /
+    interact tokens carry no entity (None). A token count that does not match the banks is a `RelgenError`."""
+    from rrp.policies.nets.batch import BANKS
+    pi = feat(obs)
+    asm_ent = {asm: ent for ent, asm in feat.bindings.items()}
+    asms = iter(feat.spec.assemblies)
+    ids: dict[str, list[str | None]] = {
+        "morph": [asm_ent.get(next(asms).id) if int(k) == 2 else None for k in pi.token_kind["morph"]],
+        "scene": [view.token_entity("scene", od.slot) for od in obs.object_descriptors] or [None],
+        "task": [None] * len(pi.tokens["task"]),
+        "interact": [None] * len(pi.tokens["interact"])}
+    for b in BANKS:
+        if len(ids[b]) != len(pi.tokens[b]):
+            raise RelgenError(f"arm_featurize: bank {b!r} has {len(pi.tokens[b])} tokens but {len(ids[b])} entity ids")
+    return pi, [e for b in BANKS for e in ids[b]]
+
+
 class SnapshotCollector:
     """A `harness.rollout` hook: labels the run's factors from `env.state_view()` at reset and every `every` ticks (at
     most `max_per_episode` per episode). Labelling happens at capture time, on the live view, so a view that reads
     the simulator lazily is never labelled from a later state. `seeds` is the seed list the rollout was given
-    (episodes reset in that order); rows accumulate in `by_factor`."""
+    (episodes reset in that order); rows accumulate in `by_factor`. Each row also carries the snapshot's forwardable
+    input: `featurize(env, view, obs) -> (PolicyInput, ctx entity ids)` (default `arm_featurize` over the session's
+    featurizer, built once per episode) on the observation the policy saw at that moment."""
 
     def __init__(self, env_id: str, task: str, specs: Sequence[FactorSpec], seeds: Sequence[int], *,
-                 rng: np.random.Generator, every: int = 10, max_per_episode: int = 8):
+                 rng: np.random.Generator, every: int = 10, max_per_episode: int = 8, featurize=None):
         if every < 1 or max_per_episode < 1:
             raise ValueError("every and max_per_episode must be >= 1")
         self.env_id, self.task, self.specs, self.seeds, self.rng = env_id, task, tuple(specs), list(seeds), rng
-        self.every, self.max_per_episode = every, max_per_episode
+        self.every, self.max_per_episode, self.featurize = every, max_per_episode, featurize
         self.by_factor: dict[str, list[Sample]] = {}
         self._n_reset = 0
         self._ep: dict[int, dict] = {}
 
-    def _capture(self, i: int, env, tick: int) -> None:
+    def _capture(self, i: int, env, obs, tick: int) -> None:
         st = self._ep[i]
         view = env.state_view()
-        idx = TokenIndex(sets={"ctx": [e.id for e in view.entities()]})
-        ep = EpisodeSnapshot(env=self.env_id, task=self.task, seed=st["seed"], view=view, index=idx, step=tick)
+        if self.featurize is not None:
+            pi, ids = self.featurize(env, view, obs)
+        else:
+            from rrp.policies.features.featurizer import featurizer_for
+            st["feat"] = st.get("feat") or featurizer_for(env)
+            pi, ids = arm_featurize(st["feat"], view, obs)
+        ep = EpisodeSnapshot(env=self.env_id, task=self.task, seed=st["seed"], view=view,
+                             index=TokenIndex(sets={"ctx": ids}), policy_input=pi, step=tick)
         for name, rows in label_episode(ep, self.specs, rng=self.rng).items():
             self.by_factor.setdefault(name, []).extend(rows)
         st["n"] += 1
@@ -185,13 +219,13 @@ class SnapshotCollector:
     def on_reset(self, i, env, obs):
         self._ep[i] = {"seed": int(self.seeds[self._n_reset]), "n": 0, "tick": 0}
         self._n_reset += 1
-        self._capture(i, env, 0)
+        self._capture(i, env, obs, 0)
 
     def on_step(self, i, env, act, step):
         st = self._ep[i]
         st["tick"] += 1
         if st["tick"] % self.every == 0 and st["n"] < self.max_per_episode:
-            self._capture(i, env, st["tick"])
+            self._capture(i, env, step.observation, st["tick"])
 
 
 # ------------------------------------------------------------------------------------------------ the stage
@@ -205,7 +239,8 @@ def _opt_seeds(o: dict) -> list[int]:
 
 def collect_by_factor(o: dict, specs: Sequence[FactorSpec], *, seed: int) -> tuple[dict[str, list[Sample]], list[str]]:
     """Run `options.policy` (default the task's scripted teacher) on `options.env` / `task` / `body` over the seeds with
-    a `SnapshotCollector` hook. Returns the labelled rows per factor and the seeds' episode outcomes."""
+    a `SnapshotCollector` hook. Returns the labelled rows per factor and the seeds' episode outcomes. The caller holds
+    the run context (`apply_run_context`) so the featurizer sees the run's `feat.base_axes`."""
     from rrp.harness.eval.evaluate import evaluate
     missing = [k for k in ("env", "task", "body") if not o.get(k)]
     if missing:
@@ -221,12 +256,12 @@ def collect_by_factor(o: dict, specs: Sequence[FactorSpec], *, seed: int) -> tup
 def relations_data_stage(ctx: StageContext) -> dict:
     """relations_data: label the run's factors on teacher-driven snapshots and write hashed shards (`<out>/relgen`)."""
     from rrp.core.provenance import file_digest
+    seed = ctx.rc.seed
     with apply_run_context(ctx.rc) as rctx:
         specs = rctx.specs
-    if not specs:
-        raise StageError(f"{STAGE}: params.factors resolves to no factors")
-    seed = ctx.rc.seed
-    by_factor, outcomes = collect_by_factor(ctx.opts, specs, seed=seed)
+        if not specs:
+            raise StageError(f"{STAGE}: params.factors resolves to no factors")
+        by_factor, outcomes = collect_by_factor(ctx.opts, specs, seed=seed)
     root = ctx.out / "relgen"
     res = _write_all(by_factor, root, seed)
     shards = {}

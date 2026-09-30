@@ -16,6 +16,7 @@ import torch
 
 from rrp.policies.nets.checkpoint import save_checkpoint, load_checkpoint
 from rrp.harness.data.chunks import ChunkDataset, load_episodes
+from rrp.harness.data.mix import relation_batches
 from rrp.policies.nets.codec import ActionCodec, CodecConfig
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 from rrp.ops.workload import CheckpointSignal
@@ -187,6 +188,10 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
             start_epoch, skip = st["data_cursor"]["next_epoch"], st["data_cursor"]["skip"]
         if st["extra"].get("gen") is not None:
             gen.set_state(st["extra"]["gen"].to("cpu") if hasattr(st["extra"]["gen"], "to") else st["extra"]["gen"])
+    # relgen shards (docs/relations.md 5.5): every step the scheduler gives the shards a share n_rel of the batch; the main
+    # batch keeps its size (the loader fixes it), the shard rows are one extra forward with `estimates_loss` on and no
+    # action target (their action loss is zero), weighted n_rel / batch_size
+    rel = relation_batches(cfg, out_dir, pcfg.specs(), batch_size=cfg["batch_size"], family=pcfg.family, start_step=step)
     every = cfg.get("checkpoint_every_epochs", 1)
     every_steps = cfg.get("checkpoint_every_steps", 1000)
     snap_steps = set(cfg.get("snapshot_steps") or [])
@@ -209,6 +214,13 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
             batch, a, v = batch.to(dev), a.to(dev), v.to(dev)
             target = encode_targets(codec, batch, a, v)
             loss, logs = model.loss(batch, target, v, generator=gen)
+            if rel is not None:
+                b, shard = rel.draw(dev)
+                if shard is not None:
+                    n_rel = cfg["batch_size"] - b["counts"]["main"]
+                    el, elogs = rel.loss(model.prepare(shard).rc, step)
+                    loss, logs = loss + (n_rel / cfg["batch_size"]) * el, dict(logs, relgen=float(el.detach()),
+                                                                               n_relgen=n_rel, **elogs)
             if proj is not None and len(pairs) >= 8:
                 sl = swap_alignment_loss(model, proj, rng.sample(pairs, min(swap.get("pairs_per_step", 64), len(pairs))),
                                          dev)

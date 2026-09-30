@@ -1,7 +1,8 @@
 """relations_data stage + shards + mix (D-144 fanout unit R10, docs/relations.md 5.3, section 10 row R10).
 
 Acceptance: a 2-episode fixture run writes shards + manifest with per-sample provenance (active set, label
-versions); `mixed_batches` fractions are exact and seed-deterministic; labels a sample does not carry are masked.
+versions, the row's collate input and ctx entity ids); `mixed_batches` fractions are exact and seed-deterministic;
+labels a sample does not carry are masked. The trainers' use of the shards is tests/unit/test_relgen_trainers.py.
 """
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ from rrp.harness.data.relgen import Label, LabelDef, TokenIndex, TransformDef, r
 from rrp.harness.data.relgen.curriculum import Scheduler, SchedulerConfig
 from rrp.harness.data.mix import RelgenError, load_shard_rows, read_shard_manifest, write_shard
 from rrp.harness.pipelines.relations import EpisodeSnapshot, label_episode, relations_data
+from rrp.policies.features.featurizer import PolicyInput
 from rrp.policies.relations.base import FactorDef, register_factor
 
 
@@ -68,10 +70,25 @@ register_factor(FactorDef("test.r10.needs_camera", "1", field="cam_uvd", op="sqd
                           label="test.pos3d"))   # label exists but this spec is unused by these fixtures
 
 
+def _toy_pi(ids=("gripper", "cube")) -> PolicyInput:
+    """A minimal PolicyInput with one morph token per id: enough to write / read a shard row (no collate)."""
+    from rrp.policies.nets.batch import BANKS
+    n = {b: (len(ids) if b == "morph" else 0) for b in BANKS}
+    z = lambda *sh: np.zeros(sh, np.float32)                                       # noqa: E731
+    return PolicyInput(tokens={b: z(n[b], 3) for b in BANKS}, token_kind={b: np.zeros(n[b], np.int64) for b in BANKS},
+                       act_node_feats=z(1, 4), act_node_morph_index=np.zeros(1, np.int64),
+                       relations=np.zeros((0, 5), np.int64), pointers=np.zeros((0, 4), np.int64),
+                       pointer_text={b: z(n[b], 2) for b in BANKS}, q0=z(1), meta={"toy": True})
+
+
+def _toy_featurize(env, view, obs):
+    return _toy_pi(), ["gripper", "cube"]
+
+
 def _episodes(n=2):
     idx = TokenIndex(sets={"ctx": ["gripper", "cube"]})
-    return [EpisodeSnapshot(env="fixture", task="toy", seed=s, view=FixtureView(offset=float(s)), index=idx, step=0)
-            for s in range(n)]
+    return [EpisodeSnapshot(env="fixture", task="toy", seed=s, view=FixtureView(offset=float(s)), index=idx,
+                            policy_input=_toy_pi(), step=0) for s in range(n)]
 
 
 # ------------------------------------------------------------------ label_episode
@@ -98,7 +115,7 @@ def test_relations_data_writes_shard_and_manifest(tmp_path):
     assert set(result["factors"]) == {"test.r10.pos3d"}
     man = result["factors"]["test.r10.pos3d"]
     # 2 episodes x 2 rows (test.double) = 4 rows written
-    assert man["n_episodes"] == 4 and man["schema"] == "relgen-shard-1"
+    assert man["n_episodes"] == 4 and man["schema"] == "relgen-shard-2"
     for row in man["episodes"]:
         assert row["active"] == ["test.r10.pos3d", "test.r10.nolabel"]           # active set recorded
         assert row["labels"] == [{"label": "test.pos3d", "prov": "gt", "version": "3"}]   # label + version recorded
@@ -114,6 +131,24 @@ def test_relations_data_writes_shard_and_manifest(tmp_path):
     for r in rows:
         lab = r["labels"]["test.pos3d"]
         assert isinstance(lab, Label) and lab.value.shape == (2, 3)
+        pi = r["inputs"]["policy_input"]                                        # the forwardable input round-trips
+        assert pi.tokens["morph"].shape == (2, 3) and pi.meta == {"toy": True}
+        assert r["inputs"]["tokens"]["ctx"] == ["gripper", "cube"]
+
+
+def test_write_shard_refuses_a_row_without_a_collate_input_and_load_refuses_an_old_shard(tmp_path):
+    ep = _episodes(1)[0]
+    row = label_episode(ep, [spec("test.r10.pos3d")], rng=np.random.default_rng(0))["test.r10.pos3d"][0]
+    bare = {**row, "inputs": {k: v for k, v in row["inputs"].items() if k != "policy_input"}}
+    with pytest.raises(RelgenError, match="policy_input"):
+        write_shard("test.r10.pos3d", "1", [bare], tmp_path, shard_id="s")
+    write_shard("test.r10.pos3d", "1", [row], tmp_path, shard_id="s")
+    mf = tmp_path / "test.r10.pos3d" / "1" / "manifest.json"
+    man = json.loads(mf.read_text())
+    man["schema"] = "relgen-shard-1"
+    mf.write_text(json.dumps(man))
+    with pytest.raises(RelgenError, match="relgen-shard-1"):
+        load_shard_rows("test.r10.pos3d", "1", tmp_path)
 
 
 def test_relations_data_no_producers_is_not_an_error(tmp_path):
@@ -200,11 +235,11 @@ from types import SimpleNamespace
 from rrp.core.runconfig import FLAG_NAMES, RunConfig, RunIndex
 from rrp.envs.base import EntityState
 from rrp.harness.data import relgen as _relgen
-from rrp.harness.data.mix import relation_batches, stack_labels
+from rrp.harness.data.mix import relation_batches
 from rrp.harness.pipelines import base as B
 from rrp.harness.pipelines.relations import SnapshotCollector, producer_status
 from rrp.policies.relations import catalog as _catalog  # noqa: F401  (registers geo.pos3d & co)
-from rrp.policies.relations.base import RelCtx, TokenSet, estimates_loss, spec
+from rrp.policies.relations.base import spec
 
 _relgen.load_families()
 
@@ -237,12 +272,12 @@ def _drive(col, seeds, steps=4):
         col.on_reset(i, env, None)
         for t in range(steps):
             env.tick = t + 1
-            col.on_step(i, env, None, t)
+            col.on_step(i, env, None, SimpleNamespace(observation=None))
 
 
 def _rows(seeds=(11, 12, 13), factors=("geo.pos3d",), every=2):
     col = SnapshotCollector("fake/env", "toy", [spec(f) for f in factors], seeds, rng=np.random.default_rng(0),
-                            every=every, max_per_episode=3)
+                            every=every, max_per_episode=3, featurize=_toy_featurize)
     _drive(col, seeds)
     return col.by_factor
 
@@ -266,51 +301,52 @@ def _shards(tmp_path, **kw):
     return root
 
 
-def _rc(shards, steps_cfg=None, factors=("geo.pos3d",), **kw):
-    cur = dict(shards=str(shards), factors=list(factors), interval=2, share_min=0.5, share_max=0.5,
-               full_world_start=0.0, full_world_end=0.0)
+def _cfg(shards, steps_cfg=None, **kw):
+    """The trainer's native config (what `RunConfig.to_native()` gives it): `curriculum` = params.curriculum, `relgen` = the
+    relations_data output input."""
+    cur = dict(factors=["geo.pos3d"], interval=2, share_min=0.5, share_max=0.5, full_world_start=0.0,
+               full_world_end=0.0)
     cur.update(steps_cfg or {})
-    d = dict(schema_version="runconfig-1", family="arm", stage="train_flow", variant="na", seed=3, lineage="r1",
-             track="t", flags={**{f: None for f in FLAG_NAMES}, "zero_prev_action": True, "contact_version": "contact_v1"},
-             params={"policy": {"factors": list(factors)}, "curriculum": cur, "batch_size": 8})
-    d.update(kw)
-    return RunConfig.model_validate(d)
+    return dict(seed=3, batch_size=8, relgen=str(shards), curriculum=cur, **kw)
 
 
-def _main(n):
-    return [[{"inputs": {}, "labels": {}, "provenance": {}} for _ in range(8)] for _ in range(n)]
+def _hook(shards, out, factors=("geo.pos3d",), steps_cfg=None, **kw):
+    return relation_batches(_cfg(shards, dict(factors=list(factors), **(steps_cfg or {}))), out,
+                            [spec(f) for f in factors], **kw)
 
 
-# (a) shard rows enter the loss; schedule.jsonl parses -------------------------------------------------------------
-def test_two_step_cpu_run_shard_rows_enter_the_loss(tmp_path):
-    import torch
+def _steps(it, n):
+    return [b for _, b in zip(range(n), it)]
+
+
+# (a) the scheduler splits the batch; schedule.jsonl parses; no-relgen configs get no hook -------------------------
+def test_hook_splits_the_batch_and_writes_schedule_jsonl(tmp_path):
     root = _shards(tmp_path)
     out = tmp_path / "run"
-    batches = relation_batches(_rc(root), out, _main(2))
-    mu = torch.zeros(8, 2, 3, requires_grad=True)
-    lv = torch.zeros(8, 2, 1, requires_grad=True)
-    opt = torch.optim.SGD([mu, lv], lr=0.1)
-    n_rel = []
-    for b in batches:
-        n_rel.append(len(b["relgen"]))
-        lab = b["labels"]["ctx"]
-        assert lab["pos3d"].shape == (8, 2, 3) and lab["pos3d.valid"].shape == (8, 2)
-        assert int(lab["pos3d.valid"].sum()) == len(b["relgen"]) * 2               # main rows are masked, shard rows valid
-        ts = TokenSet("ctx", torch.ones(8, 2, dtype=torch.bool), labels=lab)
-        rc = RelCtx(sets={"ctx": ts}, estimates={("ctx", "pos3d"): (mu, None), ("ctx", "pos3d", "logvar"): lv},
-                    memo={("est_by", "ctx", "pos3d"): "geo.pos3d"})
-        loss, logs, metrics = estimates_loss(rc, [spec("geo.pos3d")])
-        assert metrics["geo.pos3d_mae"][1] == len(b["relgen"]) * 2 * 3 and "probe_geo.pos3d" in logs
-        opt.zero_grad()
-        loss.backward()
-        assert float(mu.grad.abs().sum()) > 0
-        assert float(mu.grad[[i for i in range(8) if not lab["pos3d.valid"][i].any()]].abs().sum()) == 0   # only shard rows
-        opt.step()
-        batches.observe_estimates(b["step"], {"geo.pos3d_acc": (3.0, 4)})
-    assert n_rel == [4, 4]
+    batches = _hook(root, out)
+    bs = _steps(batches, 2)
+    for b in bs:
+        assert b["counts"] == {"main": 4, "geo.pos3d": 4} and len(b["relgen"]) == 4 and b["main"] == []
+        assert b["relgen"][0]["inputs"]["policy_input"].tokens["morph"].shape == (2, 3)
+    batches.observe_estimates(1, {"geo.pos3d_acc": (3.0, 4), "geo.pos3d_mae": (1.0, 4)})     # only `_acc` is competence
     recs = [json.loads(l) for l in (out / "schedule.jsonl").read_text().splitlines()]
     assert [r["step"] for r in recs] == [0] and recs[0]["share"]["geo.pos3d"] == 0.5     # interval 2: one decision in 2 steps
     assert recs[0]["steers"] == [] and recs[0]["steer_line"] == 0
+    assert batches._pending == [[1, {"geo.pos3d": {"competence": 0.75}}]]             # `_mae` gives no competence
+
+
+def test_no_curriculum_is_no_hook_and_relgen_alone_or_with_prefetch_is_refused(tmp_path):
+    root = _shards(tmp_path)
+    assert relation_batches(dict(seed=1), tmp_path / "a", []) is None
+    with pytest.raises(ValueError, match="params.curriculum"):
+        relation_batches(dict(seed=1, relgen=str(root)), tmp_path / "b", [spec("geo.pos3d")])
+    with pytest.raises(ValueError, match="prefetch"):
+        relation_batches(_cfg(root, prefetch=True), tmp_path / "c", [spec("geo.pos3d")], batch_size=8)
+    with pytest.raises(ValueError, match="relations_data output"):
+        relation_batches(dict(seed=1, curriculum=dict(factors=["geo.pos3d"])), tmp_path / "d", [spec("geo.pos3d")],
+                         batch_size=8)
+    with pytest.raises(RelgenError, match="no shard rows"):
+        relation_batches(_cfg(tmp_path / "empty"), tmp_path / "e", [spec("geo.pos3d")], batch_size=8)
 
 
 # (b) replay reproduces the batch composition, steers and metrics included -----------------------------------------
@@ -319,10 +355,9 @@ def test_replay_from_schedule_jsonl_reproduces_batch_composition(tmp_path):
     two = ("geo.pos3d", "geo.orient")
     root = _shards(tmp_path, factors=two)
     out = tmp_path / "run"
-    rc = _rc(root, dict(share_min=0.1, share_max=0.6, interval=2, boost_gain=2.0), factors=two)
-    batches = relation_batches(rc, out, _main(8))
+    batches = _hook(root, out, two, dict(share_min=0.1, share_max=0.45, interval=2, boost_gain=2.0))
     live = []
-    for b in batches:
+    for _, b in zip(range(8), batches):
         live.append([(fs, c) for fs, c in b["active"]])
         if b["step"] == 0:
             with open(out / "steer.jsonl", "a") as fh:
@@ -332,7 +367,7 @@ def test_replay_from_schedule_jsonl_reproduces_batch_composition(tmp_path):
     assert [r["step"] for r in recs] == [0, 2, 4, 6]
     assert [len(r["steers"]) for r in recs] == [0, 1, 0, 0] and recs[1]["steers"][0]["op"] == "boost"
     assert recs[1]["metrics"] and recs[1]["steers"][0]["at"] == 2
-    _, seq = Scheduler.replay_records(batches.cfg, int(rc.seed), recs, steps=range(8), n=8)
+    _, seq = Scheduler.replay_records(batches.cfg, 3, recs, steps=range(8), n=8)
     assert [[(sorted(fs), c) for fs, c in s if c > 0] for s in seq] == live
     assert len({tuple(map(tuple, x)) for x in map(lambda l: [(tuple(f), c) for f, c in l], live)}) > 1   # the steer moved it
 
@@ -343,7 +378,7 @@ def test_bad_steer_line_is_a_rejected_record_and_the_listing_says_so(tmp_path, c
     out = tmp_path / "run"
     (out).mkdir()
     (out / "steer.jsonl").write_text("boost geo.pos3d x2 for 4\nnot a steer\n")
-    batches = relation_batches(_rc(root, dict(interval=1)), out, _main(2))
+    batches = _hook(root, out, steps_cfg=dict(interval=1))
     next(batches)
     (out / "steer.jsonl").write_text((out / "steer.jsonl").read_text() + "freeze geo.pos3d\n")   # not read yet
     st = _steer_status(out)
@@ -353,13 +388,13 @@ def test_bad_steer_line_is_a_rejected_record_and_the_listing_says_so(tmp_path, c
 # (c) resume adopts by hash ----------------------------------------------------------------------------------------
 def test_resume_from_step_rebuilds_the_scheduler_and_replays_the_same_rows(tmp_path):
     root = _shards(tmp_path)
-    full = list(relation_batches(_rc(root), tmp_path / "full", _main(4)))
+    full = _steps(_hook(root, tmp_path / "full"), 4)
     out = tmp_path / "run"
-    first = relation_batches(_rc(root), out, _main(4))
-    [next(first) for _ in range(2)]                                      # the run dies after step 1
+    first = _hook(root, out)
+    _steps(first, 2)                                                     # the run dies after step 1
     with pytest.raises(RelgenError, match="pass start_step"):
-        relation_batches(_rc(root), out, _main(2))                       # not silently restarting over its own log
-    rest = list(relation_batches(_rc(root), out, _main(2), start_step=2))
+        _hook(root, out)                                                 # not silently restarting over its own log
+    rest = _steps(_hook(root, out, start_step=2), 2)
     assert [b["step"] for b in rest] == [2, 3]
     prov = lambda b: [r["provenance"] for r in b["relgen"]]                # noqa: E731
     assert [prov(b) for b in rest] == [prov(b) for b in full[2:]]          # per-step draws: same rows as uninterrupted
@@ -376,7 +411,7 @@ def _arm_rc(**opts):
 
 def _fake_collect(o, specs, *, seed):
     col = SnapshotCollector(o["env"], o["task"], specs, _seeds := [int(s) for s in o["seeds"]],
-                            rng=np.random.default_rng(seed), every=2, max_per_episode=3)
+                            rng=np.random.default_rng(seed), every=2, max_per_episode=3, featurize=_toy_featurize)
     _drive(col, _seeds)
     return col.by_factor, ["success"] * len(_seeds)
 

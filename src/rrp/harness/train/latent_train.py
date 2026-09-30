@@ -30,6 +30,7 @@ import torch.nn.functional as F
 from rrp.core.provenance import resolve_zero_prev_action
 from rrp.policies.nets.checkpoint import save_checkpoint, load_checkpoint
 from rrp.harness.data.packed import PackedChunkDataset
+from rrp.harness.data.mix import relation_batches
 from rrp.policies.nets.batch import Batch
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig, interpolate_target, masked_mse
 from rrp.policies.nets.latent_batch import augment
@@ -196,13 +197,23 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
               flush=True)
     B = cfg_json.get("batch_size", 128)
     feed = _prefetch(data, B, rng, cfg.max_phase_ticks, dev) if cfg_json.get("prefetch") else None
+    # relgen shards (docs/relations.md 5.5): params.curriculum shares of the batch are shard rows, forwarded through E's
+    # context with the readout/estimate losses on and no action target; the rest is the pack batch
+    rel = relation_batches(cfg_json, out_dir, E.factor_specs(), batch_size=B, family=E.policy_cfg.family, start_step=step)
     while step < steps and not sig.requested:
+        shard, Bm = None, B
+        if rel is not None:
+            b, shard = rel.draw(dev)
+            Bm = b["counts"]["main"]
         if feed is not None:
             batch, a, v, lab, r, j = next(feed)
         else:
-            sel, tgt, j = data.sample(B, rng, cfg.max_phase_ticks)
+            sel, tgt, j = data.sample(Bm, rng, cfg.max_phase_ticks)
             batch, a, v, lab, r = data.fetch(sel, tgt, dev)
         loss, logs, _ = representation_step(E, R, P, (batch, a, v, lab, r, torch.as_tensor(j, device=dev)), cfg)
+        if shard is not None:
+            el, elogs = rel.loss(E.context(shard)[2], step)
+            loss, logs = (Bm * loss + (B - Bm) * el) / B, dict(logs, relgen=float(el.detach()), n_relgen=B - Bm, **elogs)
         opt.zero_grad()
         loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -349,13 +360,20 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     grng = random.Random(seed + 23)
     Bp = B - Bg
     feed = _prefetch(data, Bp, rng, 0, dev) if (cfg_json.get("prefetch") and Bp) else None   # resume: rng runs ahead by <= depth
+    # relgen shards (docs/relations.md 5.5): params.curriculum shares of the pack part of the batch are shard rows, forwarded
+    # through the flow's context with `estimates_loss` on and no flow (action) target, so their action loss is zero
+    rel = relation_batches(cfg_json, out_dir, pcfg.specs(), batch_size=Bp, family=pcfg.family, start_step=step) if Bp else None
     while step < steps and not sig.requested:
+        shard, Bm = None, Bp
+        if rel is not None:
+            b, shard = rel.draw(dev)
+            Bm = b["counts"]["main"]
         if Bp == 0:                 # pack-free generator DAgger (gen_dagger_frac 1.0, warm start): DAgger rows only
             loss, logs = torch.zeros((), device=dev), {}
         elif feed is not None:
             batch, a, v, lab, r, j = next(feed)
         else:
-            sel, tgt, j = data.sample(Bp, rng, 0)
+            sel, tgt, j = data.sample(Bm, rng, 0)
             batch, a, v, lab, r = data.fetch(sel, tgt, dev)
         if Bp:
             with torch.no_grad():
@@ -368,6 +386,9 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
             valid = am[:, None, :].expand(-1, lcfg.knots, -1)
             loss, logs = model.loss(ab, z_target, valid, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem,
                                     packet_tau_min=cfg_json.get("packet_tau_min", 0.0))
+            if shard is not None:
+                el, elogs = rel.loss(model.prepare(assembly_batch(shard)).rc, step)
+                loss, logs = (Bm * loss + (Bp - Bm) * el) / Bp, dict(logs, relgen=float(el.detach()), n_relgen=Bp - Bm, **elogs)
         if Bg:
             from rrp.policies.nets.batch import collate_inputs
             it = [gd_items[grng.randrange(len(gd_items))] for _ in range(Bg)]

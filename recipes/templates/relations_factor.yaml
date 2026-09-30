@@ -9,11 +9,12 @@
 # The `ui` preset (ui.* on the ComputerWorld widget tree) is a pointer-track factor set: it is a `factors:` var of the
 # pointer recipes (recipes/pointer, P4c), not an arm instance.
 # Instances extend this file and only choose the matrix (recipes/relations/relations_<set>.yaml).
-# CAVEAT (recorded in the ledger and every manifest): the `relgen` node writes the labelled shards of each set's factors
-# (privileged-truth labels on scripted-teacher snapshots, one body, docs/relations.md 5.3), but F0's trainer does not read
-# them yet: the probe-sourced factors (geo.depth3d, ix.*, task.next_contact) still train without label shards until the
-# arm trainer calls `relation_batches` (the one-line hook, docs/architecture.md 14.2; unit A1). Until then a set's result
-# is the structural side only. State: planned (renders and plans dry; no run recorded).
+# Relgen reaches the trainer: per set the F0 node takes the `relgen` node's shards (`inputs.relgen: '@relgen:relgen'`) and
+# `params.curriculum` (docs/relations.md 5.5) schedules them into the batch (latent_train's hook, `relation_batches`:
+# shard rows are forwarded through the flow's context with the action loss masked, the factors' `estimates_loss` on, and
+# `schedule.jsonl` + steer.jsonl in the run dir). Only factors whose net writes an estimate can be scheduled: a probe-sourced
+# factor with a readout (geo.depth3d, ix.contact/held_by/handover/support, task.next_contact); the trainer raises otherwise.
+# The shared stageA (global) and the `base` control take no shards. State: planned (renders and plans dry; smoke on the peer).
 # The interference report (a set vs base, per body, paired seeds) is `rrp suite` / room material over the `dev` results.
 #   rrp run-dag recipes/relations/relations_geo.yaml --dry-run --point fset=geo,seed=1
 #   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/relations rrp run-dag recipes/relations/relations_geo.yaml --max-parallel-gpu 1
@@ -21,7 +22,6 @@ name: relations_factor
 schema: dag-1
 family: arm
 track: relations
-caveat: 'D-145 relations recipe: relgen shards are a DAG node, but the F0 trainer does not read them yet (structural side only; planned, never run)'
 lineage: 'relations-{fset}'
 label_prefix: 'rf{fset}{seed}'
 global_lineage: 'relations-shared'
@@ -67,15 +67,15 @@ nodes:
     resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 24G, max_seconds: 14400}
     per:
       fset:
-        geo: {params: {policy: {factors: ['preset:arm', 'preset:geo']}}}
-        ix: {params: {policy: {factors: ['preset:arm', 'preset:ix']}}}
-        task: {params: {policy: {factors: ['preset:arm', 'preset:task']}}}
+        geo: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: ['preset:arm', 'preset:geo']}, curriculum: {factors: ['geo.depth3d'], interval: 1000, ramp_steps: 20000, share_max: 0.25}}}
+        ix: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: ['preset:arm', 'preset:ix']}, curriculum: {factors: ['ix.contact', 'ix.held_by', 'ix.handover', 'ix.support'], interval: 1000, ramp_steps: 20000, share_max: 0.2}}}
+        task: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: ['preset:arm', 'preset:task']}, curriculum: {factors: ['task.next_contact'], interval: 1000, ramp_steps: 20000, share_max: 0.25}}}
     config:
       inputs: {representation: '@stageA:representation.pt', packed_dir: '{pack}'}
       options: {final_snapshot_alias: snap_final_s20000.pt}
       params: {name: '{pfx}_F0', seed: '{1701 + so}', steps: 20000, batch_size: 128, lr: 0.0003, packet_semantic_weight: 1.0, normalize_target: true, snapshot_every: 1000, packet_tau_min: 0.6, policy: {width: 256, heads: 4, ctx_layers: 3, blocks: 6, attention: factorized, name: '{pfx}_F0'}}
   # labelled relgen shards for the set's factors: teacher snapshots labelled through StateView (privileged truth, never a
-  # deployable input); a trainer takes them with relation_batches(rc, out_dir, main) and params.curriculum.shards
+  # deployable input); F0 takes them through `inputs.relgen` (`@relgen:relgen`) and `params.curriculum`
   relgen:
     stage: relations_data
     only: {fset: [geo, ix, task]}
