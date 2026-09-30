@@ -15,7 +15,7 @@ from rrp.harness.pipelines import base as B
 
 ROOT = Path(__file__).resolve().parents[2]
 RECIPES = sorted(p for d in ("pointer", "psi0") for p in (ROOT / "recipes" / d).glob("*.yaml"))
-SOURCES = dict(pointer=ROOT / "src/rrp/harness/train/pointer.py", psi0=ROOT / "src/rrp/policies/psi0/train.py")
+SOURCES = dict(pointer=ROOT / "src/rrp/harness/train/pointer/__init__.py", psi0=ROOT / "src/rrp/policies/psi0/train.py")
 
 
 def _options(path: Path) -> set[str]:

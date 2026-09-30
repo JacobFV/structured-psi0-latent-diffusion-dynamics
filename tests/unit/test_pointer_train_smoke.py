@@ -9,7 +9,9 @@ import pytest
 torch = pytest.importorskip("torch")
 
 from rrp.harness.train import pointer as T  # noqa: E402
-from rrp.policies.pointer import LC, LI, NH, NW, WF  # noqa: E402
+from rrp.policies.pointer import LC, LI, NH, NW, WF, PointerGeometry  # noqa: E402
+
+GEOM = PointerGeometry((640, 480), 0.001, 10.0)          # synthetic: the trainers read the env spec's geometry
 
 
 def _pack(path, *, geometry: bool, seed0: int, n_ep=4, n_tick=8):
@@ -35,6 +37,11 @@ def _pack(path, *, geometry: bool, seed0: int, n_ep=4, n_tick=8):
     np.savez_compressed(path, **d)
 
 
+@pytest.fixture(autouse=True)
+def _geometry(monkeypatch):
+    monkeypatch.setattr("rrp.harness.train.pointer.train.pointer_geometry", lambda: GEOM)
+
+
 def _args(tmp_path, files, **kw):
     return argparse.Namespace(data=[str(f) for f in files], steps=2, batch=8, lr=3e-4, seed=0, device="cpu",
                               log_every=1, split=T.SPLIT_PATH, **kw)
@@ -44,8 +51,8 @@ def test_demos_batch_supplies_geometry_stored_or_flagged_invalid(tmp_path):
     new, old = tmp_path / "new.npz", tmp_path / "old.npz"
     _pack(new, geometry=True, seed0=10)
     _pack(old, geometry=False, seed0=20)
-    data = T.Demos([str(new), str(old)], "cpu")
-    data.half = torch.tensor([0.32, 0.24])
+    data = T.Demos([str(new), str(old)], "cpu", GEOM)
+    assert data.half.tolist() == pytest.approx([0.32, 0.24])
     ix = torch.arange(data.N)
     b, _, _ = data.batch(ix)
     assert b["wpos3d"].shape == b["wcamuvd"].shape == (data.N, NW, 3)
@@ -69,3 +76,34 @@ def test_rep_flow_bc_two_steps_on_synthetic_pack(tmp_path):
         blob = torch.load(path, weights_only=False)
         assert blob["kind"] == kind and all(np.isfinite(v) for v in blob["metrics"].values()
                                             if isinstance(v, float))
+
+
+def test_demos_refuse_a_pack_from_another_geometry(tmp_path):
+    import json
+    p = tmp_path / "p.npz"
+    _pack(p, geometry=True, seed0=1)
+    d = dict(np.load(p))
+    np.savez_compressed(p, **d, geom=np.array(json.dumps(GEOM.as_dict())))
+    T.Demos([str(p)], "cpu", GEOM)                                        # a stamped pack of the same geometry loads
+    with pytest.raises(ValueError, match="different pointer geometry"):
+        T.Demos([str(p)], "cpu", PointerGeometry((960, 640), 0.001, 10.0))
+
+
+def test_fit_is_the_one_loop_and_tick_period_comes_from_the_geometry(tmp_path):
+    """`fit` drives a step_fn / eval_fn pair; the realizer is queried at phases j * geom.dt (here 0.05 s, not 0.1)."""
+    from rrp.harness.train.pointer.train import _tile_forward, fit
+    _pack(tmp_path / "p.npz", geometry=True, seed0=3)
+    data = T.Demos([str(tmp_path / "p.npz")], "cpu", GEOM)
+    w = torch.nn.Parameter(torch.ones(1))
+    seen = []
+    log = fit([w], lambda ix: ((w * data.t["ptr"][ix].sum()).abs() * 0 + (w - 3) ** 2, dict(n=len(ix))), data, steps=5,
+              batch=4, lr=0.1, eval_fn=lambda: seen.append(1) or dict(v=1.0), log_every=2)
+    assert [r["step"] for r in log] == [0, 2, 4] and len(seen) == 3 and log[0]["n"] == 4 and log[0]["val_v"] == 1.0
+
+    phases = []
+
+    def R(zz, ph, ptr, pbtn):
+        phases.append(ph)
+        return torch.zeros(len(ph), 2), torch.zeros(len(ph)), torch.zeros(len(ph), 3)
+    _tile_forward(R, torch.zeros(2, 4, 1, 5), GEOM.dt * 0.5, torch.zeros(2, 7, 2), torch.zeros(2, 7), "cpu")
+    assert phases[0].reshape(2, 7)[0].tolist() == pytest.approx([j * GEOM.dt * 0.5 for j in range(7)])

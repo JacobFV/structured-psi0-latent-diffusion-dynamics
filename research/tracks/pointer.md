@@ -88,7 +88,8 @@ every task with the reasons above. Speed: `scene()` ~1 ms, `step` ~0.7 ms, snaps
 - cw/* tasks have no task graph yet (the env judges success); `task_graph` capability is not declared.
 
 ## pointer policy (track `pointer`, branch track/pointer; owner request 2026-09-29 "engineer or train a pointer policy with/as a system 0")
-Code: `src/rrp/policies/pointer.py`, `tests/unit/test_pointer.py`. Peer: code dir `/dev/shm/rrp-brandonin/wt/pointer`,
+Code: `src/rrp/policies/pointer/` (spec, packet, features, probe, checkpoint, runtime), `src/rrp/policies/nets/pointer.py`,
+`src/rrp/harness/train/pointer/` (split, collect, data, losses, train, diagnostics, video), `tests/unit/test_pointer.py`. Peer: code dir `/dev/shm/rrp-brandonin/wt/pointer`,
 CW wheel extracted to `/home/brandonin/work/ext/cw-site` on the peer (the peer venv has no pip: `python -m zipfile -e
 <wheel> ~/work/ext/cw-site`, same sha256 as above); `RRP_PEER_PYTHONPATH=/home/brandonin/work/ext/cw-site
 ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
@@ -164,3 +165,23 @@ ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
   `rrp train pointer rep|flow|bc` no longer KeyErrors on the first step; `tests/unit/test_pointer_train_smoke.py` runs two
   steps of each trainer on a synthetic pack. Already-collected packs (`artifacts/datasets/pointer_v1/`) are unchanged and
   read as zero geometry; re-collect to train with real geometry.
+- Readiness C0 (audit D24, pointer module split): `policies/pointer.py` is now the package `policies/pointer/` and the
+  `torch` nets (`UICtx`, `PointerEncoder`, `PointerRealizer`, `PointerFlow`, `PointerBC`) live at module level in
+  `policies/nets/pointer.py`; `import rrp.policies.pointer` (the scripted / registry route) stays torch-free and
+  `nets()` / the checkpoint loaders import them lazily. `harness/train/pointer.py` is a package with one training loop,
+  `train.fit`, that `rep`, `flow`, `bc`, `probe` and the `edit` probe share. Public import paths and the `rrp train pointer`
+  entry point are unchanged; `policies.pointer.STEP_M` is gone (use `PointerGeometry.step_m`).
+  - Geometry: `PointerGeometry.from_spec(env.spec)` (screen px, m/px, control Hz) replaces the hard-coded 0.1 s tick,
+    the `ScreenFrame()` default, `px = [480, 320]` and `STEP_M`. Trainers read it from the env once (`pointer_geometry()`);
+    `collect` stamps it into new packs (`geom`) and `Demos` refuses a pack of another geometry (old packs carry none and
+    are taken as the spec's). The float32 `half` (features) and float64 `half_m` (trainers) differ by 1 ulp exactly as
+    before, on purpose: it keeps frozen checkpoints and features bit-identical.
+  - Bound entities: `features.check_bound_ids` raises `ValueError` when two different bound entity ids of one scene hash
+    to the same bucket (`bound_id` is unchanged, N_BOUND = 16); before, they silently merged. No scene of the four cw/* tasks
+    collides (checked on 20 seeds each).
+  - Frozen-checkpoint parity (old single-file code vs the split, CPU, seeded): E / R / S / BC outputs, S loss, SHA256 of the
+    public features of every cw/* task, and 2-step `rep` / `flow` / `flow --target eng` / `bc` log rows, weight digests and
+    saved versions all compare equal; the net sums are pinned in `test_frozen_pointer_nets_give_identical_outputs`.
+    `edit`'s probe now trains under bf16 autocast on CUDA like the other probes (it did not before); a diagnostic, CPU
+    unchanged.
+  - Not touched (D-146 item 7): the recorded `cworld_pointer_v1` split and version strings.

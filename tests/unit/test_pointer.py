@@ -113,7 +113,7 @@ def test_remap_block_state_prefixes_are_disjoint_and_correct():
     """`_remap_block_state` (D-144 R6): old `Block` keys (n1, a, n2, m) -> `RelBlock` layout, per mode -- "cross"
     keeps n1, sends a -> x, n2 -> n3; "self" sends n1 -> n2, a -> s, n2 -> n3. Two prefixes in one state dict (as a
     real `PointerEncoder` checkpoint has: `ctx.blocks.` self-only, `blocks.` cross-only) stay disjoint."""
-    from rrp.policies.pointer import _remap_block_state
+    from rrp.policies.pointer.checkpoint import _remap_block_state
     sd = {"ctx.blocks.0.n1.weight": 1, "ctx.blocks.0.a.q.weight": 2, "ctx.blocks.0.n2.weight": 3,
           "ctx.blocks.0.m.net.0.weight": 4, "blocks.0.n1.weight": 5, "blocks.0.a.q.weight": 6,
           "blocks.0.n2.weight": 7, "blocks.0.m.net.0.weight": 8}
@@ -444,7 +444,7 @@ def test_live_rollout_call_sites_are_byte_identical_with_the_default_empty_facto
 
     digest_with_table = rollout()
 
-    import rrp.policies.pointer as pointer_mod
+    import rrp.policies.pointer.runtime as pointer_mod
     monkeypatch.setattr(pointer_mod, "env_widget_table", lambda env: None)   # the pre-change call shape
     digest_without_table = rollout()
 
@@ -475,7 +475,7 @@ def test_teacher_oracle_source_encode_is_byte_identical_with_the_default_empty_f
 
     z_with_table = run()
 
-    import rrp.policies.pointer as pointer_mod
+    import rrp.policies.pointer.runtime as pointer_mod
     monkeypatch.setattr(pointer_mod, "env_widget_table", lambda env: None)   # the pre-change call shape
     z_without_table = run()
 
@@ -506,8 +506,106 @@ def test_pointer_system_i_packets_is_byte_identical_with_the_default_empty_facto
 
     z_with_table = run()
 
-    import rrp.policies.pointer as pointer_mod
+    import rrp.policies.pointer.runtime as pointer_mod
     monkeypatch.setattr(pointer_mod, "env_widget_table", lambda env: None)   # the pre-change call shape
     z_without_table = run()
 
     np.testing.assert_array_equal(z_with_table, z_without_table)
+
+
+# ================================================================== C0 (audit D24): pointer module split
+def test_scripted_route_is_torch_free():
+    """`import rrp.policies.pointer` (the scripted / registry route) must not import torch; the nets are lazy."""
+    import subprocess
+    import sys
+    code = ("import sys, rrp.policies.pointer as p; assert callable(p.make_pointer_oracle) and p.EngineeredSystem0; "
+            "assert 'torch' not in sys.modules, 'torch imported'; p.nets(); assert 'torch' in sys.modules")
+    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+
+
+def test_bound_entity_bucket_collision_raises():
+    """`field_0` and `field_3` share bucket 15 of 15: two different bound entities must not be silently merged."""
+    from types import SimpleNamespace as NS
+
+    from rrp.policies.pointer import bound_id, check_bound_ids
+
+    def desc(i):
+        return NS(bound_entity=NS(id=i), descriptor="textbox", bbox_xyxy=(0, 0, 1, 1))
+
+    assert bound_id(NS(id="field_0")) == bound_id(NS(id="field_3")) == 15
+    check_bound_ids([desc("field_0"), desc("field_0"), desc("field_1")])         # same entity twice is fine
+    with pytest.raises(ValueError, match="collision"):
+        check_bound_ids([desc("field_0"), desc("field_1"), desc("field_3")])
+
+
+def test_pointer_geometry_comes_from_the_env_spec():
+    from types import SimpleNamespace as NS
+
+    from rrp.policies.pointer import MAX_STEP_PX, PointerGeometry, screen_half
+
+    spec = NS(frame={"screen_px": [640, 480], "m_per_px": 0.002}, control_hz=20.0)
+    g = PointerGeometry.from_spec(spec)
+    assert g.screen_px == (640, 480) and g.dt == pytest.approx(0.05) and g.half_px == (320.0, 240.0)
+    assert g.step_m == pytest.approx(MAX_STEP_PX * 0.002)
+    assert screen_half(spec).tolist() == pytest.approx([0.64, 0.48]) and g.half.dtype == np.float32
+    assert PointerGeometry.from_dict(g.as_dict()) == g
+
+
+@pytest.mark.computerworld
+def test_cw_pointer_env_spec_geometry_is_the_historic_constants():
+    """The values every existing checkpoint / pack was built with (960 x 640 px, 1 mm/px, 10 Hz) now come from the spec."""
+    from rrp.harness.train.pointer import pointer_geometry
+    from rrp.policies.pointer import PointerGeometry
+    assert pointer_geometry() == PointerGeometry((960, 640), 0.001, 10.0)
+
+
+def test_pointer_vocab_constants_are_frozen():
+    from rrp.policies.pointer import KNOT_TIMES, LC, LI, N_BOUND, N_KEYCLS, N_ROLE, N_SYM, NH, NW, WF
+    assert (NW, LC, LI, NH, WF) == (80, 20, 112, 24, 11) and (N_ROLE, N_BOUND, N_SYM, N_KEYCLS) == (10, 16, 111, 110)
+    assert KNOT_TIMES == (0.1, 0.3, 0.5, 0.7)
+
+
+def test_frozen_pointer_nets_give_identical_outputs():
+    """Seeded nets on a fixed batch: sums recorded from the pre-split single-file implementation (CPU, fp32)."""
+    import torch
+
+    from rrp.policies.pointer import LC, LI, NH, NW, WF, nets
+    N = nets()
+    B, rng = 3, np.random.default_rng(0)
+    b = dict(wch=rng.integers(0, 30, (B, NW, LC)), wrole=rng.integers(0, 9, (B, NW)), wbound=rng.integers(0, 15, (B, NW)),
+             wf=rng.normal(size=(B, NW, WF)).astype(np.float32), wmask=rng.random((B, NW)) > 0.5,
+             wpos3d=rng.normal(size=(B, NW, 3)).astype(np.float32), wcamuvd=rng.normal(size=(B, NW, 3)).astype(np.float32),
+             instr=rng.integers(0, 90, (B, LI)), ptr=rng.normal(size=(B, 2)).astype(np.float32),
+             btn=rng.random(B).astype(np.float32), tick=rng.random(B).astype(np.float32) * 50,
+             hist=np.abs(rng.normal(size=(B, NH, 5))).astype(np.float32))
+    b["hist"][..., 0] = rng.integers(0, 4, (B, NH))
+    b["hist"][..., 1] = rng.integers(0, 90, (B, NH))
+    b = {k: torch.from_numpy(np.asarray(v)).long() if np.asarray(v).dtype.kind in "iu" else torch.from_numpy(np.asarray(v))
+         for k, v in b.items()}
+    torch.manual_seed(0)
+    a = dict(dxy=torch.randn(B, 7, 2), xy=torch.randn(B, 7, 2), btn=(torch.rand(B, 7) > .5).float(),
+             key=torch.randint(0, 110, (B, 7)), valid=torch.rand(B, 7) > .2)
+
+    def s(x):
+        return float(x.double().sum())
+
+    torch.manual_seed(1); E = N["PointerEncoder"](dz=8, D=32, heads=4).eval()
+    torch.manual_seed(2); R = N["PointerRealizer"](dz=8, D=32, heads=4).eval()
+    torch.manual_seed(3); S = N["PointerFlow"](dz=8, D=32, heads=4).eval()
+    torch.manual_seed(4); BC = N["PointerBC"](D=32, heads=4).eval()
+    torch.manual_seed(5)
+    with torch.no_grad():
+        mu, lv = E(b, a)
+        z = torch.randn(B, 4, 1, 8)
+        r = R(z, torch.rand(B), b["ptr"], b["btn"])
+        v = S.velocity(torch.randn(B, 4, 1, 8), torch.rand(B), S.ctx(b))
+        smp = S.sample(b, nfe=3, generator=torch.Generator().manual_seed(9))
+        bc = BC(b)
+        torch.manual_seed(6)
+        loss = float(S.loss(b, torch.randn(B, 4, 1, 8))[0])
+    got = dict(E=[s(mu), s(lv)], R=[s(x) for x in r], S_vel=s(v), S_sample=s(smp), BC=[s(x) for x in bc], S_loss=loss)
+    want = dict(E=[-22.78807, 9.42453], R=[0.41975, 0.86764, -14.40249], S_vel=3.38417, S_sample=-7.55298,
+                BC=[-2.9682, -1.02709, 12.21828], S_loss=2.27685)
+    flat = lambda d: [x for v in d.values() for x in (v if isinstance(v, list) else [v])]      # noqa: E731
+    assert flat(got) == pytest.approx(flat(want), abs=2e-3)
