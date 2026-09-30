@@ -1,6 +1,6 @@
-"""Named humanoid tracker recipes for the GPU trainer rrp.training.warp_tracker_ppo (W13 P1b, D-138).
+"""Named humanoid tracker recipes for the GPU trainer rrp.harness.train.warp_tracker_ppo (W13 P1b, D-138).
 
-Same contract as rrp.training.tracker_recipes: a recipe is a dict of trainer option defaults (argparse dests); keys starting
+Same contract as rrp.harness.train.tracker_recipes: a recipe is a dict of trainer option defaults (argparse dests); keys starting
 with "_" are documentation. The resolved recipe (name, sha256 of its canonical JSON, options) goes into the actor meta.
 All recipes: contact_v2, sourced torque limits (body-model default), gait_v2 rewards, from scratch (no warm start).
 """
@@ -137,7 +137,7 @@ HUMANOID_RECIPES["g1_clock_gpu_v2"] = _clock("g1", reward_set=_TURN + _CLOCK.rep
 
 # r4 (2026-09-29): h1 r3 in C MuJoCo: no-fall 1.0 on every trial incl. push and in-range robustness, fwd 1.08, turn 0.96,
 # slip 0.018, CoT 0.51, joint margin 0.032; FAILS peak foot force 3.72 BW; waypoint 0/20 = walking and turning fine but the
-# halt never completes: under a zero command h1 keeps stepping and drifts ~0.06 m/s with yaw (scripts/humanoid_waypoint_diag.py).
+# halt never completes: under a zero command h1 keeps stepping and drifts ~0.06 m/s with yaw (archived diagnostic script humanoid_waypoint_diag.py).
 # r4 = fine-tune r3: ~25% zero commands, stronger standing terms, explicit touchdown-impact penalty.
 _STAND = ",stand_contact=2.0,stand_still=-1.0,impact=-0.5"
 HUMANOID_RECIPES["h1_clock_gpu_r4"] = _ft("h1", "artifacts/runs/humanoid_p1b_h1_r3/actor_r3final.pt", alpha_schedule="fixed:0.5",

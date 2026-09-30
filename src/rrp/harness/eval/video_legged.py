@@ -1,6 +1,6 @@
 """`rrp video legged`: render short labelled clips of the SCRIPTED TEACHER (privileged) driving the frozen body tracker on legged /
 humanoid bodies (waypoint_contact task). Same scene builder, teacher and tracker as the teacher route of
-rrp.evaluation.legged_latent_eval (run_episode with ctl=None). No learned high-level policy is involved.
+rrp.harness.eval.legged_latent_eval (run_episode with ctl=None). No learned high-level policy is involved.
 
 usage (GPU lease for EGL on the peer):
   MUJOCO_GL=egl rrp video legged --bodies go2,t1 --seeds 10000,10001 --out artifacts/video \

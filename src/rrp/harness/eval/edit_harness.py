@@ -1,6 +1,6 @@
 """Body-agnostic packet-edit / causal-test harness interfaces (W11 stable core API).
 
-The arm and legged suites (rrp.evaluation.latent_causal, latent_semantic_edits, legged_latent_eval) are built on
+The arm and legged suites (rrp.harness.eval.latent_causal, latent_semantic_edits, legged_latent_eval) are built on
 MuJoCo sessions of rrp's own bodies. This module holds the parts that do not depend on a simulator, so an external
 package (psi1z: G1 in SIMPLE / Isaac Sim) runs the SAME protocol with its own rollout function:
 
@@ -62,7 +62,7 @@ def restamp(packet, *, now: float, z=None, intervention: str | None = None, grap
             runtime_version: int | None = None):
     """Hand-over transform of a packet: validity re-stamped to `now` (same interval length); optionally a new z.
     Any edit (`intervention`) relabels the packet source="debug" with sampling.intervention (same rule as
-    rrp.evaluation.latent_causal.deliver, without a MuJoCo session)."""
+    rrp.harness.eval.latent_causal.deliver, without a MuJoCo session)."""
     upd: dict = dict(valid_from=now, valid_until=now + (packet.valid_until - packet.valid_from))
     if graph_version is not None:
         upd["graph_version"] = graph_version

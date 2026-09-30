@@ -2,7 +2,7 @@
 
 Dataset episodes store public inputs but not pixels. Episodes are regenerated deterministically
 (robot key + seed + n_distractors -> same scenario, same scripted-teacher trajectory, exactly as
-rrp.data.collect.collect_teacher_episode) and rendered at keyframes t % every == 0. Determinism
+rrp.harness.data.collect.collect_teacher_episode) and rendered at keyframes t % every == 0. Determinism
 is CHECKED against the stored public q0 at every keyframe (max abs deviation recorded; episodes
 that diverge are rejected, never silently used).
 

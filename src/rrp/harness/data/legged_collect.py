@@ -1,5 +1,5 @@
 """Legged teacher data collection for `waypoint_contact` (same public/private file split as
-rrp.data.collect: *.public.pkl.gz holds policy-visible inputs + native base-velocity actions,
+rrp.harness.data.collect: *.public.pkl.gz holds policy-visible inputs + native base-velocity actions,
 *.private.pkl.gz holds privileged labels). Failed attempts are kept.
 
 Public per-step record: joint qpos/qvel (encoders), IMU (quat, gyro, acc), foot touch,

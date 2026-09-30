@@ -149,8 +149,8 @@ Owner: psi0 agent. Repo `~/work/psi1z` (LOCAL ONLY, main). Third-party code, wei
 | path | what |
 |---|---|
 | `~/work/ext/psi0` | upstream Ψ₀ clone @ 4f3720d (Apache-2.0), submodule `third_party/SIMPLE` @ 803db7e (MIT) with nested submodules gear_sonic, decoupled_wbc, openpi-client, AMO, unitree_sdk2_python (https, LFS skipped) |
-| `~/work/ext/venvs/simple` | py3.11 env: torch 2.7.0+cu128 (aarch64), isaacsim 5.1.0 (`scripts/install_simple_env.sh`) |
-| `~/work/ext/venvs/psi` | py3.11 env: Ψ₀ deps; upstream `src/` on sys.path via `.pth` (`scripts/install_psi_env.sh`) |
+| `~/work/ext/venvs/simple` | py3.11 env: torch 2.7.0+cu128 (aarch64), isaacsim 5.1.0 (`ops/bin/psi0_ext.sh simple-env`) |
+| `~/work/ext/venvs/psi` | py3.11 env: Ψ₀ deps; upstream `src/` on sys.path via `.pth` (`ops/bin/psi0_ext.sh psi-env`) |
 | `~/work/ext/psi_home` | PSI_HOME: `cache/checkpoints/psi0/...`, `data/simple/<task>`, `data/simple-eval/<task>/dr-level-{0,1,2}` |
 
 ### step 0 findings (feasibility)
@@ -198,10 +198,10 @@ Owner: psi0 agent. Repo `~/work/psi1z` (LOCAL ONLY, main). Third-party code, wei
   1. `LD_PRELOAD=libgomp.so.1` (Isaac 5.1 aarch64 startup check);
   2. `LD_PRELOAD` of Isaac's `kit/libcarb.so` (else "cannot allocate memory in static TLS block" when torch loads first);
   3. torch 2.7.0+cu128 cannot JIT for sm_121 (nvrtc "invalid value for --gpu-architecture"): psi env upgraded to
-     torch 2.14.0+cu130 / torchvision 0.29 (`scripts/upgrade_torch_psi.sh`); torchvision 0.29 lacks `VideoReader`, so
+     torch 2.14.0+cu130 / torchvision 0.29 (`ops/bin/psi0_ext.sh psi-env`); torchvision 0.29 lacks `VideoReader`, so
      lerobot's pyav path is replaced by an exact-timestamp PyAV decoder (psi1z.compat_psi);
   4. cuRobo (motion planning / IK only) and envlogger (recording only) are stubbed: any use raises;
-  5. cyclonedds has no aarch64 wheel: built from source into ~/work/ext/cyclonedds (`scripts/build_cyclonedds.sh`);
+  5. cyclonedds has no aarch64 wheel: built from source into ~/work/ext/cyclonedds (`ops/bin/psi0_ext.sh cyclonedds`);
   6. Isaac 5.1's `add_reference_to_stage` drops the reference when the metrics assembler reports divergent units
      (kit command path): we author it directly when missing (post-import patch of SIMPLE's `isaacsim_stage`);
   7. Isaac 5.1 still ships the deprecated `omni.isaac.*` extensions, so no module aliasing is needed (opt-in only).

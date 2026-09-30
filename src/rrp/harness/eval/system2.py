@@ -49,7 +49,7 @@ SYSTEM2_HARNESS_VERSION = "s2h-1"
 
 DECLARED_ORDER = ("orange", "cyan")      # the task file's fixed binding: waypoint_a = orange marker (system i before #31)
 
-# legged public context layout (rrp.features.legged.public_context, GLOBAL_DIM = 22)
+# legged public context layout (rrp.policies.features.legged.public_context, GLOBAL_DIM = 22)
 CTX_DIM = 22
 CTX_WP_A = slice(8, 12)                  # (bx/2, by/2, min(dist,5)/2, valid) of the entity bound to the 1st walk_to
 CTX_WP_B = slice(12, 16)                 # same for the 2nd walk_to
@@ -307,7 +307,7 @@ class MockSystem2:
 
 
 class VLMSystem2:
-    """Frozen psi0 System-II VLM adapter (`rrp.models.system2_vlm.System2`, built lazily; or inject `model` with
+    """Frozen psi0 System-II VLM adapter (`rrp.policies.nets.system2_vlm.System2`, built lazily; or inject `model` with
     `.run(images, texts) -> dict(score, feat, gen, top1)`). Readouts: `zero_shot` (score > 0 -> orange first) or
     `probe` (`probe(feat [B, F]) -> bool [B]`, a trained head on frozen features, labelled +probe:<name>)."""
     needs_image = True

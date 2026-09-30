@@ -1,6 +1,6 @@
 """Arm pick-place teacher versions (W7).
 
-v1 = the original waypoint FSM (`rrp.teachers.arm.PickPlaceTeacher`), still the DEFAULT everywhere.
+v1 = the original waypoint FSM (`rrp.policies.teachers.arm.PickPlaceTeacher`), still the DEFAULT everywhere.
 v2 = `SmoothPickPlaceTeacher`: the same task logic with time-parameterized minimum-jerk motion and a force-checked grasp.
 Versions are selected by name (`make_arm_teacher(session, "v2")`) and recorded in provenance as
 `scripted_teacher:<teacher version id>` (`teacher_source`).

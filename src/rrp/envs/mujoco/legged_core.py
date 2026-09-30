@@ -505,7 +505,7 @@ class LeggedEnv:
             raise ValueError("ref_gait=clock is defined for bipeds (2 feet) only")
         self.act = None
         actuator = "v1" if actuator == "ideal" else actuator     # D-126 #14: canonical mode name "ideal" = legacy "v1"
-        if actuator in ("v2", "v1lat"):   # rrp.physics.actuator (v1lat: ideal joints + sourced limits + 0-30 ms latency)
+        if actuator in ("v2", "v1lat"):   # rrp.bodies.actuator (v1lat: ideal joints + sourced limits + 0-30 ms latency)
             from rrp.bodies.actuator import ActuatorModel
             self.act = ActuatorModel(self.model, self.b, n_envs, np.random.default_rng([seed, 91]), name=self.meta["name"],
                                      mode=actuator)
@@ -588,7 +588,7 @@ class LeggedEnv:
         self.turn_scale = float(min(1.0, max(0.05, scale)))
 
     def _sample_teacher_mix(self, i):
-        """W8 waypoint-teacher command mix (kinematic proxy of rrp.teachers.legged.WaypointTeacher, 2026-09-27): 47% straight,
+        """W8 waypoint-teacher command mix (kinematic proxy of rrp.policies.teachers.legged.WaypointTeacher, 2026-09-27): 47% straight,
         35% arcs (vx ~0.2-0.48, |wz| 0.15-0.48), 15% pure turns at |wz| 0.3-0.48, 3% stop (fractions scaled to the body's ranges)."""
         r = self.b.cmd_ranges
         vm, wm = 0.6 * r["vx"][1], 0.8 * r["wz"][1]

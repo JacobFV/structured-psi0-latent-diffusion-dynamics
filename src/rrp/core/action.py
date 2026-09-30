@@ -8,7 +8,7 @@ from pydantic import Field, model_validator
 from .base import Strict, NDArray
 
 # Wire `source` of native commands. The first 8 are the original values (still valid, serialized unchanged); the rest
-# are the canonical rrp.contracts.provenance.Source kinds (D-126), so a writer may send a canonical kind. "unknown"
+# are the canonical rrp.core.provenance.Source kinds (D-126), so a writer may send a canonical kind. "unknown"
 # is deliberately absent (legacy reads only). A test keeps this list a superset of the enum.
 LEGACY_SOURCES = ("teacher", "scripted_teacher", "learned", "user", "debug", "random", "mock", "privileged_teacher")
 Source = Literal["teacher", "scripted_teacher", "learned", "user", "debug", "random", "mock", "privileged_teacher",

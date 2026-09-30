@@ -583,8 +583,8 @@ def featurizer_for(session: "Session", robot: int = 0, base_axes: bool | None = 
 
 def cached_featurizer(s):
     """The session's featurizer, cached on the session as `s._rrp_featurizer` (so a PrevActionFeaturizer installed there
-    is found too). W4: one copy of the identical helpers `rrp.evaluation.ladder._featurizer`,
-    `rrp.evaluation.latent_semantic_edits._featurizer` (single-robot branch) and `LatentPolicy.featurizer`."""
+    is found too). W4: one copy of the identical helpers `rrp.harness.eval.ladder._featurizer`,
+    `rrp.harness.eval.latent_semantic_edits._featurizer` (single-robot branch) and `LatentPolicy.featurizer`."""
     f = getattr(s, "_rrp_featurizer", None)
     if f is None:
         f = s._rrp_featurizer = featurizer_for(s)

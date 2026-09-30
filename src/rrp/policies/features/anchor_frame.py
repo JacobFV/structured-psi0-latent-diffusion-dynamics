@@ -1,7 +1,7 @@
 """Anchor frames: poses relative to contact anchors (W12, feature-centric coordination).
 
 Two uses, one geometry:
-1. LABEL side (rrp.data.contact_segments): anchor-relative targets per knot from privileged recordings.
+1. LABEL side (rrp.harness.data.contact_segments): anchor-relative targets per knot from privileged recordings.
 2. DEPLOY side (`anchor_inputs`): an optional system-0 input computed ONLY from public information, namely the FK of
    measured joints (TCP pose) and the task runtime's receipts (`contact_anchor`: pos, normal, validity, age, covariance;
    `frame_estimate`: pos, quat). No simulator ground truth enters; `anchor_inputs` takes no session and no truth.

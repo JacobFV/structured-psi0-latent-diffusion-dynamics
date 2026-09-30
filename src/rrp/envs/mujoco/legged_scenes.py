@@ -65,7 +65,7 @@ def spot_arm_body() -> Module:
                                                           frame=dict(site="arm_grasp_site"),
                                                           capabilities=["grasp", "carry"])]
     meta["actuator_limits_note"] = ("unsourced (menagerie spot_arm.xml actuatorfrcrange +-1000 N m; no manufacturer "
-                                    "limits recorded; not in rrp.physics.actuator.SOURCED)")
+                                    "limits recorded; not in rrp.bodies.actuator.SOURCED)")
     meta["arm"] = dict(actuators=list(meta["legged"]["held_actuators"]), grasp_site="arm_grasp_site",
                        gripper_actuator="arm_f1x")
     return m

@@ -1,4 +1,4 @@
-"""System II harness (rrp.evaluation.system2, D-126 #31): target -> legged public context math, labels, default-off."""
+"""System II harness (rrp.harness.eval.system2, D-126 #31): target -> legged public context math, labels, default-off."""
 import numpy as np
 import pytest
 
@@ -95,7 +95,7 @@ def test_oracle_is_labelled_diagnostic_and_only_it_gets_truth():
 
 
 def test_vlm_adapter_with_injected_model_and_ground_eval():
-    class FakeVLM:                                        # stands in for rrp.models.system2_vlm.System2 (no weights)
+    class FakeVLM:                                        # stands in for rrp.policies.nets.system2_vlm.System2 (no weights)
         def run(self, images, texts):
             sc = np.array([1.0 if t.index("orange") < t.index("cyan") else -1.0 for t in texts])
             return dict(score=sc, feat=np.zeros((len(texts), 4)), gen=["x"] * len(texts), top1=["x"] * len(texts))

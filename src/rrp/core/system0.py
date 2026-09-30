@@ -11,7 +11,7 @@ and therefore lives here, is the acceptance protocol:
 - `stats` / `log` record packets, rejections, ticks and fallback holds.
 
 Subclasses implement `robot_spec_hash` and `tick(...)` (the body-specific realization). The arm implementation is
-`rrp.controllers.latent_realizer.LatentSystem0`; an external body (e.g. psi1z's G1 through the Psi0 action
+`rrp.policies.system0.LatentSystem0`; an external body (e.g. psi1z's G1 through the Psi0 action
 interface) subclasses `System0Base` the same way. numpy/pydantic only (contracts layer).
 """
 from __future__ import annotations

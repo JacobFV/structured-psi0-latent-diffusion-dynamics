@@ -1,13 +1,13 @@
 """System-0 input variant with anchor-relative inputs (W12, opt-in; realizer arch tag "rz-anchor-in-v1").
 
 `AnchorLatentRealizer` = LatentRealizer + one extra input: per packet slot m the deploy-time anchor features of
-rrp.features.anchor_frame.anchor_inputs (TCP pose relative to the own / other contact anchor and the frame estimate,
+rrp.policies.features.anchor_frame.anchor_inputs (TCP pose relative to the own / other contact anchor and the frame estimate,
 anchor normal in the tool frame, validity, age, covariance), computed ONLY from FK of measured joints and the task
 runtime's receipts. Each action node receives the features of its own slot (node_asm). The added projection is
 zero-initialized, so at initialization the variant computes exactly what the base realizer computes on the same
 weights (tested); the base class and every existing bundle are unchanged.
 
-It also accepts per-sample knot times [B, K] (event-aligned knots, rrp.data.contact_segments "knots-contact-v1");
+It also accepts per-sample knot times [B, K] (event-aligned knots, rrp.harness.data.contact_segments "knots-contact-v1");
 the packet contract already carries knot_times per packet.
 
 `session_anchor_inputs(session, manipulators)` is the runtime adapter: it reads session.tcp_pose (FK of measured

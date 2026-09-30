@@ -1,9 +1,9 @@
 """VLM-backed policy training + closed-loop evaluation with online rendering.
 
 Policy = FlowPolicy(image_tokens=Q, image_dim=D) + learned Resampler over CACHED frozen VLM
-features (rrp.data.vlm_features). The matched no-image baseline trains on the identical
+features (rrp.harness.data.vlm_features). The matched no-image baseline trains on the identical
 (episode, t) samples with image_tokens=0. Online evaluation renders the front camera per policy
-call, runs the frozen VLM, and injects image_tokens (reuses rrp.evaluation.runner.evaluate via a
+call, runs the frozen VLM, and injects image_tokens (reuses rrp.harness.eval.evaluate.evaluate via a
 LearnedPolicy subclass). Image controls at evaluation: real | shuffled (features of another
 session in the batch) | blank (zero VLM features).
 Every chunk is source="learned"; the scripted teacher only produced the demonstrations.

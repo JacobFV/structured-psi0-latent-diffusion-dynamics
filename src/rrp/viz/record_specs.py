@@ -68,7 +68,7 @@ BC_SEEDS = {"panda_pg2": {3000000: [3000000], 3000100: [3000111]}, "parm6_tf3": 
 BC = f"{R}/latent_slice1_b1fix/baseline_direct_action/seed1701/source/policy.pt"
 GV_REFS = {"v1": ["D-091", "D-095"], "v2": ["D-110", "D-127"]}
 V1_CAVEAT = "grasp_v1: grasps may hold by interpenetration (D-108); superseded by grasp_v2 for new results (D-110)"
-CODE_CAVEAT = ("re-run with the current main code (the ladder moved to rrp.evaluation.ladder in D-126, same CLI); "
+CODE_CAVEAT = ("re-run with the current main code (the ladder moved to rrp.harness.eval.ladder in D-126, same CLI); "
                "the recorded rows came from earlier commits; meta.reproduced reports the check")
 
 

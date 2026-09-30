@@ -3,7 +3,7 @@
 `python -m rrp.cli suite target --protocol recipes/presets/eval-latent_slice1.json --robot xarm7_pg2 --route generated
      --flow F --rep R --sealed-run --out DIR --tag T`
 
-The same machinery as the lineage R2 evaluations (rrp.evaluation.ladder.run_ladder: route `generated` = system-i flow
+The same machinery as the lineage R2 evaluations (rrp.harness.eval.ladder.run_ladder: route `generated` = system-i flow
 -> deployed system 0; route `learned` = direct-action BC chunks), so latent routes and BC baselines are compared with
 identical inputs, replan period, NFE, horizon and evaluator. Scenes follow the sealed protocol (latent_slice1):
 eval seeds range(eval.seed_start, eval.seed_start + eval.episodes), infeasible scenes excluded and counted (the

@@ -4,7 +4,7 @@
   TCP pose of every task manipulator (site pose), pose of every detectable object, per (a, b) pair contact flag, mean
   contact point and mean contact normal (unit, pointing from b into a), and held_by truth.
 Pairs: (manipulator, object) for every manipulator and object, then (object, object) for every object pair.
-`recording()` returns an rrp.data.contact_segments.ContactRecording.
+`recording()` returns an rrp.harness.data.contact_segments.ContactRecording.
 
 Read-only: it never writes to the simulation. Works for rrp.envs.dual.DualSession and the native arm Session (both
 expose manip_map, robots[..].tcp_sites, detectables and truth()).

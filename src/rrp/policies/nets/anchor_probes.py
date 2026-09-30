@@ -4,7 +4,7 @@ Same rules as rrp.policies.nets.probes.ReadoutProbe: the probe sees ONLY the rec
 type and opaque FIXED random handle codes (knot index, packet slot, contact-pair index). No labels, features or
 descriptors enter a query. `metadata_only=True` is the no-z control probe.
 
-Queries (per knot k and packet slot m unless stated; labels from rrp.data.contact_segments.anchor_relative_targets,
+Queries (per knot k and packet slot m unless stated; labels from rrp.harness.data.contact_segments.anchor_relative_targets,
 privileged, supervision only):
   tcp_in_own(k, m)       TCP pose in m's own most recent contact-anchor frame   (Gaussian over pos dm + 6D rot)
   tcp_in_support(k, m)   TCP pose in the maintained support anchor frame        (Gaussian, 9-d)

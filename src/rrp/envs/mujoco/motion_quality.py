@@ -22,7 +22,7 @@ Legged recorder (`LeggedMotionRecorder`, 50 Hz ticks + per physics substep):
 Arm recorder (`ArmMotionRecorder`, per control tick):
   joint_jerk_rms / _peak         measured arm joints (rad/s^3)
   chunk_vel_step_max / any_max   commanded arm joint-velocity step at chunk/packet boundaries (+-1 tick) / anywhere (rad/s)
-  penetration_max_m              max depth of cube-robot contacts (-dist), as rrp.evaluation.teacher_quality
+  penetration_max_m              max depth of cube-robot contacts (-dist), as rrp.harness.eval.teacher_quality
   joint_limit_margin_min         measured arm joints vs jnt_range
 """
 from __future__ import annotations
@@ -94,7 +94,7 @@ class LeggedMotionRecorder:
 
     def __init__(self, session, record_stance: bool = False):
         """record_stance (W12, default off): also record per-tick foot poses and loaded-stance flags for the stance
-        drift metrics (rrp.evaluation.contact_metrics.legged_contact_motion via stance_trace()); summary() is unchanged."""
+        drift metrics (rrp.harness.data.contact_metrics.legged_contact_motion via stance_trace()); summary() is unchanged."""
         s = self.s = session
         self.record_stance = bool(record_stance)
         b = self.b = s.binding

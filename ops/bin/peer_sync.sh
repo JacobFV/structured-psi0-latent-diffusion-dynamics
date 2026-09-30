@@ -24,7 +24,7 @@ guard_push() {
   if [ -n "$busy" ] && [ "${RRP_SYNC_FORCE:-0}" != 1 ]; then
     echo "peer_sync: refusing push: processes are running from $R:" >&2; echo "$busy" >&2; exit 3; fi
 }
-revision_json() {   # git sha + dirty flag of the pushed tree (dirty = tracked changes, as rrp.contracts.provenance)
+revision_json() {   # git sha + dirty flag of the pushed tree (dirty = tracked changes, as rrp.core.provenance)
   local sha dirty
   sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null) || sha=""
   if [ -z "$sha" ]; then echo '{"git_sha": null, "dirty": null}'; return; fi

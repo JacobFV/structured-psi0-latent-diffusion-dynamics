@@ -1,7 +1,7 @@
 """SCRIPTED TEACHER STUB for the loco_pick task (D-126 roadmap #34; rrp.envs.legged_scenes). DEFAULT OFF.
 
 Label: source = "scripted_teacher", teacher_variant = "loco_pick_stub_v0", stub = True. It is NOT a working demonstrator:
-* phase `walk_to_standoff` IS implemented: base_velocity commands (same law as rrp.teachers.legged.WaypointTeacher)
+* phase `walk_to_standoff` IS implemented: base_velocity commands (same law as rrp.policies.teachers.legged.WaypointTeacher)
   to the standoff point in front of the table, then an in-place turn to face the table;
 * phases `reach` / `grasp` / `lift` are NOT implemented. The legged session accepts only the `base_velocity` group
   (the arm actuators are held at their default pose by the locomotion tracker), so there is no arm command interface

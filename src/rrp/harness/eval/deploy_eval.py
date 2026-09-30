@@ -5,10 +5,10 @@ constructed, rows are unchanged). Non-default options are written into each row 
 result always states how it was produced.
 
   base_state_source   truth_noise (default) | estimator            -> rrp.envs.state_estimator (#27)
-  packet_ood          off (default) | monitor | enforce            -> rrp.controllers.packet_ood (#29)
+  packet_ood          off (default) | monitor | enforce            -> rrp.policies.packet_ood (#29)
     ood_model         path of a fitted detector (<name>.json/.npz); required unless off
     ood_fallback      hold_default (default) | hold_measured | safe_stop (needs safety=enforce)
-  safety              off (default) | monitor | enforce            -> rrp.controllers.safety (#30)
+  safety              off (default) | monitor | enforce            -> rrp.policies.safety (#30)
   eval_mode           standard (default) | long                    -> minutes-long runs with drift metrics (#32)
     long_s, window_s  duration (s; replaces max_s) and the time-series window (s)
   measure_latency     False (default) | True                       -> per-call timings of system i / system 0 (#32)

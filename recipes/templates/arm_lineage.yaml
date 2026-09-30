@@ -1,5 +1,5 @@
-# ARM LINEAGE (pick_place, 13 training bodies): the structure of scripts/arm_lineage_chain.sh (and its copies
-# armnosem_chain.sh, arm_lineage_hybrid.sh, arm_seed2_host.sh) as a variant x seed matrix.
+# ARM LINEAGE (pick_place, 13 training bodies): the structure of the former arm_lineage_chain.sh shell chains (D-145 P1)
+# as a variant x seed matrix.
 #   stageA -> F0 -> Fft ; bc1 -> rzbcdag1/rzbcdag1long -> bc2/bc3/gen1 -> rzbcdag2 -> rzgendag1 -> gen2 -> rzgendag2
 #   -> gen3/gdag1 -> rzgendag3/Fgdag1 -> gdag2 -> Fgdag2h -> final evals (R2 dev seeds, held-out bodies), progression
 #   evals (R2 of F0 and Fgdag1, R1 stateless-BC oracle), task-context semantic edits.

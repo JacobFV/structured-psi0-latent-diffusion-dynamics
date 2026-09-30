@@ -120,7 +120,7 @@ Cheapest early signal: G2 BC in-distribution + the first semfix lineage at ~15-2
 - `rrp.bodies.generators_v2` (arm_gen_v2.0), `rrp.bodies.armdiv` (additive keys `pa2s<seed>_<g>`, `<gen3|iiwa14|rizon4|
   ur10e|vx300s|wx250s|piper|arxl5|yam>_<g>` from `research/splits/armdiv_candidates_v1.json`), menagerie adapters in
   `rrp.bodies.importers.ARMS_V2` (strip the asset gripper, auto flange site, continuous hinges get ±2π), `kinfeat`
-  (`rrp.features.kinfeat`; featurizer, PackedChunkDataset/LatentData load-time, checkpoint guard).
+  (`rrp.policies.features.kinfeat`; featurizer, PackedChunkDataset/LatentData load-time, checkpoint guard).
 - Tests: tests/unit/test_armdiv_bodies.py, tests/unit/test_kinfeat.py; legacy spec hashes unchanged.
 
 ## Screens (teacher only; peer leases 1790665037_40b935 train, _32ce76 targets; rc 0)

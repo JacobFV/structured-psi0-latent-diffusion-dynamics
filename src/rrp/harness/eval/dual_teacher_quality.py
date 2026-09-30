@@ -1,16 +1,16 @@
 """Dual-arm scripted-teacher audit (W12 phase B): W6/D-112 motion gates + W12 contact-frame metrics per episode.
 
-Runs the dual teachers (rrp.teachers.dual, label scripted_teacher, PRIVILEGED inputs) under the CURRENT physics
+Runs the dual teachers (rrp.policies.teachers.dual, label scripted_teacher, PRIVILEGED inputs) under the CURRENT physics
 ($RRP_GRASP_CONTACT, recorded per row) and records per control tick, read-only:
   commanded and measured arm joints per manipulator, the teacher phase per arm, robot<->object penetration, robot<->robot
-  contacts, and the privileged contact frames (rrp.data.contact_labels.ContactFrameRecorder).
-Per episode and manipulator (the arm-teacher gate definitions of D-112/D-114, rrp.evaluation.gates):
+  contacts, and the privileged contact frames (rrp.harness.data.contact_labels.ContactFrameRecorder).
+Per episode and manipulator (the arm-teacher gate definitions of D-112/D-114, rrp.harness.eval.gates):
   jerk RMS / peak of measured and commanded joints; phase-switch velocity step (commanded joint velocity step at the
   arm's teacher phase switches, +-1 tick; gate <= 0.5 rad/s); joint-limit margin (gate >= 0.02); penetration max over
   task objects (gate <= 3 mm), ticks above 3 mm, arm-arm contact ticks.
-Plus the W12 keys (rrp.evaluation.contact_metrics.dual_contact_motion): held-object drift vs gripper and vs the
+Plus the W12 keys (rrp.harness.data.contact_metrics.dual_contact_motion): held-object drift vs gripper and vs the
 supporting hand, support-anchor slip, contact-sequence order error vs the task spec, re-anchoring latency.
-Optional DART (burst noise on executed arm commands, as rrp.data.collect_dual) to audit noisy-episode penetration.
+Optional DART (burst noise on executed arm commands, as rrp.harness.data.collect_dual) to audit noisy-episode penetration.
 
 CLI (peer CPU, under a lease):
   python -m rrp.cli suite dual-teacher-quality --task support_insert --pairs A__B,C__D --seeds 0:8 \
@@ -40,7 +40,7 @@ def run_audit_episode(task: str, pair: str, seed: int, *, max_steps: int = 1200,
                       burst: tuple = (1, 1), stop_after_success: int | None = 10, teacher_version: str | None = None,
                       teacher_options: dict | None = None, phase_gate: bool = False,
                       source_labels: bool | None = None) -> dict:
-    """One audited teacher episode. teacher_version None/'v2' = the default teacher; 'v3' = rrp.teachers.dual_smooth.
+    """One audited teacher episode. teacher_version None/'v2' = the default teacher; 'v3' = rrp.policies.teachers.dual_smooth.
     phase_gate: DART noise only in free-space phases (as collect_dual noise_phase_gate)."""
     from rrp.harness.data.dual_quality import DualQualityRecorder
     from rrp.bodies.grasp_contact import model_grasp_version
@@ -185,7 +185,7 @@ def main(argv=None):
     ap.add_argument("--burst", default="1,1")
     ap.add_argument("--max-steps", type=int, default=1200)
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) // 2))
-    ap.add_argument("--teacher-version", default=None, help="v2 (default) | v3 (rrp.teachers.dual_smooth)")
+    ap.add_argument("--teacher-version", default=None, help="v2 (default) | v3 (rrp.policies.teachers.dual_smooth)")
     ap.add_argument("--teacher-options", default=None, help="JSON dict of V3Options (ablations)")
     ap.add_argument("--phase-gate", action="store_true", help="DART only in free-space phases (D-121 style)")
     ap.add_argument("--out", required=True)

@@ -17,7 +17,7 @@ Runtime (`PacketOODMonitor`), option `packet_ood`: off (default; nothing runs) |
 packet, behaviour unchanged) | enforce (a packet scoring above the enforce threshold is rejected with code
 `packet_ood`; system 0 then applies the declared fallback: `hold_default` (the body's default stance, the existing
 legged fallback) | `hold_measured` (hold the measured joint positions) | `safe_stop` (ramp to the hold posture,
-rrp.controllers.safety)).
+rrp.policies.safety)).
 """
 from __future__ import annotations
 

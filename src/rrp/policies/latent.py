@@ -54,7 +54,7 @@ class LatentPolicy:
         return pol
 
     def featurizer(self, s):
-        return cached_featurizer(s)             # W4 dedup (rrp.features.featurizer)
+        return cached_featurizer(s)             # W4 dedup (rrp.policies.features.featurizer)
 
     @torch.no_grad()
     def packets(self, sessions, noise_keys=None) -> list[LatentActionChunk]:

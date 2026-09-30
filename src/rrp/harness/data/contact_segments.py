@@ -1,8 +1,8 @@
 """Contact-event segmentation, event-aligned knots and anchor-relative targets (W12, LABEL side only).
 
-Everything here reads a privileged `ContactRecording` (simulator truth recorded by rrp.data.contact_labels) and returns
+Everything here reads a privileged `ContactRecording` (simulator truth recorded by rrp.harness.data.contact_labels) and returns
 supervision targets / diagnostics. Nothing here is a policy input; the deploy-time counterpart is
-rrp.features.anchor_frame.anchor_inputs (FK of measured joints + runtime receipts only).
+rrp.policies.features.anchor_frame.anchor_inputs (FK of measured joints + runtime receipts only).
 
 Versions (a new target/packet version; existing packets and configs do not use any of this):
   SEGMENT_VERSION  = "contact-seg-v1"

@@ -19,7 +19,7 @@ def _job(args):
     args += [0.0, None, None][len(args) - 6:]     # defaults: noise 0.0, patient None (unpaired), teacher v1 default
     robot_key, task, seed, n_distr, out_dir, split, noise, patient, teacher_version = args[:9]
     gc = args[9] if len(args) > 9 else None
-    if gc:                                   # grasp contact version for this worker's scenes (rrp.physics.grasp_contact)
+    if gc:                                   # grasp contact version for this worker's scenes (rrp.bodies.grasp_contact)
         os.environ["RRP_GRASP_CONTACT"] = gc
     ds = args[10] if len(args) > 10 else None
     if ds:                                   # D-118 contact-safe DART variant ("proximity")

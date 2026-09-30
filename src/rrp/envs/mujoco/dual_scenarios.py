@@ -219,7 +219,7 @@ DUAL_BUILDERS = {"support_insert": build_support_insert, "handover": build_hando
 
 
 # ------------------------------------------------------------------------------ D-126 #22 coordination tasks (new)
-# Both are NEW scenarios (added keys in DUAL_BUILDERS; existing scenes unchanged). Teachers: rrp.teachers.dual_coord
+# Both are NEW scenarios (added keys in DUAL_BUILDERS; existing scenes unchanged). Teachers: rrp.policies.teachers.dual_coord
 # (labelled scripted_teacher STUBS, not validated). Geometry below is declared (public) task geometry.
 STOP_HALF = (0.03, 0.09, 0.035)        # heavy stop block: the pivot surface
 BOX_HALF = (0.05, 0.035, 0.015)        # flat box, long axis local x, lying with one short end against the stop

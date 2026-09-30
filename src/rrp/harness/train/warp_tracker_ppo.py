@@ -1,8 +1,8 @@
-"""GPU PPO for legged trackers on MuJoCo Warp (W13 P1b, D-138). Same algorithm as rrp.training.tracker_training (asymmetric
+"""GPU PPO for legged trackers on MuJoCo Warp (W13 P1b, D-138). Same algorithm as rrp.harness.train.tracker_training (asymmetric
 actor-critic, GAE, clipped surrogate + clipped value loss, adaptive-KL lr, running normalisers updated between iterations,
 time-out bootstrap, performance-gated gait_v2 alpha schedule via AlphaGate), with the whole rollout on the GPU
 (rrp.envs.warp_tracker_env). Exports `actor.pt` in the exact LearnedTracker format; the actor is then validated in C MuJoCo
-with full self-collision by rrp.evaluation.tracker_validation (the gate is never measured in the training simulator).
+with full self-collision by rrp.harness.eval.tracker_validation (the gate is never measured in the training simulator).
 
 Source label of the exported actor: `learned_tracker` (trained with a privileged critic; deployed without it).
 
@@ -49,7 +49,7 @@ def _kv(spec: str) -> dict:
 
 def build_args(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--recipe", default=None, help="name in rrp.training.humanoid_recipes or a JSON file of defaults")
+    ap.add_argument("--recipe", default=None, help="name in rrp.harness.train.humanoid_recipes or a JSON file of defaults")
     ap.add_argument("--body")
     ap.add_argument("--out")
     ap.add_argument("--nworld", type=int, default=4096)

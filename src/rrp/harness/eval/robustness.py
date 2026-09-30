@@ -1,8 +1,8 @@
 """Robustness sweeps (W6): where does each policy break as the physics departs from training?
 
 One factor at a time over a grid (plus one joint "all moderate" condition and the nominal), the SAME seeds at every
-level (paired), for any legged (waypoint_contact, rrp.evaluation.legged_latent_eval.run_episode) or arm (pick_place,
-rrp.evaluation.ladder.run_ladder) route. The perturbations are rrp.envs.perturb.PhysicsPerturbation (model-level
+level (paired), for any legged (waypoint_contact, rrp.harness.eval.legged_latent_eval.run_episode) or arm (pick_place,
+rrp.harness.eval.ladder.run_ladder) route. The perturbations are rrp.envs.perturb.PhysicsPerturbation (model-level
 changes keep the robot spec / morphology features the policy sees NOMINAL; nothing enters an observation).
 
 Routes (`--route NAME=SPEC`; NAME is a free label, the SOURCE label of every row comes from the eval code itself):
@@ -116,7 +116,7 @@ def factor_table(family: str) -> dict:
 
 
 def feasible_arm_seeds(robot_key: str, start: int, n: int, task: str = "pick_place") -> list[int]:
-    """The ladder's seed-set definition (same as rrp.training.latent_grpo.feasible_seeds, which evaluation may not
+    """The ladder's seed-set definition (same as rrp.harness.train.latent_grpo.feasible_seeds, which evaluation may not
     import): the first n seeds >= start whose scene the privileged teacher's feasibility check accepts."""
     from rrp.bodies.catalog import workbench_robots
     from rrp.envs.mujoco.session import Session

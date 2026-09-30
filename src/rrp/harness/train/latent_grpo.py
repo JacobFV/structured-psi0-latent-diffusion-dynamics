@@ -286,7 +286,7 @@ def run_episodes(policy, realizer, robot_key: str, seeds: list[int], *, replan_t
 
 
 def feasible_seeds(robot_key: str, start: int, n: int, task="pick_place") -> list[int]:
-    """The ladder's seed set; the one definition lives in rrp.evaluation.robustness.feasible_arm_seeds (D-126: the
+    """The ladder's seed set; the one definition lives in rrp.harness.eval.robustness.feasible_arm_seeds (D-126: the
     body was identical; moved down so the evaluation-layer ladder CLI can use it without importing training)."""
     from rrp.harness.eval.robustness import feasible_arm_seeds
     return feasible_arm_seeds(robot_key, start, n, task)
@@ -314,7 +314,7 @@ class LatentGRPORunConfig:
     # D-126 #6 (all default off = the historical run): the deployed system 0 (the lineage's final refit bundle) instead
     # of the flow config's Stage-A representation; a training budget in new control transitions (env steps incl. a
     # teacher prefix, counted once per group; `iters` is then the cap); a policy_it<N>.pt at every eval point; and
-    # anchor / forgetting evaluations on the original training bodies (rrp.training.grpo_anchor.AnchorConfig fields).
+    # anchor / forgetting evaluations on the original training bodies (rrp.harness.train.grpo_anchor.AnchorConfig fields).
     representation: str | None = None
     budget_env_steps: int | None = None
     snapshot_evals: bool = False

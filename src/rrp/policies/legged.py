@@ -57,7 +57,7 @@ class System0Adapter:
         self.ticks = 0
         self.log = []
         self.stats = dict(ticks=0, packets=0, rejected=0, fallback=0)
-        self.ood = None                    # D-126 #29: rrp.controllers.packet_ood.PacketOODMonitor (None = off)
+        self.ood = None                    # D-126 #29: rrp.policies.packet_ood.PacketOODMonitor (None = off)
         self.fallback_mode = "hold_default"
         self.safety = None                 # the SafetyLayer, when the OOD fallback is the safe stop
 

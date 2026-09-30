@@ -3,7 +3,7 @@ and output files:
   rrp suite legged-summary ROWS.jsonl ...        -> ladder_summary_main: <rows>.summary.json per file
   rrp suite legged-edit-effects DIR             -> edit_effects_main: DIR/effects.json
   rrp suite legged-mirror-effect DIR EDIT ...   -> mirror_effect_main: DIR/mirror_effects.json
-(scripts/legged8_summary.py stays a script: it is the one-off W8 report with a hard-coded headline and protocol text.)
+(The one-off W8 report script with its hard-coded headline and protocol text is not part of the live tree.)
 
 Bootstrap CIs use one np.random.default_rng(0) stream per main() call, consumed in the scripts' call order; this
 reproduces the scripts (whose module-level default rng was created once per process) exactly for a single invocation.

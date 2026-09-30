@@ -2,7 +2,7 @@
 
 Same body model (rrp.bodies.legged + contact_v2 floor + sourced limits) and the SAME public actor observation and action
 convention as LeggedEnv / LeggedBinding.public_obs / LearnedTracker, so an actor trained here deploys unchanged in the C-MuJoCo
-LeggedSession and is validated there (rrp.evaluation.tracker_validation + gates.check_tracker, full self-collision).
+LeggedSession and is validated there (rrp.harness.eval.tracker_validation + gates.check_tracker, full self-collision).
 
 Declared differences from LeggedEnv (recorded in actor meta `sim_engine` / `sim_adaptations` / `env_differences`):
   * physics: mujoco_warp (float32) with the explicit adaptation `no_self_collision` (robot geoms collide with the floor only);
@@ -681,7 +681,7 @@ def warp_state_view_from_arrays(m, xpos, c_geom, c_pos, c_world, index: int, t: 
 
 
 def window_metrics(recs: list) -> dict:
-    """AlphaGate metrics from pop_stats records (same definitions as rrp.training.reward_schedule.window_metrics)."""
+    """AlphaGate metrics from pop_stats records (same definitions as rrp.harness.train.reward_schedule.window_metrics)."""
     gm = {k: sum(r["gm"][k] for r in recs) for k in recs[0]["gm"]} if recs else {}
     eps = sum(r["episodes"] for r in recs)
     out = dict(steps=gm.get("steps", 0), episodes=eps, fall_rate=(sum(r["falls"] for r in recs) / eps) if eps else 0.0)

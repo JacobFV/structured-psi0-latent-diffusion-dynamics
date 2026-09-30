@@ -1,6 +1,6 @@
 """Named tracker-training recipes (D-126 #13 / #14 / #15): ready to launch, NOT run.
 
-A recipe is a dict of rrp.training.tracker_training option defaults (keys = argparse dests). Launch with
+A recipe is a dict of rrp.harness.train.tracker_training option defaults (keys = argparse dests). Launch with
     python -m rrp.cli train tracker-cpu --recipe <name> [--out ...] [explicit overrides]
 (`--recipe` also takes a JSON file path). The resolved recipe (name, sha256 of its canonical JSON, options) is stored in the
 actor meta. Keys starting with "_" are documentation (cost, rationale, the decision/track reference) and are not options.

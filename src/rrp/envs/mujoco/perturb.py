@@ -15,7 +15,7 @@ A `PhysicsPerturbation` describes one departure from the training physics. It is
     object_friction_scale (arm) x friction of the cube AND the gripper finger geoms (grasp contact mu = scale x nominal,
                           since MuJoCo uses the max of the pair)
 * step level (hooks installed on the session):
-    latency_ms            legged: the existing actuator mode `v1lat` (rrp.physics.actuator.ActuatorModel: ideal joints +
+    latency_ms            legged: the existing actuator mode `v1lat` (rrp.bodies.actuator.ActuatorModel: ideal joints +
                           SOURCED torque/speed limits + fixed actuation latency via the cross-tick pending-target queue);
                           arm: `ctrl_delay_v0`, a FIFO delay of the robot's ctrl by round(latency / dt) physics substeps
                           (the arm has no actuator model). None = ideal actuators (the training condition).

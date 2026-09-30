@@ -2,7 +2,7 @@
 
 PolicyObservation must never contain simulator object identity/poses, contacts, reward,
 completion truth or labels. PrivilegedTruth is serialized independently and the public
-transport refuses it (rrp.contracts.channels).
+transport refuses it (rrp.core.channels).
 """
 from __future__ import annotations
 

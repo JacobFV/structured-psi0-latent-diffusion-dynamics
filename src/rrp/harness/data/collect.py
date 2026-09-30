@@ -16,7 +16,7 @@ import mujoco
 import numpy as np
 
 from rrp.policies.teachers.arm import PickPlaceTeacher
-from rrp.policies.features.featurizer import Featurizer, featurizer_for  # noqa: F401  (featurizer_for moved to rrp.features)
+from rrp.policies.features.featurizer import Featurizer, featurizer_for  # noqa: F401  (featurizer_for moved to rrp.policies.features)
 from rrp.envs.mujoco.session import Session
 from rrp.envs.mujoco.sensors import camera_visibility
 
@@ -178,7 +178,7 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
                             dart_descent_sigma: float = 0.0, teacher_kw: dict | None = None) -> EpisodeRecord:
     """exec_noise > 0 (DART): executed ARM command = teacher command + N(0, exec_noise) held for a few
     steps; the recorded LABEL is always the clean teacher command, so data covers recovery states.
-    teacher_version (rrp.teachers.arm_smooth.TEACHER_VERSIONS key) selects a registered arm teacher version;
+    teacher_version (rrp.policies.teachers.arm_smooth.TEACHER_VERSIONS key) selects a registered arm teacher version;
     None keeps `teacher_cls` (the v1 default) and the historical meta.
     dart_descent_sigma > 0 (D-126 #5; needs dart_safety "phase"): in the DART_DESCENT_PHASES the executed arm command
     is clean + (dart_descent_sigma / exec_noise) x the SAME held noise draw (so the noise RNG stream is unchanged),
@@ -282,7 +282,7 @@ def collect_teacher_episode(session: Session, teacher_cls=PickPlaceTeacher, max_
     if session.scenario.meta.get("object_spec"):     # D-126 #35 task-object variant (absent for the default scene)
         meta["object_spec"] = dict(session.scenario.meta["object_spec"])
     if f["feasible"]:
-        meta["motion"] = mrec.summary()  # rrp.envs.motion_quality (W6 dataset gates, rrp.evaluation.gates)
+        meta["motion"] = mrec.summary()  # rrp.envs.motion_quality (W6 dataset gates, rrp.harness.eval.gates)
     public = dict(meta=meta, inputs=inputs, actions=actions, q0=q0s, statuses=statuses,
                   action_space=dict(node_group=feat.aspace.node_group, node_col=feat.aspace.node_col,
                                     lower=feat.aspace.lower, upper=feat.aspace.upper,

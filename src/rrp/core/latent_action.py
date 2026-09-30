@@ -18,7 +18,7 @@ from .base import Strict, NDArray
 from .errors import ControllerRejection, StaleActionError
 
 LATENT_SCHEMA = "latent-action-1.0"
-# Packet `source`: the 4 original values (unchanged on the wire) plus the canonical rrp.contracts.provenance.Source
+# Packet `source`: the 4 original values (unchanged on the wire) plus the canonical rrp.core.provenance.Source
 # kinds (D-126; "unknown" excluded). Admission (check_packet) does not look at the source.
 LatentSource = Literal["learned", "target_encoder_oracle", "debug", "replay",
                        "scripted_teacher", "privileged_teacher", "oracle", "bc", "random", "mock", "cpg_tracker",

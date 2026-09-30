@@ -450,7 +450,7 @@ def cmd_semantic(a):
         pol = LatentPolicy.from_checkpoint(a.checkpoint, device=dev, nfe=a.nfe)
         if pol.lsv != res["latent_space_version"]:
             raise SystemExit(f"flow latent space {pol.lsv} != system-0 bundle {res['latent_space_version']}")
-        if pol.rcv != res["realizer_compat_version"]:     # same latent space, refit system 0 (as rrp.evaluation.ladder)
+        if pol.rcv != res["realizer_compat_version"]:     # same latent space, refit system 0 (as rrp.harness.eval.ladder)
             pol.rcv = res["realizer_compat_version"]
         src = se.GeneratedSource(pol)
         label = f"learned:{a.checkpoint} -> system 0 of {rep}"

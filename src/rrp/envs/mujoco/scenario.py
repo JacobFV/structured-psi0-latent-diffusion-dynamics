@@ -76,7 +76,7 @@ def _robot_module(r) -> tuple[mujoco.MjSpec, dict]:
 
 
 def compile_scene(scene: mujoco.MjSpec, post_contact=None) -> mujoco.MjModel:
-    """Compile an arm world with the selected grasp contact version (rrp.physics.grasp_contact; $RRP_GRASP_CONTACT,
+    """Compile an arm world with the selected grasp contact version (rrp.bodies.grasp_contact; $RRP_GRASP_CONTACT,
     default grasp_v1 = unchanged legacy build). post_contact(scene): optional edit applied AFTER the grasp contact
     model (D-126 #35 object friction must not be overwritten by it); None = the historical build."""
     from rrp.bodies import grasp_contact

@@ -1,4 +1,4 @@
-"""Feature-centric coordination metrics (W12; re-exported by rrp.evaluation.contact_metrics): relative-frame orientation drift, contact-sequence fidelity,
+"""Feature-centric coordination metrics (W12; re-exported by rrp.harness.data.contact_metrics): relative-frame orientation drift, contact-sequence fidelity,
 re-anchoring latency, stance drift. PRIVILEGED evaluation-only measurements (simulator truth); nothing feeds a policy.
 
 Keys are merged into the W6 `motion` field of eval rows with the prefix `cf_` (plus cf_version) -- only when enabled

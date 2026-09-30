@@ -116,7 +116,7 @@ def realizer_node_feats(s0, pi) -> np.ndarray:
 
 class LatentSystem0(System0Base):
     """Runtime wrapper: holds the current packet, realizes it every tick from fresh local state.
-    receive / invalidate / stats: rrp.contracts.system0.System0Base (the shared acceptance protocol)."""
+    receive / invalidate / stats: rrp.core.system0.System0Base (the shared acceptance protocol)."""
 
     def __init__(self, realizer: LatentRealizer, featurizer, *, latent_space_version: str,
                  realizer_compat_version: str, device="cpu", fallback: str = "hold_measured"):
@@ -127,7 +127,7 @@ class LatentSystem0(System0Base):
         lsv, rcv = getattr(realizer, "bundle_versions", None) or (latent_space_version, realizer_compat_version)
         super().__init__(latent_space_version=lsv, realizer_compat_version=rcv, fallback=fallback)
         self.device = device
-        self.blender = None          # D-126 #7 chunk blending (rrp.controllers.chunk_blend); None = historical ticks
+        self.blender = None          # D-126 #7 chunk blending (rrp.policies.chunk_blend); None = historical ticks
 
     def configure_blend(self, mode: str = "none", ticks: int = 4, decay: float = 0.0):
         """Overlapping-packet blending (default none). Set before the first packet is received."""

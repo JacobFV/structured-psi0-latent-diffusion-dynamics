@@ -387,8 +387,8 @@ def main(argv=None):
     ap.add_argument("--slow-frac", type=float, default=0.0, help="bipeds: fraction of walking commands rescaled to 0.05-0.2 m/s")
     ap.add_argument("--turn-frac", type=float, default=0.25, help="probability of a pure-turn command (bipeds)")
     ap.add_argument("--turn-advance", type=float, default=0.6, help="window turn ratio needed to widen the turn range")
-    ap.add_argument("--actuator", default=None, help="v1 (= ideal) PD | v1lat | v2 rrp.physics.actuator (randomised); default "
-                    "$RRP_ACTUATOR_MODE, else rrp.physics.actuator.ACTUATOR_MODE_DEFAULT (ideal; recorded as v1)")
+    ap.add_argument("--actuator", default=None, help="v1 (= ideal) PD | v1lat | v2 rrp.bodies.actuator (randomised); default "
+                    "$RRP_ACTUATOR_MODE, else rrp.bodies.actuator.ACTUATOR_MODE_DEFAULT (ideal; recorded as v1)")
     ap.add_argument("--reward-set", default="", help="override base reward weights, e.g. clearance_floor=-2,floor_frac=0.6")
     ap.add_argument("--init-actor", default=None, help="warm-start actor + obs normaliser from an exported actor.pt")
     ap.add_argument("--init-actor-sha256", default=None, help="D-126: refuse unless --init-actor has this sha256")

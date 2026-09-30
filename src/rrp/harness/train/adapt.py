@@ -1,5 +1,5 @@
 """Online adaptation runs: GRPO (plain / shared-prefix) and EXPO-FT-inspired, at matched NEW control
-transitions. Evaluation reuses rrp.evaluation.runner.evaluate (raw per-episode JSONL) on held-out seeds;
+transitions. Evaluation reuses rrp.harness.eval.evaluate.evaluate (raw per-episode JSONL) on held-out seeds;
 evaluation episodes are never counted as training experience and never used for updates."""
 from __future__ import annotations
 
@@ -155,7 +155,7 @@ def _evaluate_suffix(policy, cfg, out_dir: Path, tag: str, ckpt: str):
 
 
 def _evaluate_any(policy, cfg, out_dir, tag):
-    """Full-episode evaluation (rrp.evaluation.runner.evaluate) and, when the run uses the teacher-prefix
+    """Full-episode evaluation (rrp.harness.eval.evaluate.evaluate) and, when the run uses the teacher-prefix
     suffix protocol, the suffix evaluation as well (reported separately, never merged)."""
     out = dict(full_episode=_evaluate(policy, cfg, out_dir, tag, cfg["checkpoint"]) if cfg.get("eval_full", True)
                else None)

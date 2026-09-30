@@ -219,5 +219,5 @@ class RobotSpec(Strict):
 
 
 def combined_hash(hashes: list[str]) -> str:
-    """Spec hash of a multi-robot session (rrp.features.multi re-exports it)."""
+    """Spec hash of a multi-robot session (rrp.policies.features.multi re-exports it)."""
     return "multi:" + hashlib.sha256("|".join(hashes).encode()).hexdigest()[:16]

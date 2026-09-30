@@ -379,7 +379,7 @@ def main(argv=None):
     ap.add_argument("--device", default="cpu", help="cpu (default; eval runs in CPU leases) or cuda")
     from rrp.harness.eval.deploy_eval import DeployOptions, add_deploy_args
     add_deploy_args(ap)
-    ap.add_argument("--system2", default="off", help="D-126 #31 system II harness (rrp.evaluation.system2): off (default) "
+    ap.add_argument("--system2", default="off", help="D-126 #31 system II harness (rrp.harness.eval.system2): off (default) "
                     "| oracle (DIAGNOSTIC) | default | mock[:name] | vlm[:<weights dir>]; instruction -> target -> context")
     a = ap.parse_args(argv)
     from rrp.harness.eval.system2 import make_system2

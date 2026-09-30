@@ -117,7 +117,7 @@ class LeggedSession(Session):
     def __init__(self, scenario: Scenario, *, tracker_kind: str = "auto", seed: int = 0, actuator_mode: str | None = None,
                  actuator_latency_ms: float | None = None, base_state_source: str = "truth_noise", estimator_cfg=None,
                  control: str = "base_velocity", **kw):
-        """actuator_mode (D-126 #14): None -> $RRP_ACTUATOR_MODE, else rrp.physics.actuator.ACTUATOR_MODE_DEFAULT ("ideal": the
+        """actuator_mode (D-126 #14): None -> $RRP_ACTUATOR_MODE, else rrp.bodies.actuator.ACTUATOR_MODE_DEFAULT ("ideal": the
         bounded PD servo, byte-identical to before). "v1lat" / "v2" route every tracker tick through ActuatorModel (nominal
         parameters, a fixed per-episode latency: actuator_latency_ms, else $RRP_ACTUATOR_LATENCY_MS, else drawn from the seed).
         base_state_source (D-126 #27): "truth_noise" (default, unchanged) = speed from the declared noisy

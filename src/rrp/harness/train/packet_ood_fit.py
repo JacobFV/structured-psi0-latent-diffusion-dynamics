@@ -1,4 +1,4 @@
-"""Fit / score the per-bundle packet OOD detector (D-126 roadmap #29; model in rrp.controllers.packet_ood).
+"""Fit / score the per-bundle packet OOD detector (D-126 roadmap #29; model in rrp.policies.packet_ood).
 
   fit-rep      TRAINING packets = the frozen encoder's posterior means E(ctx, demonstrated targets) on the training
                split of the bundle's own data (what system 0 was trained to realize); calibration = the held-out split

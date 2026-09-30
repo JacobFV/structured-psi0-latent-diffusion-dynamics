@@ -315,8 +315,8 @@ def main(argv=None):
     ap.add_argument("--seeds", type=int, default=5)
     ap.add_argument("--out")
     ap.add_argument("--contact", default="v1", help="physics contact model to validate in (v1 | v2)")
-    ap.add_argument("--actuator", default=None, help="v1 (= ideal) PD | v1lat | v2 rrp.physics.actuator (nominal params, fixed "
-                    "latency); default $RRP_ACTUATOR_MODE, else rrp.physics.actuator.ACTUATOR_MODE_DEFAULT (ideal)")
+    ap.add_argument("--actuator", default=None, help="v1 (= ideal) PD | v1lat | v2 rrp.bodies.actuator (nominal params, fixed "
+                    "latency); default $RRP_ACTUATOR_MODE, else rrp.bodies.actuator.ACTUATOR_MODE_DEFAULT (ideal)")
     ap.add_argument("--latency-ms", type=float, default=0.0, help="actuation latency for --actuator v2")
     ap.add_argument("--freeze", action="store_true", help="write eligibility.json next to the frozen tracker")
     ap.add_argument("--gate-dir", default=None, help="also write the W6 gate report (gate_report.json) here")

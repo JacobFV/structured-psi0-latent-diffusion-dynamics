@@ -2,20 +2,20 @@
 
 | stage | existing code (what the chain scripts ran) |
 |---|---|
-| collect | rrp.data.generate.generate (`rrp data generate`) |
-| pack | rrp.data.packed.pack_dataset (`rrp data pack`) |
-| train_rep | rrp.training.latent_train.train_representation (`rrp latent train-representation`) |
-| probes | rrp.training.latent_train.fit_probes_on_frozen (`rrp latent fit-probes`) |
-| train_flow, flow_ft | rrp.training.latent_train.train_latent_flow (`rrp latent train-flow`) |
-| refit | rrp.training.latent_train.refit_realizer  |
+| collect | rrp.harness.data.generate.generate (`rrp data generate`) |
+| pack | rrp.harness.data.packed.pack_dataset (`rrp data pack`) |
+| train_rep | rrp.harness.train.latent_train.train_representation (`rrp latent train-representation`) |
+| probes | rrp.harness.train.latent_train.fit_probes_on_frozen (`rrp latent fit-probes`) |
+| train_flow, flow_ft | rrp.harness.train.latent_train.train_latent_flow (`rrp latent train-flow`) |
+| refit | rrp.harness.train.latent_train.refit_realizer  |
 | dagger_collect | `rrp suite ladder --collect-dagger` (EXPERT=bc [FLOW=] [GENCTX=]) |
 | eval_r1 | `rrp suite ladder --route oracle --oracle-expert bc` (ORACLE DIAGNOSTIC) |
 | eval_r2, heldout | `rrp suite ladder --route generated` |
 | edits | `rrp latent semantic-edits --route generated` (chain semedit) |
-| grpo (D-126 #6) | rrp.training.latent_grpo.train_latent_grpo (latent) / rrp.training.adapt.run method grpo (BC), + anchors |
+| grpo (D-126 #6) | rrp.harness.train.latent_grpo.train_latent_grpo (latent) / rrp.harness.train.adapt.run method grpo (BC), + anchors |
 | target_eval (D-126 #9/#10) | python -m rrp.cli suite target (sealed protocol scenes; ladder routes generated / learned) |
 | target_adapt (D-126 #9/#10) | sft_latent_flow (flow_sft) / refit_realizer + episode_budget (system0_refit) / sft_packed (bc_sft) |
-| train_bc (D-126 #10) | rrp.training.behavior.train_policy with baseline_campaign.source_config (direct-action BC source) |
+| train_bc (D-126 #10) | rrp.harness.train.behavior.train_policy with baseline_campaign.source_config (direct-action BC source) |
 
 The evaluation stages run the ladder (rrp.harness.eval.ladder_cli) as a subprocess `rrp suite ladder ...`. Outputs go to
 the stage's own out dir, never to the shared artifacts/runs/ladder_v1/.
@@ -373,9 +373,9 @@ def _anchor(ctx: StageContext) -> dict | None:
 @register("arm", "grpo", source="learned")
 def grpo(ctx: StageContext) -> dict:
     """D-126 #6: GRPO fine-tuning with anchor / forgetting evaluations. options.method latent (system i on the packet,
-    system 0 = inputs.representation, frozen) or bc (direct-action BC through rrp.training.adapt, the matched-budget
+    system 0 = inputs.representation, frozen) or bc (direct-action BC through rrp.harness.train.adapt, the matched-budget
     baseline). Budget = new control transitions (params.budget_env_steps for latent; params.budgets for bc).
-    options.anchor = rrp.training.grpo_anchor.AnchorConfig fields (robots, seed_start, episodes, max_drop, action)."""
+    options.anchor = rrp.harness.train.grpo_anchor.AnchorConfig fields (robots, seed_start, episodes, max_drop, action)."""
     import copy
     from dataclasses import asdict
     o = ctx.opts
@@ -460,7 +460,7 @@ def target_eval(ctx: StageContext) -> dict:
                 source=src, source_detail=detail)
 
 
-SFT_STEPS = {5: 150, 20: 300, 100: 600}      # = rrp.training.baseline_campaign.SFT_STEPS / run_latent_cell
+SFT_STEPS = {5: 150, 20: 300, 100: 600}      # = rrp.harness.train.baseline_campaign.SFT_STEPS / run_latent_cell
 SFT_LR = 1e-4
 
 

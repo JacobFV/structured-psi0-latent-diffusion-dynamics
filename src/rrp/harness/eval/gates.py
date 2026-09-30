@@ -1,18 +1,18 @@
 """Motion-quality and robustness GATES for trackers and datasets (W6, adopted in D-112; thresholds in GATES).
 
 API (pure functions of recorded outputs; nothing is re-simulated here):
-  check_tracker(validation: dict)                         -> report   (rrp.evaluation.tracker_validation output)
+  check_tracker(validation: dict)                         -> report   (rrp.harness.eval.tracker_validation output)
   check_dataset(manifest: dict | None, episodes: list)    -> report   (dispatches on the episodes' family)
-  check_legged_dataset(episodes, manifest=None)           -> report   (rrp.data.legged_latent_collect episode metas)
-  check_arm_dataset(episodes, manifest=None, reference=)  -> report   (rrp.data.collect metas with `motion`, or
-                                                                       rrp.evaluation.teacher_quality rows)
-  check_dual_dataset(episodes, manifest=None)             -> report   (rrp.data.collect_dual metas with record_quality,
-                                                                       or rrp.evaluation.dual_teacher_quality rows)
+  check_legged_dataset(episodes, manifest=None)           -> report   (rrp.harness.data.legged_latent_collect episode metas)
+  check_arm_dataset(episodes, manifest=None, reference=)  -> report   (rrp.harness.data.collect metas with `motion`, or
+                                                                       rrp.harness.eval.teacher_quality rows)
+  check_dual_dataset(episodes, manifest=None)             -> report   (rrp.harness.data.collect_dual metas with record_quality,
+                                                                       or rrp.harness.eval.dual_teacher_quality rows)
   policy_flags(rows)                                      -> report   (learned-policy eval rows; REPORTED, never gated)
 A report is {gate, version, subject, verdict, criteria: [{name, status, value, threshold, note}], failed: [...]}.
 Criterion status: pass | fail | not_evaluated (the input lacks the measurement) | labelled (measured, reported, not
 gated: e.g. penetration under grasp_v1). verdict: fail if any criterion fails; else incomplete if any gated criterion
-is not_evaluated; else pass. Pipelines treat ONLY "fail" as a failed node (rrp.pipelines.base.GateFailed); "incomplete" is recorded.
+is not_evaluated; else pass. Pipelines treat ONLY "fail" as a failed node (rrp.harness.pipelines.base.GateFailed); "incomplete" is recorded.
 """
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ GATES = dict(
                      penetration_gated_grasp=("grasp_v2", "grasp_v2.1")),
     policy=dict(chunk_vel_step_flag=1.5),
     # D-126 #18 (W12 audit, archived; D-126): dual-arm teacher data. Arm criteria per arm as arm_dataset;
-    # maintained-contact criteria from the W12 contact metrics (rrp.data.contact_metrics).
+    # maintained-contact criteria from the W12 contact metrics (rrp.harness.data.contact_metrics).
     dual_dataset=dict(phase_switch_vel_step_max=0.5, cmd_jerk_rms_ratio_max=2.0, joint_limit_margin_min=0.02,
                       ok_frac_min=0.95, penetration_max_m=0.003, penetration_ok_frac_min=0.99,
                       penetration_gated_grasp=("grasp_v2", "grasp_v2.1"), support_slip_max_m=0.005,
@@ -44,7 +44,7 @@ GATES = dict(
 BIPED_FAMILIES = ("humanoid", "biped")
 # Commanded-jerk reference of the v2 scripted teacher per body (D-112 "jerk RMS <= 2x the v2 teacher"): median over
 # 300 seeds of joint_cmd_jerk_rms, grasp_v2 (D-110). Built from artifacts/runs/armexpert_grasp/final_graspv2_18bodies.summary.json
-# (sha256 8083c464411268d3); regenerate with rrp.evaluation.teacher_quality if the teacher changes.
+# (sha256 8083c464411268d3); regenerate with rrp.harness.eval.teacher_quality if the teacher changes.
 ARM_TEACHER_V2_REFERENCE = dict(
     source="artifacts/runs/armexpert_grasp/final_graspv2_18bodies.summary.json (scripted_teacher:pick_place_v2_minjerk, grasp_v2, 300 seeds per body; D-110)",
     source_sha256_16="8083c464411268d3", metric="median joint_cmd_jerk_rms (rad/s^3)",
@@ -96,7 +96,7 @@ def write_report(report: dict, out_dir: Path) -> Path:
 
 # ------------------------------------------------------------------ trackers
 def check_tracker(v: dict) -> dict:
-    """v: the JSON written by rrp.evaluation.tracker_validation (protocol v2; `robustness` from --robust).
+    """v: the JSON written by rrp.harness.eval.tracker_validation (protocol v2; `robustness` from --robust).
     Criteria (forward trial unless stated): slip ratio < 0.15; CoT <= 1.0 quadruped / 2.0 biped; peak foot force
     <= 3.5 body weights (max over all trials); joint-limit margin >= 0.02 (min over all trials); no-fall >= 0.9 (all
     trials); robustness INSIDE the tracker's own training randomization (`robustness` block): at every condition
@@ -293,8 +293,8 @@ def check_arm_dataset(episodes: list[dict], manifest: dict | None = None, refere
 
 # ------------------------------------------------------------------ dual-arm datasets (D-126 #18)
 def _dual_row(e: dict) -> dict:
-    """Normalise a collect_dual meta (`motion` from rrp.data.dual_quality, record_quality: true) or a
-    rrp.evaluation.dual_teacher_quality row."""
+    """Normalise a collect_dual meta (`motion` from rrp.harness.data.dual_quality, record_quality: true) or a
+    rrp.harness.eval.dual_teacher_quality row."""
     m = e.get("motion") if isinstance(e.get("motion"), dict) and e["motion"].get("family") == "dual" else e
     pair = e.get("robot_key") or e.get("pair") or ""
     bodies = dict(zip(("left", "right"), str(pair).split("__"))) if "__" in str(pair) else {}

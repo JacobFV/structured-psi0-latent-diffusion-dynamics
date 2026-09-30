@@ -39,7 +39,7 @@ def assert_disjoint_lineages(train, test, *, family_level: bool = False, shared_
 def dataset_provenance(episodes: list[dict], *, source: str, featurizer_version: str | None = None,
                        flags: dict | None = None, notes: str = ""):
     """Dataset-level Provenance from per-episode metas. Every episode meta written since provenance-1 carries
-    `physics` (rrp.contracts.provenance.physics_provenance); exactly one distinct physics record is expected.
+    `physics` (rrp.core.provenance.physics_provenance); exactly one distinct physics record is expected.
     Mixed or missing physics (e.g. resumed legacy episodes) is recorded in `notes`, never guessed."""
     from rrp.core.provenance import make_provenance
     phys = [e["physics"] for e in episodes if isinstance(e.get("physics"), dict)]

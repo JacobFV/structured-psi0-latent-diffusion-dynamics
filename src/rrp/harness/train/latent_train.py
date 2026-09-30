@@ -716,7 +716,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
 
 
 def _load_dagger(paths, dev, anchor: bool = False, drop_qd: bool = False):
-    """System-0 DAgger buffers written by rrp.evaluation.ladder.save_dagger (single-assembly bodies; M = 1).
+    """System-0 DAgger buffers written by rrp.harness.eval.ladder.save_dagger (single-assembly bodies; M = 1).
     Buffers store the BASE node features (col 28 = 0). anchor: recompute col 28 = q(t+j) - q(packet state) from the
     j = 0 row of the same packet (as LatentData does for the pack; rows without a j = 0 row are dropped).
     drop_qd: zero the joint-velocity column (27) like LatentData(drop_qd)."""

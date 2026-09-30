@@ -15,7 +15,7 @@ velocities qd (encoders) and the IMU gravity direction (public):
                       a caller.
 Mode `safety`: off (default; the layer is not constructed) | monitor (everything is computed and every would-be
 intervention is counted, the controller's target passes UNCHANGED) | enforce (the filtered target is sent).
-Limits are SOURCED where a source exists (rrp.physics.actuator.SOURCED peak torques and URDF speeds); otherwise the
+Limits are SOURCED where a source exists (rrp.bodies.actuator.SOURCED peak torques and URDF speeds); otherwise the
 model's own ranges and the labelled VMAX estimates; `limits.source` records which.
 """
 from __future__ import annotations
@@ -167,7 +167,7 @@ class SafetyLayer:
 
 def legged_limits(binding, body: str | None = None) -> SafetyLimits:
     """Limits for a legged body's policy joints from the compiled model: joint range intersected with the actuator
-    ctrlrange, PD gains, peak torque (SOURCED where rrp.physics.actuator has a source, else the model forcerange),
+    ctrlrange, PD gains, peak torque (SOURCED where rrp.bodies.actuator has a source, else the model forcerange),
     max joint speed (SOURCED URDF velocity, else the labelled VMAX estimate)."""
     import re
     from rrp.bodies.actuator import SOURCED, vmax_for

@@ -15,7 +15,7 @@ Three parts:
 2. DYNAMIC TRIPWIRE: builds a session and computes every deployable input (observe, public_context, local_state,
    the estimator tick) with the privileged accessors (base_pose_truth, truth_predicate, privileged_success,
    _held_truth) replaced by functions that raise; the public observation must pass the public transport
-   (rrp.contracts.channels).
+   (rrp.core.channels).
 3. STATIC CHECK: the functions that compute deployable inputs are parsed (ast) and must not reference privileged
    names (PrivilegedTruth, base_pose_truth, truth_predicate, privileged_success, object poses, ...) nor the free
    joint (binding.qa / binding.da = true base state). Declared exceptions (e.g. the declared truth+noise
@@ -57,7 +57,7 @@ class InputGroup:
     note: str = ""
 
 
-# rrp.features.legged.public_context layout (22): gyro 3 | gravity 3 | osc sin/cos 2 | waypoint a 4 | waypoint b 4 |
+# rrp.policies.features.legged.public_context layout (22): gyro 3 | gravity 3 | osc sin/cos 2 | waypoint a 4 | waypoint b 4 |
 # active event one-hot 4 | speed estimate, speed valid 2
 LEGGED_GROUPS = (
     InputGroup("ctx.gyro", "ctx", (0, 3), "public_sensor", "IMU gyro"),

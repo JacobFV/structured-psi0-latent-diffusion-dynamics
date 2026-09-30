@@ -336,7 +336,7 @@ Resources in the recipes are ESTIMATES: measure and redeclare >= 1.35 x peak (D-
    now; the side-by-side installed-vs-new renderer went to `.old/scripts/render_contact_compare.py`.
 5. **Not a recipe (needs code first):** the D-139 side attempt (g1 knee-specific target band + stance knee-flex term; add a
    `g1_*` entry to `rrp.harness.train.humanoid_recipes`, then an instance of `humanoid_task.yaml`), and P3 (generalise
-   `rrp.features.legged.public_context`, whose EVENTS / GLOBAL_DIM are waypoint-specific, and `rrp.harness.data.legged_latent_collect`
+   `rrp.policies.features.legged.public_context`, whose EVENTS / GLOBAL_DIM are waypoint-specific, and `rrp.harness.data.legged_latent_collect`
    to task scenarios + expert trackers before any latent / BC training).
 Also here: the four never-run D-126 CPU tracker recipes `recipes/humanoid/d126_tracker_*.yaml` (superseded in practice by the GPU
 recipes of `humanoid_recipes.py`).

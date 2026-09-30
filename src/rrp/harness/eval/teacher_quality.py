@@ -1,6 +1,6 @@
 """Arm scripted-teacher quality report (W7): success / failure stage, motion smoothness, grasp physics.
 
-Runs a pick_place teacher episode (any registered teacher version, `rrp.teachers.arm_smooth.ARM_TEACHERS`) and records
+Runs a pick_place teacher episode (any registered teacher version, `rrp.policies.teachers.arm_smooth.ARM_TEACHERS`) and records
 per control tick the commanded and measured arm joints, the commanded/measured TCP, the phase, IK residuals and the
 object-gripper contacts. All of this is PRIVILEGED diagnostics (simulator truth); nothing feeds a policy.
 
@@ -201,7 +201,7 @@ def _rms(x):
 
 def run_policy_quality_episode(policy, robot_key: str, seed: int, *, label: str, max_steps: int = 300, robot=None,
                                ckpt: str | None = None, source_labels: bool | None = None) -> dict:
-    """The same motion metrics for a LEARNED chunk policy (rrp.controllers.policy_runner.LearnedPolicy), rolled out
+    """The same motion metrics for a LEARNED chunk policy (rrp.policies.bc.LearnedPolicy), rolled out
     like the ladder `learned` route (execute_prefix rows per chunk, public observations only). Phases are the chunk
     index, so `vel_jump_switch_max` = the largest joint-velocity step at chunk boundaries."""
     from rrp.bodies.catalog import workbench_robots

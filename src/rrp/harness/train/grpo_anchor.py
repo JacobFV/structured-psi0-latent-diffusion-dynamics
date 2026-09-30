@@ -2,7 +2,7 @@
 
 GRPO fine-tunes on one robot (or a few); a gain there is only worth something if competence on the ORIGINAL training
 tasks and bodies is kept. The anchor evaluation runs the SAME deployable route and harness as the lineage's final
-evaluations (rrp.evaluation.ladder.run_ladder: route `generated` for the latent route with the deployed system 0,
+evaluations (rrp.harness.eval.ladder.run_ladder: route `generated` for the latent route with the deployed system 0,
 route `learned` for BC; first `episodes` feasible dev seeds from `seed_start`, prev-action as the lineage, no oracle
 comparison) on the pre-GRPO checkpoint (reference) and on every GRPO checkpoint, and applies a fixed regression rule:
 

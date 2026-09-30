@@ -3,12 +3,12 @@
 For every `*.pt` under the given roots: `torch.load(weights_only=False)` with the current code, the W3 provenance
 (`checkpoint_provenance`, which also verifies stored weight fingerprints), and for the kinds with a loader, the real
 loader that builds the models and loads the weights strictly:
-  arm representation      -> rrp.controllers.bundles.load_representation
-  arm latent flow         -> rrp.controllers.latent_runner.LatentPolicy.from_checkpoint
-  arm direct/codec policy -> rrp.controllers.policy_runner.LearnedPolicy.from_checkpoint
-  legged representation   -> rrp.controllers.bundles.load_rep
+  arm representation      -> rrp.policies.bundles.load_representation
+  arm latent flow         -> rrp.policies.latent.LatentPolicy.from_checkpoint
+  arm direct/codec policy -> rrp.policies.bc.LearnedPolicy.from_checkpoint
+  legged representation   -> rrp.policies.bundles.load_rep
   legged flow / refit R   -> rrp.policies.legged.LatentLeggedController
-  legged BC               -> rrp.models.legged_bc.load_bc
+  legged BC               -> rrp.policies.nets.legged_bc.load_bc
 Training-resume states, trackers and probes are loaded with torch.load only (no rrp classes are pickled in any of them).
 Relative paths inside checkpoints (e.g. a flow's `representation`) resolve against the checkout that holds the file
 (the directory above its `artifacts/`).
