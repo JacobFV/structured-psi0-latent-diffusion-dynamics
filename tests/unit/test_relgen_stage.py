@@ -174,10 +174,13 @@ def test_mixed_batches_masks_missing_labels():
     shards = {"f": _pool(10)}
     main = [[{"inputs": {}, "labels": {}, "provenance": {}} for _ in range(4)]]
     batch = next(mixed_batches(main, sched, shards, batch_size=8, rng=np.random.default_rng(0)))
-    assert batch["main"] and all("test.pos3d" in r["labels"] for r in batch["main"])
+    assert batch["main"] and batch["relgen"] and all("test.pos3d" in r["labels"] for r in batch["main"])
+    real_shape = batch["relgen"][0]["labels"]["test.pos3d"].valid.shape
     for r in batch["main"]:
         lab = r["labels"]["test.pos3d"]
         assert not lab.valid.any() and lab.prov == "none"                      # masked, not missing
+        assert lab.valid.shape == real_shape                                   # shape borrowed from the real rows,
+                                                                                # not just other masked main rows
     for r in batch["relgen"]:
         assert r["labels"]["test.pos3d"].valid.all()                           # real rows untouched
 

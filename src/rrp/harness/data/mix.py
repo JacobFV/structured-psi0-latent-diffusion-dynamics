@@ -83,6 +83,8 @@ def mixed_batches(main, scheduler, shards, batch_size: int, rng, *, label_names=
         names = set(label_names or [])
         for s in batch_main + rel_rows:
             names |= set(s.get("labels", {}))
-        yield {"step": step, "main": mask_missing_labels(batch_main, names),
-              "relgen": mask_missing_labels(rel_rows, names), "counts": counts}
+        # mask the combined batch in one call so a main row missing a label borrows its shape from a relgen row
+        # that carries it, not only from another main row (mask_missing_labels' reference shape is batch-wide)
+        masked = mask_missing_labels(batch_main + rel_rows, names)
+        yield {"step": step, "main": masked[:len(batch_main)], "relgen": masked[len(batch_main):], "counts": counts}
         step += 1
