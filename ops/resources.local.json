@@ -136,7 +136,7 @@
   "enforced": {
    "cpu_cores": 19.97,
    "memory_bytes": 115964116992,
-   "gpu_slots": 8,
+   "gpu_slots": 2,
    "disk_bytes": 29277769728
   },
   "lease_expiry_s": 20,
@@ -144,7 +144,8 @@
   "disk_reserve_bytes": 21474836480,
   "startup_new_disk_bytes": 29277769728,
   "unrestricted": false,
-  "admission_note": "D-106: admission capped at physical memory (was unrestricted per D-026) after repeated emergency sheds"
+  "admission_note": "D-106: admission capped at physical memory (was unrestricted per D-026) after repeated emergency sheds",
+  "gpu_note": "D-147 (owner/lead 2026-10-01): thermal rule W13: at most 2 concurrent GPU leases on the peer across all tracks; enforced here (was 8)."
  },
  "peer_alias": "gb10-direct",
  "peer_root": "/dev/shm/rrp-brandonin"
