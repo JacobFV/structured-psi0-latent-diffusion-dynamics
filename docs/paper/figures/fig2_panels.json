@@ -1,7 +1,7 @@
 {
  "figure": "fig2",
  "seed": 3000001,
- "runtime_s": 4.0,
+ "runtime_s": 4.2,
  "honesty": "values are computed by rrp factor operators (FactorSite.contributions / OPS value) or are relgen simulator-truth labels, on real simulator states; NOT trained attention",
  "omitted_planned_factors": [
   "time.same_track"
@@ -59,7 +59,7 @@
     "gripper": -0.27188167644784045
    },
    "closed_form_max_abs_err": 1.1559242807379633e-06,
-   "ray_seg_agreement": 0.9999666666666667,
+   "ray_seg_agreement": 0.9992740740740741,
    "code_path": "FactorSite(['geo.pos3d']).contributions -> PapeOp.features (W_p=I, a=softplus(bias), b=bias, g=1, weights zeroed); per-query constant r_i^T M r_i + b^T r_i removed (softmax-invariant); asserted == -(r_j-r_i)^T M (r_j-r_i) + b^T (r_j-r_i)"
   },
   {
@@ -114,7 +114,7 @@
     "gripper": -0.03659036478903488
    },
    "closed_form_max_abs_err": 2.9094312625765895e-07,
-   "ray_seg_agreement": 0.9999666666666667,
+   "ray_seg_agreement": 0.9992740740740741,
    "code_path": "FactorSite(['geo.pos3d']).contributions -> PapeOp.features (W_p=I, a=softplus(bias), b=bias, g=1, weights zeroed); per-query constant r_i^T M r_i + b^T r_i removed (softmax-invariant); asserted == -(r_j-r_i)^T M (r_j-r_i) + b^T (r_j-r_i)"
   },
   {
@@ -173,7 +173,7 @@
    ],
    "not_drawn": "finger and base dims have no link in the rendered MuJoCo model (still tokens, values in the op output)",
    "parent_chain_check": "all 36 rows equal an independent parent-chain walk of G.DIM_PARENT",
-   "ray_seg_agreement": 0.966295058343174,
+   "ray_seg_agreement": 0.96557452514861,
    "code_path": "FactorSite(['kin.ancestor']).contributions -> ClosureOp.value over RelCtx edges 'dims>dims' = real bodies.g1_simple.relation_matrix(); site.f['kin__ancestor'].w = 1"
   },
   {
@@ -207,7 +207,7 @@
     "gripper": 0.0
    },
    "n_contact_points_drawn": 8,
-   "ray_seg_agreement": 0.9998652794297086,
+   "ray_seg_agreement": 0.9989607270291805,
    "code_path": "relgen.LABELS['contact_pairs'].fn(StateView, TokenIndex) = the supervision target of the ix.contact bilinear probe (deployed bias = learned probe estimate; NOT computed here); white dots = StateView.contacts() positions"
   },
   {
@@ -245,7 +245,7 @@
     "obj:distractor1": 1.0,
     "gripper": 0.0
    },
-   "ray_seg_agreement": 0.9998338622760868,
+   "ray_seg_agreement": 0.9987007178001661,
    "code_path": "FactorSite([{'name':'ix.force_flow','source':'gt'}]).contributions -> ClosureOp.value over rc.edges['ctx>ctx#support-v1@gt'] = relgen support_pairs; convention: A[a,b] = a supports b, so the query row reaches everything it (transitively) carries"
   },
   {
@@ -279,7 +279,7 @@
     "gripper": 1.0
    },
    "cube_z": 0.1377439018087784,
-   "ray_seg_agreement": 0.9997576333832049,
+   "ray_seg_agreement": 0.9992169693918929,
    "code_path": "relgen.LABELS['held_pairs'].fn(StateView, TokenIndex) = supervision target of the ix.held_by bilinear probe (deployed bias = learned probe estimate; NOT computed here)"
   },
   {
@@ -339,7 +339,7 @@
     "obj:distractor1": 0.0,
     "gripper": 0.0
    },
-   "ray_seg_agreement": 0.9999666666666667,
+   "ray_seg_agreement": 0.9992740740740741,
    "code_path": "relgen.task.next_contact_sample(candidates, StateView, evidence) -> TRANSFORMS['reveal'].fn(schedule=[t]) posterior q(e) ~ prior * 1[e not excluded]; the deployed bias is the task-gated bilinear probe (NOT computed here)"
   },
   {

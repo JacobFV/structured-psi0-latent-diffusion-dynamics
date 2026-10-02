@@ -1424,7 +1424,16 @@ def draw_panel(ax, P: Panel, fs, frame_lw, show_title=False):
                     bbox=dict(boxstyle="round,pad=0.1", fc=(1, 1, 1, 0.75), ec="none"))
 
 
+# Fig. 2 math (equation row, term labels, per-panel formulas) is set in Computer Modern, the paper's math font.
+F2_MATH_RC = {"mathtext.fontset": "cm", "mathtext.rm": "serif"}
+
+
 def save_panel_png(P: Panel, path):
+    with plt.rc_context(F2_MATH_RC):
+        _save_panel_png(P, path)
+
+
+def _save_panel_png(P: Panel, path):
     fig = plt.figure(figsize=(3.0, 2.25), dpi=200)
     ax = fig.add_axes([0.0, 0.0, 1.0, 1.0])
     # standalone: image fills the frame; factor id (mono) + formula in a header band drawn over the image
@@ -1440,7 +1449,12 @@ def save_panel_png(P: Panel, path):
 
 
 def composite(panels, path_pdf, path_png=None):
-    """The whole figure* (7.1 in wide): equation row in mathtext, panels alternating above / below their term, leader lines."""
+    """The whole figure* (7.1 in wide): equation row in mathtext (Computer Modern), panels alternating above / below their term, leader lines."""
+    with plt.rc_context(F2_MATH_RC):
+        _composite(panels, path_pdf, path_png)
+
+
+def _composite(panels, path_pdf, path_png=None):
     FW, FH = 7.1, 4.62
     fig = plt.figure(figsize=(FW, FH), dpi=200)
     fig.patch.set_facecolor("white")
@@ -1469,7 +1483,7 @@ def composite(panels, path_pdf, path_png=None):
         t.remove()
     gap0 = 0.05
     avail = FW - 0.10
-    scale = min(1.12, (avail - gap0 * (len(pieces) - 1)) / sum(ws))
+    scale = min(1.26, (avail - gap0 * (len(pieces) - 1)) / sum(ws))
     fs = fs0 * scale
     xs, x = [], 0.05
     for w_ in ws:
@@ -1483,8 +1497,8 @@ def composite(panels, path_pdf, path_png=None):
         fig.text(xs[k] / FW, y_eq / FH, tx, fontsize=fs, ha="left", va="center", color=(col(P) if P else c))
         if P is not None:
             term_cx.append(xs[k] + ws[k] * scale / 2)
-    lead_cx = xs[0] + ws[0] * scale * 0.62
-    fig.text(lead_cx / FW, (y_eq - 0.33) / FH, "learned, data-dependent (no heat)", fontsize=4.8, color="#555", ha="center", va="center",
+    lead_cx = xs[0] + ws[0] * scale * 0.42
+    fig.text(lead_cx / FW, (y_eq - 0.40) / FH, "learned, data-dependent (no heat)", fontsize=4.8, color="#555", ha="center", va="center",
              bbox=dict(boxstyle="round,pad=0.25", fc="#EEEEEC", ec="#BBB", lw=0.5))
     # ---- panels + label blocks + leaders
     for P in panels:
