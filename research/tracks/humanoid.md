@@ -672,3 +672,8 @@ broker refuses (6 h cap): instance override to 21600 s segments with retries 3 (
 - `trackers_steps_scan.yaml` (t1, g1, h1; scratch, 2000 it x 4096 worlds x 24 steps) then `trackers_gap_ring.yaml` (t1, h1), coordinator `camp-hum-t1`,
   one humanoid GPU lease at a time (`--max-parallel-gpu 1`). train@t1 launched 19:08 (lease 1790906909_59a98a): iter 0 7.9 s (incl. compile), host
   RSS 2.4 GB early.
+- 2026-10-01 ~21:00: t1 steps_scan at iter ~1230: fall rate 0.03-0.06, mean episode 876 of 1000 ticks, window success ~0.35-0.5 < level-up 0.7, so the
+  curriculum has stayed at level 0.2 (steps <= 0.06 L) since iter ~800; the non-fall failures are timeouts. Same mechanism as the P2 h1 v2 diagnosis
+  (20 s episodes too short for the course; that run's fix, recorded before running, was 30 s episodes + level-up 0.6). `{t1,g1,h1}_steps_gpu` still use
+  20 s / 0.7. t1 runs to its pre-registered end + gate; g1 / h1 steps are HELD (coordinator relaunched with `--point body=t1`, the gap ring follows) pending
+  the lead's decision on applying that fix as the one bounded recipe-level attempt.
