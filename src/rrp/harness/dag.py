@@ -28,6 +28,12 @@ catalog version). Existing outputs are ADOPTED (no lease) only under equal confi
 by other code (the manifest's `src_tree` differs from the checkout's) the node is `stale`: adopted only with
 `--adopt-stale`, reported either way, and `run-dag` exits non-zero while stale nodes remain (docs/architecture.md 14.2).
 The ledger records per attempt the git revision, tree hash, src tree hash and dirty flag (untracked files count).
+Seed groups (`compute.seeds_per_job = n`, docs/architecture.md 14.4): sibling nodes of one stage that differ only in the
+`seed` axis (same node, same placement / resources / flags / options / compute block, no dependency between them) are
+planned as groups of up to n and run as ONE leased job (`rrp stage run-group`: one process, the stage's group runner) with
+memory / GPU / CPU / time declarations scaled by the group size. Each member keeps its own run id, output dir, ledger entry
+and manifest (which also carries the group record); a group is launched when every member's dependencies are completed
+(members already adopted drop out); a member that fails alone is retried as a single node. Default n = 1: no groups.
 Retries are bounded (node `retries`, default 0 as D-061); broker refusals for capacity are waited for (bounded by
 admission_timeout_s) and are not attempts. State lives in ONE JSON ledger per DAG (atomic writes, lock file); a rerun
 resumes idempotently (completed nodes skipped, running leases re-adopted by lease id). The runner never stops a lease.
@@ -95,6 +101,94 @@ class PlannedNode:
                     out=self.rc.out, config_hash=self.rc.config_hash())
 
 
+def scale_resources(r: Resources, n: int) -> Resources:
+    """Declarations of n members in one job: memory, GPU memory, CPU and wall time are all n times one member's (members
+    keep their own model, optimizer, prefetch workers and data stream; nothing is assumed shared)."""
+    def mem(x):
+        if x is None:
+            return None
+        m = re.fullmatch(r"\s*([0-9.]+)\s*([KMGT]?i?B?)\s*", str(x), re.I)
+        if not m:
+            raise DagError(f"bad memory {x!r}")
+        return f"{float(m.group(1)) * n:g}{m.group(2)}"
+    return Resources(cpu=r.cpu * n, mem=mem(r.mem), gpu=r.gpu, gpu_mem=mem(r.gpu_mem), max_seconds=int(r.max_seconds) * n,
+                     disk=mem(r.disk))
+
+
+@dataclass
+class PlannedGroup:
+    """n compatible sibling nodes run as one leased job (`compute.seeds_per_job`)."""
+    id: str
+    members: list[str]              # node ids, in seed order
+    resources: Resources            # scaled
+    placement: str
+    label: str
+
+
+def _seeds_per_job(rc: RunConfig) -> int:
+    c = getattr(rc, "compute", None)
+    return int(c.seeds_per_job) if c is not None else 1
+
+
+def form_groups(nodes: dict[str, "PlannedNode"], order: list[str]) -> dict[str, PlannedGroup]:
+    """Group the sibling nodes (same node name and non-seed matrix point, same process key, placement and resources,
+    different seed) of every stage that has a group runner into chunks of `compute.seeds_per_job`. A chunk is dropped when a
+    member depends on another, and groups are dissolved (last first) until the graph of groups is acyclic."""
+    from rrp.harness.pipelines.base import group_id, has_group_stage, process_key
+    cand: dict[tuple, list[str]] = {}
+    for nid in order:
+        n = nodes[nid]
+        k = _seeds_per_job(n.rc)
+        if k <= 1 or "seed" not in n.point or not has_group_stage(n.rc.family, n.rc.stage):
+            continue
+        key = (n.name, n.rc.tag, tuple(sorted((a, str(v)) for a, v in n.point.items() if a != "seed")), n.placement,
+               json.dumps(n.resources.__dict__, sort_keys=True), process_key(n.rc), k)
+        cand.setdefault(key, []).append(nid)
+    anc: dict[str, set] = {}
+
+    def ancestors(x: str) -> set:
+        if x not in anc:
+            anc[x] = set()
+            for d in nodes[x].deps:
+                anc[x] |= {d} | ancestors(d)
+        return anc[x]
+    groups: list[list[str]] = []
+    for key, ids in cand.items():
+        ids = sorted(ids, key=lambda i: nodes[i].rc.seed)
+        for i in range(0, len(ids), key[-1]):
+            chunk = ids[i:i + key[-1]]
+            if len(chunk) >= 2 and not any(a in ancestors(b) for a in chunk for b in chunk):
+                groups.append(chunk)
+
+    def acyclic(gs: list[list[str]]) -> bool:
+        unit = {m: ("g", gi) for gi, g in enumerate(gs) for m in g}
+        edges: dict = {}
+        for nid in order:
+            u = unit.get(nid, nid)
+            edges.setdefault(u, set()).update(unit.get(d, d) for d in nodes[nid].deps if unit.get(d, d) != u)
+        state: dict = {}
+
+        def visit(u) -> bool:
+            if state.get(u) == 1:
+                return False
+            if state.get(u) == 2:
+                return True
+            state[u] = 1
+            ok = all(visit(v) for v in edges.get(u, ()))
+            state[u] = 2
+            return ok
+        return all(visit(u) for u in list(edges))
+    while groups and not acyclic(groups):
+        groups.pop()
+    out = {}
+    for g in groups:
+        gid = group_id([nodes[m].rc for m in g])
+        n0 = nodes[g[0]]
+        out[gid] = PlannedGroup(gid, g, scale_resources(n0.resources, len(g)), n0.placement,
+                                (n0.label + f"_x{len(g)}")[:60])
+    return out
+
+
 @dataclass
 class Plan:
     name: str
@@ -104,6 +198,7 @@ class Plan:
     track: str
     source: str = ""
     caveat: str | None = None       # DAG-level label (e.g. a gate exception): ledger + every node's RunConfig note
+    groups: dict[str, PlannedGroup] = field(default_factory=dict)       # compute.seeds_per_job > 1 (empty by default)
 
     def select(self, only: str | None = None, points: list[dict] | None = None) -> "Plan":
         keep = set()
@@ -120,8 +215,9 @@ class Plan:
                 if d not in keep:
                     keep.add(d)
                     stack.append(d)
-        return Plan(self.name, {k: v for k, v in self.nodes.items() if k in keep},
-                    [k for k in self.order if k in keep], self.defaults, self.track, self.source, self.caveat)
+        nodes, order = {k: v for k, v in self.nodes.items() if k in keep}, [k for k in self.order if k in keep]
+        return Plan(self.name, nodes, order, self.defaults, self.track, self.source, self.caveat,
+                    form_groups(nodes, order) if self.groups else {})
 
 
 def resolve_recipe(arg: Path | str, root: Path | str | None = None) -> Path:
@@ -247,7 +343,7 @@ def plan_dag(spec: dict, *, source: str = "") -> Plan:
     order = _toposort(nodes)
     if len({n.rc.run_id for n in nodes.values()}) != len(nodes):
         raise DagError("two nodes derive the same output directory (give them distinct tags)")
-    return Plan(name, nodes, order, defaults, track, source, spec.get("caveat"))
+    return Plan(name, nodes, order, defaults, track, source, spec.get("caveat"), form_groups(nodes, order))
 
 
 def _plan_point(spec, point, env, sfx, lineage, node_specs, grids, nodes, out_rids, family, track, defaults, lists,
@@ -454,18 +550,29 @@ class OpsRunner:
         b64 = base64.b64encode(json.dumps(node.rc.model_dump(mode="json")).encode()).decode()
         return [python, "-m", "rrp.cli", "stage", "run", "--config-b64", b64]
 
-    def launch_argv(self, node: PlannedNode) -> tuple[list[str], dict]:
+    def command_group(self, nodes: list[PlannedNode], python: str) -> list[str]:
+        import zlib
+        blob = json.dumps([n.rc.model_dump(mode="json") for n in nodes])
+        return [python, "-m", "rrp.cli", "stage", "run-group", "--group-b64",
+                base64.b64encode(zlib.compress(blob.encode(), 9)).decode()]
+
+    def launch_argv(self, node, members: list[PlannedNode] | None = None) -> tuple[list[str], dict]:
+        """`node` is a PlannedNode, or a PlannedGroup with its `members` (one job: `rrp stage run-group`)."""
         ops = ["--label", node.label, *node.resources.ops_args(), "--detach", "--"]
+        cmd = (lambda py: self.command_group(members, py)) if members else (lambda py: self.command(node, py))
         if node.placement == "host":
-            return ([self.host_python, "-m", "rrp.cli", "ops", "run", *ops, *self.command(node, self.host_python)],
+            return ([self.host_python, "-m", "rrp.cli", "ops", "run", *ops, *cmd(self.host_python)],
                     dict(os.environ, PYTHONPATH=str(self.root / "src")))
         if not self.peer_repo or not self.peer_repo.startswith("/dev/shm/rrp-brandonin/wt/"):
             raise DagError("peer placement needs RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/<track> (never repo or wt/ladder)")
-        return ([str(self.root / "ops/bin/peer_run.sh"), *ops, *self.command(node, self.peer_python)],
+        return ([str(self.root / "ops/bin/peer_run.sh"), *ops, *cmd(self.peer_python)],
                 dict(os.environ, RRP_PEER_REPO=self.peer_repo))
 
-    def launch(self, node: PlannedNode) -> dict:
-        argv, env = self.launch_argv(node)
+    def launch_group(self, group: PlannedGroup, members: list[PlannedNode]) -> dict:
+        return self.launch(group, members)
+
+    def launch(self, node, members: list[PlannedNode] | None = None) -> dict:
+        argv, env = self.launch_argv(node, members)
         r = subprocess.run(argv, cwd=self.root, env=env, capture_output=True, text=True)
         info = _parse_ops_json(r.stderr + "\n" + r.stdout)
         if not info.get("lease_id"):
@@ -537,6 +644,7 @@ class Executor:
     #                                         injected by the CLI; `plan_dag` only loads the registry so that family/stage names validate)
     log: callable = field(default=lambda m: print(f"{time.strftime('%F %T')} [run-dag] {m}", flush=True))
     sleep: callable = time.sleep
+    _rc_cache: dict = field(default_factory=dict, init=False, repr=False)    # lease id -> (rc, unit_result) within one cycle
 
     def _code(self) -> dict:
         if self.code_now is not None:
@@ -600,39 +708,62 @@ class Executor:
         waiting_since: dict[str, float] = {}
         while True:
             running = [k for k in self.plan.order if self.ledger.node(k)["state"] == "running"]
+            self._rc_cache = {}
             for nid in running:
                 self._poll(nid)
             self._block_dependants()
             running = [k for k in self.plan.order if self.ledger.node(k)["state"] == "running"]
-            ready = [k for k in self.plan.order if self.ledger.node(k)["state"] == "planned"
-                     and all(self.ledger.node(d)["state"] == "completed" for d in self.plan.nodes[k].deps)]
+            ready = [k for k in self.plan.order if self._ready(k)]
+            seen_groups: set[str] = set()
             for nid in ready:
-                if len(running) >= self.max_parallel:
+                if len(self._slots(running)) >= self.max_parallel:
                     break
-                if not self._fits(nid, running):
+                g = self._group_for(nid)
+                members = [nid]
+                if g is not None:
+                    if g.id in seen_groups:
+                        continue
+                    seen_groups.add(g.id)
+                    members = self._group_launchable(g)
+                    if not members:
+                        continue
+                    if len(members) == 1:
+                        g = None
+                unit = g.id if g is not None else nid
+                res = g.resources if g is not None else self.plan.nodes[nid].resources
+                if not self._fits_res(res, running):
                     continue
-                if self._adopt_existing(nid):
+                if g is None and self._adopt_existing(nid):
                     continue
                 try:
-                    h = self.runner.launch(self.plan.nodes[nid])
+                    h = (self.runner.launch_group(g, [self.plan.nodes[m] for m in members]) if g is not None
+                         else self.runner.launch(self.plan.nodes[nid]))
                 except AdmissionRefused as e:
-                    if nid not in waiting_since:
-                        self.log(f"{nid}: broker refused admission ({str(e).strip().splitlines()[-1][:160]}); waiting "
+                    if unit not in waiting_since:
+                        self.log(f"{unit}: broker refused admission ({str(e).strip().splitlines()[-1][:160]}); waiting "
                                  f"(bounded {self.admission_timeout_s:.0f} s, not an attempt)")
-                    t0 = waiting_since.setdefault(nid, time.time())
+                    t0 = waiting_since.setdefault(unit, time.time())
                     if time.time() - t0 > self.admission_timeout_s:
-                        self._fail(nid, f"admission refused for {self.admission_timeout_s:.0f} s: "
-                                        f"{str(e).strip().splitlines()[-1][:200] if str(e).strip() else e}", final=True)
+                        for m in members:
+                            self._fail(m, f"admission refused for {self.admission_timeout_s:.0f} s: "
+                                          f"{str(e).strip().splitlines()[-1][:200] if str(e).strip() else e}", final=True)
                     continue
                 except Exception as e:  # launch error (not a job failure of a started lease)
-                    self._fail(nid, f"launch error: {e}", final=True)
+                    for m in members:
+                        self._fail(m, f"launch error: {e}", final=True)
                     continue
-                waiting_since.pop(nid, None)
-                e = self.ledger.node(nid)
-                e["attempts"].append(dict(h, started=time.time(), revision=self._code()))
-                self.ledger.set(nid, state="running")
-                self.log(f"{nid}: launched lease {h['lease_id']} on {h['placement']}")
-                running.append(nid)
+                waiting_since.pop(unit, None)
+                if g is not None:
+                    self.ledger.data.setdefault("groups", {})[g.id] = dict(members=members, lease_id=h["lease_id"],
+                                                                           resources=g.resources.__dict__, label=g.label,
+                                                                           placement=g.placement, launched=time.time())
+                for m in members:
+                    e = self.ledger.node(m)
+                    e["attempts"].append(dict(h, started=time.time(), revision=self._code(), **(dict(group=g.id) if g else {})))
+                    self.ledger.set(m, state="running", **(dict(group=g.id) if g else {}))
+                    self.log(f"{m}: launched lease {h['lease_id']} on {h['placement']}" +
+                             (f" (group {g.id}: {len(members)} seeds in one job)" if g else ""))
+                    running.append(m)
             states = [self.ledger.node(k)["state"] for k in self.plan.order]
             if all(s in TERMINAL for s in states):
                 break
@@ -647,6 +778,28 @@ class Executor:
         self.log(f"done: {summary}")
         return summary
 
+    def _ready(self, k: str) -> bool:
+        return self.ledger.node(k)["state"] == "planned" and \
+            all(self.ledger.node(d)["state"] == "completed" for d in self.plan.nodes[k].deps)
+
+    def _group_for(self, nid: str):
+        """The planned group a node launches with, or None (not grouped, or retried alone after a member failure)."""
+        if self.ledger.node(nid).get("ungroup"):
+            return None
+        return next((g for g in self.plan.groups.values() if nid in g.members), None)
+
+    def _group_launchable(self, g: PlannedGroup) -> list[str] | None:
+        """Members to launch now: None while a member that can still run has unfinished dependencies (the group waits for
+        its slowest member); adopted members drop out. [] / one member: nothing / a plain single node."""
+        pend = [m for m in g.members if self.ledger.node(m)["state"] == "planned" and not self.ledger.node(m).get("ungroup")]
+        if any(not self._ready(m) for m in pend):
+            return None
+        return [m for m in pend if not self._adopt_existing(m)]
+
+    def _slots(self, running: list[str]) -> set:
+        """Leases in use: the members of a seed group share one."""
+        return {self.ledger.node(k).get("group") or k for k in running}
+
     def _others_running(self) -> list[dict]:
         """Declared resources of running nodes in the other ledgers of the shared budget dir."""
         if self.budget_dir is None:
@@ -659,16 +812,21 @@ class Executor:
                 d = json.loads(f.read_text())
             except Exception:    # a ledger being replaced right now: skip this poll
                 continue
-            out += [e["resources"] for e in d.get("nodes", {}).values() if e.get("state") == "running" and e.get("resources")]
+            out += [dict(e["resources"], slot=e.get("group") or f"{f}:{k}") for k, e in d.get("nodes", {}).items()
+                    if e.get("state") == "running" and e.get("resources")]
         return out
 
     def _fits(self, nid: str, running: list[str]) -> bool:
+        return self._fits_res(self.plan.nodes[nid].resources, running)
+
+    def _fits_res(self, r: Resources, running: list[str]) -> bool:
         """Resource caps over the declared resources of the running nodes (this DAG plus, with budget_dir, every other
         DAG ledger of the track); the broker still enforces the host/peer limits. A node larger than max_cpu /
-        max_mem_gib alone may still run when nothing else is running."""
-        r = self.plan.nodes[nid].resources
-        live = [self.plan.nodes[k].resources.__dict__ for k in running] + self._others_running()
-        if r.gpu and self.max_parallel_gpu is not None and sum(bool(x.get("gpu")) for x in live) >= self.max_parallel_gpu:
+        max_mem_gib alone may still run when nothing else is running. A seed group's members each count ONE member's
+        declaration (their sum is the group's scaled declaration) and share one GPU slot."""
+        live = [dict(self.plan.nodes[k].resources.__dict__, slot=self.ledger.node(k).get("group") or k) for k in running] \
+            + self._others_running()
+        if r.gpu and self.max_parallel_gpu is not None and len({x["slot"] for x in live if x.get("gpu")}) >= self.max_parallel_gpu:
             return False
         if self.max_cpu is not None and live and sum(float(x.get("cpu", 0)) for x in live) + r.cpu > self.max_cpu:
             return False
@@ -701,12 +859,20 @@ class Executor:
     def _poll(self, nid: str):
         e = self.ledger.node(nid)
         att = e["attempts"][-1]
-        rc = self.runner.poll(att)
+        grouped = bool(att.get("group"))
+        if grouped and att["lease_id"] in self._rc_cache:         # one poll per lease: the members share it
+            rc, unit_result = self._rc_cache[att["lease_id"]]
+            if unit_result:
+                att["unit_result"] = unit_result
+        else:
+            rc = self.runner.poll(att)
+            if grouped:
+                self._rc_cache[att["lease_id"]] = (rc, att.get("unit_result"))
         if rc is None:
             return
         att.update(rc=rc, finished=time.time())
         node = self.plan.nodes[nid]
-        if rc == 0:
+        if rc == 0 or grouped:      # a group exits non-zero when ANY member failed: each member is judged by its own manifest
             m = self.runner.manifest(node)
             pins = self._pins(nid)
             if m and m.get("config_hash") == node.rc.config_hash() and m.get("pins") == pins:
@@ -714,8 +880,12 @@ class Executor:
                                 code=((m.get("provenance") or {}).get("code")) or att.get("revision"))
                 self.log(f"{nid}: completed (lease {att['lease_id']})")
                 return
-            reason = "exit 0 but no manifest with the node's config_hash and version pins"
-        else:
+            reason = "exit 0 but no manifest with the node's config_hash and version pins" if rc == 0 else None
+            if grouped and rc != 0:
+                fail = self.runner._read_json(node, "group_failure.json") if hasattr(self.runner, "_read_json") else None
+                reason = f"group {att['group']}: exit code {rc}" + (f", this member: {fail['error']}" if fail else
+                                                                      ", no manifest for this member") + f" (log {att.get('log')})"
+        if rc != 0 and not grouped:
             reason = f"exit code {rc}" + (f" unit {att['unit_result']}" if att.get("unit_result") else "") + \
                 f" (log {att.get('log')})"
             gr = self.runner.gate_report(node) if hasattr(self.runner, "gate_report") else None
@@ -727,7 +897,7 @@ class Executor:
                 return
         attempts = len(e["attempts"])
         if attempts <= node.retries:
-            self.ledger.set(nid, state="planned", last_error=reason)
+            self.ledger.set(nid, state="planned", last_error=reason, **(dict(ungroup=True) if grouped else {}))
             self.log(f"{nid}: {reason}; retry {attempts}/{node.retries}")
         else:
             self._fail(nid, reason, final=True)
@@ -790,4 +960,8 @@ def format_plan(plan: Plan, ledger: Ledger | None = None, runner: OpsRunner | No
                 lines.append("    cmd=" + " ".join(shlex.quote(a) for a in argv[:-1]) + " <config-b64>")
             except DagError as e:
                 lines.append(f"    cmd=<{e}>")
+    for g in plan.groups.values():
+        r = g.resources
+        lines.append(f"GROUP {g.id}: {len(g.members)} seeds in one job @{g.placement} cpu={r.cpu} mem={r.mem}"
+                     + (f" gpu={r.gpu_mem or 'yes'}" if r.gpu else "") + f" max={r.max_seconds}s members={','.join(g.members)}")
     return "\n".join(lines)

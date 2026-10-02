@@ -30,7 +30,7 @@ from collections import Counter
 from pathlib import Path
 
 from rrp.core.provenance import file_digest
-from rrp.harness.pipelines.base import apply_gate, StageContext, StageError, register_stage
+from rrp.harness.pipelines.base import apply_gate, StageContext, StageError, register_group_stage, register_stage
 from rrp.harness.train.baseline_campaign import SFT_LR, SFT_STEPS   # the one copy (BC SFT budget -> updates, lr)
 
 LADDER = ["-m", "rrp.cli", "suite", "ladder"]
@@ -177,9 +177,64 @@ def train_rep(ctx: StageContext) -> dict:
     d = Path(cfg["out_dir"])
     d.mkdir(parents=True, exist_ok=True)
     (d / "config.json").write_text(json.dumps(cfg, indent=1))            # as `rrp latent train-representation`
-    res = train_representation(cfg, d)
+    return _rep_result(d, train_representation(cfg, d))
+
+
+def _rep_result(d: Path, res: dict) -> dict:
     rep = str(d / "representation.pt")
     return dict(outputs={"representation": rep}, metrics=_json_safe(res), versions=_versions(res), source_detail=rep)
+
+
+def _train_group(ctxs: list[StageContext], trainer, finish, pre=None) -> tuple[list, dict]:
+    """Group runner of a trainer stage (`compute.seeds_per_job`, harness/train/lockstep.py): per member exactly what the
+    single-node stage does (pin check, `out_dir`, `config.json`, result -> outputs), the training loops interleaved in one
+    process. `options.group_mode` (lockstep | threads, default lockstep = bitwise the independent runs) picks the driver."""
+    results: list = [None] * len(ctxs)
+    live = []
+    for i, ctx in enumerate(ctxs):
+        try:
+            _verify_pins(ctx)
+            if pre is not None:
+                pre(ctx)
+            cfg = ctx.native
+            d = Path(cfg["out_dir"])
+            d.mkdir(parents=True, exist_ok=True)
+            (d / "config.json").write_text(json.dumps(cfg, indent=1))
+            live.append((i, cfg, d))
+        except Exception as e:
+            results[i] = e
+    info: dict = {}
+    if live:
+        outs, info = trainer([c for _, c, _ in live], [d for _, _, d in live], ctxs[0].opts.get("group_mode", "lockstep"))
+        for (i, _, d), o in zip(live, outs):
+            try:
+                results[i] = finish(ctxs[i], d, o.unwrap())
+            except Exception as e:
+                results[i] = e
+    return results, info
+
+
+@register_group_stage("arm", "train_rep")
+def train_rep_group(ctxs):
+    from rrp.harness.train.latent_train import train_representation_group
+    return _train_group(ctxs, train_representation_group, lambda ctx, d, res: _rep_result(d, res))
+
+
+@register_group_stage("arm", "train_flow")
+def train_flow_group(ctxs):
+    from rrp.harness.train.latent_train import train_latent_flow_group
+    return _train_group(ctxs, train_latent_flow_group, _flow_result)
+
+
+def _need_init_from(ctx: StageContext) -> None:
+    if "init_from" not in ctx.rc.inputs:
+        raise StageError("flow_ft needs inputs.init_from")
+
+
+@register_group_stage("arm", "flow_ft")
+def flow_ft_group(ctxs):
+    from rrp.harness.train.latent_train import train_latent_flow_group
+    return _train_group(ctxs, train_latent_flow_group, _flow_result, pre=_need_init_from)
 
 
 @register_stage("arm", "probes", source="learned")
@@ -202,7 +257,10 @@ def _flow(ctx: StageContext) -> dict:
     d = Path(cfg["out_dir"])
     d.mkdir(parents=True, exist_ok=True)
     (d / "config.json").write_text(json.dumps(cfg, indent=1))            # as `rrp latent train-flow`
-    res = train_latent_flow(cfg, d)
+    return _flow_result(ctx, d, train_latent_flow(cfg, d))
+
+
+def _flow_result(ctx: StageContext, d: Path, res: dict) -> dict:
     if res.get("interrupted"):
         raise StageError("flow training was interrupted (policy_interrupted.pt); rerun resumes from policy_last.pt")
     outs = {"policy": str(d / "policy.pt")}
@@ -224,8 +282,7 @@ def train_flow(ctx: StageContext) -> dict:
 @_pinned
 def flow_ft(ctx: StageContext) -> dict:
     """System i fine-tune (init_from; optional generator-DAgger contexts gen_dagger)."""
-    if "init_from" not in ctx.rc.inputs:
-        raise StageError("flow_ft needs inputs.init_from")
+    _need_init_from(ctx)
     return _flow(ctx)
 
 

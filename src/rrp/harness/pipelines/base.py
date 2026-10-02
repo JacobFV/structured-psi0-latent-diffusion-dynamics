@@ -56,6 +56,7 @@ class GateFailed(StageError):
 
 
 GATE_EXIT = 86
+GROUP_PARTIAL_EXIT = 87     # `rrp stage run-group`: some members failed (the others wrote their manifests)
 
 
 def apply_gate(ctx: "StageContext", report: dict) -> dict:
@@ -174,6 +175,25 @@ def register_stage(family: str, stage: str, fn: Callable[[StageContext], dict] |
         _REGISTRY[(family, stage)] = StageSpec(family, stage, fn, source, doc or (fn.__doc__ or "").strip().split("\n")[0])
         return fn
     return deco if fn is None else deco(fn)
+
+
+_GROUPS: dict[tuple[str, str], Callable] = {}
+
+
+def register_group_stage(family: str, stage: str) -> Callable:
+    """Register `fn(ctxs) -> (results, info)` as the GROUP runner of an already registered stage: it trains several
+    compatible nodes (the seeds of one stage, `compute.seeds_per_job`) in one process. `results[i]` is what the stage
+    function would return for `ctxs[i]` -- or the Exception that stopped member i alone; `info` is the group record
+    (mode, rng_exact, ...). A stage without a group runner is never grouped (the planner checks `has_group_stage`)."""
+    def deco(fn):
+        _GROUPS[(family, stage)] = fn
+        return fn
+    return deco
+
+
+def has_group_stage(family: str, stage: str) -> bool:
+    _load_families()
+    return (family, stage) in _GROUPS
 
 
 def _load_families():
@@ -409,6 +429,99 @@ class Pipeline:
         return write_stage_manifest(ctx, spec, res, started=t0)
 
 
+    def run_group(self, rcs: list[RunConfig], *, index: RunIndex | None = None, root: Path | None = None,
+                  check_inputs: bool = True) -> tuple[list[dict | Exception], dict]:
+        """`compute.seeds_per_job`: run n compatible RunConfigs of one stage in this process through the stage's group
+        runner. Every member gets exactly what `run` gives a single node (its own out dir, manifest, run id, config hash,
+        provenance) plus `group` in its manifest; a member that fails alone gets an Exception in its slot and no manifest
+        (a failure reason file `<out>/group_failure.json`), the others complete. Members must agree on everything that
+        configures the PROCESS (flags, options, compute, factor list)."""
+        if not rcs:
+            raise StageError("run_group: no configs")
+        rc0 = rcs[0]
+        spec = self.spec(rc0.stage)
+        fn = _GROUPS.get((self.family, rc0.stage))
+        if fn is None:
+            raise StageError(f"{self.family}/{rc0.stage} has no group runner (register_group_stage)")
+        for r in rcs[1:]:
+            if process_key(r) != process_key(rc0):
+                raise StageError(f"run_group: {r.run_id} differs from {rc0.run_id} in family/stage/flags/options/compute/factors")
+        if len({r.run_id for r in rcs}) != len(rcs):
+            raise StageError("run_group: duplicate run ids")
+        root = Path(root or rrp_home()).resolve()
+        index = index or RunIndex.load(root=root)
+        results: list[dict | Exception | None] = [None] * len(rcs)
+        ctxs = [StageContext(rc=r, index=index, root=root) for r in rcs]
+        live = []
+        for i, ctx in enumerate(ctxs):
+            missing = [p for p in _flat(ctx.rc.input_paths(index).values()) if check_inputs and not (root / p).exists()]
+            if missing:
+                results[i] = StageError(f"missing inputs ({len(missing)}): {missing[:5]}")
+                continue
+            ctx.out.mkdir(parents=True, exist_ok=True)
+            (ctx.out / MANIFEST).unlink(missing_ok=True)
+            (ctx.out / "gate_report.json").unlink(missing_ok=True)
+            (ctx.out / "group_failure.json").unlink(missing_ok=True)
+            live.append(i)
+        t0 = time.time()
+        cwd = os.getcwd()
+        gc = rc0.options.get("grasp_contact")
+        gc_old = os.environ.get("RRP_GRASP_CONTACT")
+        if gc is not None:
+            from rrp.bodies.grasp_contact import resolve
+            if gc_old is not None and resolve(gc_old) != resolve(gc):
+                raise StageError(f"options.grasp_contact {gc!r} contradicts $RRP_GRASP_CONTACT={gc_old!r}")
+            os.environ["RRP_GRASP_CONTACT"] = resolve(gc)
+        os.chdir(root)
+        rctx = None
+        info: dict = {}
+        try:
+            rctx = apply_run_context(rc0)                # same for every member (checked above)
+            if live:
+                out, info = fn([ctxs[i] for i in live])
+                for i, r in zip(live, out):
+                    results[i] = r
+        finally:
+            os.chdir(cwd)
+            if rctx is not None:
+                rctx.restore()
+            if gc is not None:
+                if gc_old is None:
+                    os.environ.pop("RRP_GRASP_CONTACT", None)
+                else:
+                    os.environ["RRP_GRASP_CONTACT"] = gc_old
+        gid = group_id(rcs)
+        record = dict(group_id=gid, size=len(rcs), members=[r.run_id for r in rcs], **info)
+        for i, (ctx, r) in enumerate(zip(ctxs, results)):
+            if isinstance(r, Exception):
+                ctx.out.mkdir(parents=True, exist_ok=True)
+                (ctx.out / "group_failure.json").write_text(json.dumps(
+                    dict(group=record, run_id=ctx.rc.run_id, error=f"{type(r).__name__}: {r}"), indent=1))
+                ctx.log(f"{ctx.rc.run_id}: member failed: {type(r).__name__}: {r}")
+                continue
+            try:
+                results[i] = write_stage_manifest(ctx, spec, dict(r or {}, group=dict(record, index=i)), started=t0)
+            except Exception as e:       # e.g. outputs missing: this member only
+                results[i] = e
+                (ctx.out / "group_failure.json").write_text(json.dumps(
+                    dict(group=record, run_id=ctx.rc.run_id, error=f"{type(e).__name__}: {e}"), indent=1))
+        return results, record
+
+
+def process_key(rc: RunConfig) -> tuple:
+    """What configures the PROCESS a stage runs in: nodes with equal keys may share one (`run_group`, the planner's
+    grouping): family, stage, flags, options, the compute block and the resolved factor list."""
+    specs, axes = _resolved_factors(rc)
+    return (rc.family, rc.stage, rc.flags.model_dump_json(), json.dumps(rc.options, sort_keys=True, default=str),
+            json.dumps(getattr(rc, "compute", None) and rc.compute.to_dict(), sort_keys=True),
+            json.dumps([repr(x) for x in specs] + [repr(axes)]))
+
+
+def group_id(rcs: list[RunConfig]) -> str:
+    """Stable id of a set of members (their run ids and config hashes), so a rerun of the same group has the same id."""
+    return "grp-" + json_digest(sorted([r.run_id, r.config_hash()] for r in rcs), 10)
+
+
 def _flat(vals):
     for v in vals:
         if isinstance(v, list):
@@ -447,6 +560,8 @@ def write_stage_manifest(ctx: StageContext, spec: StageSpec, res: dict, *, start
                  runconfig=rc.model_dump(mode="json"), native_config=_safe_native(ctx),
                  inputs=inputs, outputs={k: dict(path=v, digest=_digest(ctx.root / v)) for k, v in outputs.items()},
                  metrics=res.get("metrics") or {}, started=started, finished=time.time())
+    if res.get("group"):                     # n seeds trained in one process (`Pipeline.run_group`): the group record
+        extra["group"] = res["group"]
     specs, _ = _resolved_factors(rc)
     if specs:
         from rrp.policies.relations.base import provenance as factor_provenance
@@ -482,6 +597,12 @@ def stage_main(argv=None) -> int:
     r.add_argument("--root", default=".")
     r.add_argument("--no-check-inputs", action="store_true")
     sub.add_parser("list", help="list the registered stages per family")
+    gr = sub.add_parser("run-group", help="run several compatible nodes of one stage in one process (compute.seeds_per_job)")
+    gg = gr.add_mutually_exclusive_group(required=True)
+    gg.add_argument("--group-b64", help="base64(zlib(JSON list of RunConfigs))")
+    gg.add_argument("--group", help="JSON file: a list of RunConfigs")
+    gr.add_argument("--root", default=".")
+    gr.add_argument("--no-check-inputs", action="store_true")
     r.add_argument("--dry-run", action="store_true",
                    help="validate the config and resolve its stage function, then stop (nothing is written or run)")
     a = ap.parse_args(argv)
@@ -492,6 +613,14 @@ def stage_main(argv=None) -> int:
             print(fam, " ".join(Pipeline(fam).stages()))
         return 0
     _load_families()                       # before the RunConfig is validated: family and stage are checked against it
+    if a.cmd == "run-group":
+        import zlib
+        ds = json.loads(zlib.decompress(base64.b64decode(a.group_b64))) if a.group_b64 else json.loads(Path(a.group).read_text())
+        rcs = [RunConfig.model_validate(x) for x in ds]
+        results, rec = Pipeline(rcs[0].family).run_group(rcs, root=Path(a.root), check_inputs=not a.no_check_inputs)
+        bad = [r.run_id for r, x in zip(rcs, results) if isinstance(x, Exception)]
+        print(json.dumps(dict(group=rec, failed=bad), default=str)[:4000])
+        return GROUP_PARTIAL_EXIT if bad else 0
     d = json.loads(base64.b64decode(a.config_b64)) if a.config_b64 else json.loads(Path(a.config).read_text())
     rc = RunConfig.model_validate(d)
     if a.dry_run:

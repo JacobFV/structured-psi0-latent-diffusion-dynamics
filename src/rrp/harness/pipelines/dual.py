@@ -30,7 +30,7 @@ import json
 from pathlib import Path
 
 from rrp.harness.pipelines import arm
-from rrp.harness.pipelines.base import StageContext, StageError, apply_gate, register_stage
+from rrp.harness.pipelines.base import StageContext, StageError, apply_gate, register_group_stage, register_stage
 from rrp.tasks.spec import tasks_in
 
 DUAL_TASKS = tasks_in("mujoco/dual")
@@ -83,6 +83,28 @@ def train_rep(ctx: StageContext) -> dict:
     """Dual Stage A: the arm trainer on a multi-assembly pack."""
     _b1(ctx)
     return arm.train_rep(ctx)
+
+
+@register_group_stage("dual", "train_rep")
+def train_rep_group(ctxs):
+    from rrp.harness.train.latent_train import train_representation_group
+    return arm._train_group(ctxs, train_representation_group, lambda ctx, d, res: arm._rep_result(d, res), pre=_b1)
+
+
+@register_group_stage("dual", "train_flow")
+def train_flow_group(ctxs):
+    from rrp.harness.train.latent_train import train_latent_flow_group
+    return arm._train_group(ctxs, train_latent_flow_group, arm._flow_result, pre=_b1)
+
+
+@register_group_stage("dual", "flow_ft")
+def flow_ft_group(ctxs):
+    from rrp.harness.train.latent_train import train_latent_flow_group
+
+    def pre(ctx):
+        _b1(ctx)
+        arm._need_init_from(ctx)
+    return arm._train_group(ctxs, train_latent_flow_group, arm._flow_result, pre=pre)
 
 
 @register_stage("dual", "probes", source="learned")
