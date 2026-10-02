@@ -33,7 +33,7 @@ from rrp.bodies.generators import Module
 from rrp.bodies.legged import legged_body, legged_world
 from rrp.tasks.runtime import TaskRuntime
 from rrp.envs.base import ActionSpace, StepResult
-from rrp.envs.mujoco.session import RobotRuntime, Session, _obs_counter
+from rrp.envs.mujoco.session import Integrate, RobotRuntime, Session, _obs_counter, run_cpu
 from rrp.envs.mujoco.scenario import MountedRobot, ObjectDecl, Scenario, load_task
 from rrp.envs.mujoco.sensors import DetectorConfig, ObjectTracker
 
@@ -534,6 +534,16 @@ class LeggedSession(Session):
         return None if "_tracker_tick" in self.__dict__ else e
 
     def _tracker_tick(self, cmd):
+        """One tracker tick on CPU (the reference path; perturb.install_legged replaces it per instance)."""
+        run_cpu(self, self._tick_gen(cmd))
+
+    def _tick_gen(self, cmd):
+        """One tracker tick as a generator: tracker.act, ctrl, then ONE `Integrate` of n substeps (constant ctrl) whose energy is
+        accumulated. An instance-level `_tracker_tick` (perturb.install_legged) or an actuator model (state-dependent ctrl per substep)
+        integrates on CPU inside the generator (yields nothing), so the batched driver stays correct for them, only not batched."""
+        if "_tracker_tick" in self.__dict__:
+            self._tracker_tick(cmd)
+            return
         b = self.binding
         tgt = self.tracker.act(self.data, cmd)
         act = self.actuator_model
@@ -545,13 +555,24 @@ class LeggedSession(Session):
             self.data.ctrl[b.held_act] = self.upper_target
         n = max(1, int(round(1.0 / (TRACKER_HZ * self.model.opt.timestep))))
         dt, d, pa = float(self.model.opt.timestep), self.data, b.pol_act
-        for _ in range(n):
-            if act is not None:
+        if act is not None:
+            for _ in range(n):
                 d.ctrl[pa] = act.substep_ctrl(0, d)
-            mujoco.mj_step(self.model, d)
-            self._step_energy += float(np.sum(np.abs(d.actuator_force[pa] * d.actuator_velocity[pa]))) * dt
+                mujoco.mj_step(self.model, d)
+                self._step_energy += float(np.sum(np.abs(d.actuator_force[pa] * d.actuator_velocity[pa]))) * dt
+        else:
+            req = Integrate(n, d.ctrl.copy(), energy_act=pa)
+            yield req
+            self._step_energy += req.energy
         if self.base_estimator is not None:
             self._estimator_tick(n * self.model.opt.timestep)
+
+    def batch_reason(self) -> str | None:
+        if "_tracker_tick" in self.__dict__:
+            return "_tracker_tick replaced on the instance (physics perturbation / motion recorder)"
+        if self.actuator_model is not None:
+            return "actuator model: ctrl depends on the state at every substep"
+        return None
 
     def actuator_record(self) -> dict | None:
         """Provenance of a non-ideal actuator mode (None for the ideal default, so default rows stay unchanged)."""
@@ -585,7 +606,8 @@ class LeggedSession(Session):
     def validate_legs(self, cmd: NativeCommand) -> np.ndarray:
         return self.validate_direct(cmd)["legs"]
 
-    def _step_legs(self, command) -> StepResult:
+    def _step_legs(self, command):
+        """Generator (yields the tick's Integrate, returns the StepResult); see `step`."""
         rejected, source, executed = None, None, None
         if self.control == "wholebody" and "_tracker_tick" in self.__dict__:
             raise RuntimeError("control='wholebody' cannot run with an instance-level _tracker_tick (perturb.install_legged "
@@ -601,7 +623,7 @@ class LeggedSession(Session):
                 executed = {g: v.tolist() for g, v in tg.items()}
             except ControllerRejection as e:
                 rejected = e.code
-        self._tracker_tick(self.cmd)
+        yield from self._tick_gen(self.cmd)
         self._legs_ticks += 1
         if self._legs_ticks % max(1, int(round(self.dt * TRACKER_HZ))) == 0:
             obs = self._control_boundary()
@@ -632,11 +654,16 @@ class LeggedSession(Session):
         return obs
 
     def step(self, command: NativeCommand | dict | None = None, robot: int = 0) -> StepResult:
+        return run_cpu(self, self._step_gen(command, robot))
+
+    def _step_gen(self, command, robot: int = 0):
+        """`step` as a generator: yields one `Integrate` per tracker tick (5 at 10 Hz base_velocity control, 1 for the direct
+        controls) and returns the StepResult. `run_cpu` drives it with CPU `mj_step`; the batched Warp stepper drives many at once."""
         rejected, source, executed = None, None, None
         if isinstance(command, dict):
             command = command.get(0)
         if self.control in DIRECT_CONTROLS:
-            return self._step_legs(command)
+            return (yield from self._step_legs(command))
         if command is None:
             row = self.executor.pop()
             if row is not None:
@@ -651,7 +678,7 @@ class LeggedSession(Session):
                 rejected = e.code
         n = max(1, int(round(self.dt * TRACKER_HZ)))
         for _ in range(n):
-            self._tracker_tick(self.cmd)
+            yield from self._tick_gen(self.cmd)
         obs = self._control_boundary()
         return StepResult(obs, self.data.qpos.copy(), float(self.data.time), rejected, source, executed, energy_j=self._take_energy())
 

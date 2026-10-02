@@ -30,6 +30,46 @@ from rrp.envs.base import (ActionSpace, BodyInfo, Camera, CapabilityError, Conta
 _obs_counter = itertools.count()
 
 
+class Integrate:
+    """One physics advance of a control step, as a request a step generator yields (docs/architecture.md section 14.8).
+
+    `ctrl`: the ctrl vector for each of the `n` substeps, shape (n, nu), or (nu,) when constant. `energy_act`: actuator ids whose
+    |force x velocity| x dt is summed over the substeps into `energy` (the legged step energy), else None. Whoever drives the
+    generator integrates: `run_cpu` (CPU `mj_step`, the default and the reference) or the batched Warp stepper (`rrp.envs.warp.batch_sim`),
+    which advances substeps 0..n-2 on the GPU and the LAST one on CPU, so derived quantities (xpos, contacts, sensors, actuator
+    forces) have exactly the CPU semantics."""
+    __slots__ = ("n", "ctrl", "energy_act", "energy")
+
+    def __init__(self, n: int, ctrl: np.ndarray, energy_act=None):
+        self.n, self.ctrl, self.energy_act, self.energy = int(n), np.asarray(ctrl, float), energy_act, 0.0
+
+    def ctrl_at(self, k: int) -> np.ndarray:
+        return self.ctrl[k] if self.ctrl.ndim == 2 else self.ctrl
+
+    def accumulate(self, d: mujoco.MjData, dt: float) -> None:
+        if self.energy_act is not None:
+            self.energy += float(np.sum(np.abs(d.actuator_force[self.energy_act] * d.actuator_velocity[self.energy_act]))) * dt
+
+
+def cpu_integrate(model: mujoco.MjModel, d: mujoco.MjData, req: Integrate) -> None:
+    dt = float(model.opt.timestep)
+    for k in range(req.n):
+        d.ctrl[:] = req.ctrl_at(k)
+        mujoco.mj_step(model, d)
+        req.accumulate(d, dt)
+
+
+def run_cpu(env, gen):
+    """Drive a step generator to completion with CPU `mj_step` and return its value (what the plain `step()` does)."""
+    try:
+        req = next(gen)
+        while True:
+            cpu_integrate(env.model, env.data, req)
+            req = gen.send(None)
+    except StopIteration as e:
+        return e.value
+
+
 def _object_entity_id(o) -> str:
     """Privileged entity id for a scenario object/feature (`rrp.envs.mujoco.scenario.ObjectDecl`): the task
     entity id when the object is bound to one, else a stable id derived from the sim body name. Used only by
@@ -478,6 +518,17 @@ class Session:
                              source="scripted_teacher")
 
     def step(self, command: NativeCommand | dict | None = None, robot: int = 0) -> StepResult:
+        return run_cpu(self, self._step_gen(command, robot))
+
+    def batch_reason(self) -> str | None:
+        """Why this env cannot have its physics batched (rrp.envs.warp.batch_sim), or None. Perturbation wrappers replace
+        `apply_substep` per instance and write `xfrc_applied`; the batched stepper does not model either."""
+        if any("apply_substep" in r.controller.__dict__ for r in self.robots):
+            return "controller.apply_substep replaced on the instance (physics perturbation)"
+        return None
+
+    def _step_gen(self, command, robot: int = 0):
+        """`step` as a generator: yields ONE `Integrate` (the control step's substeps) and returns the StepResult."""
         cmds: dict[int, NativeCommand | None] = {}
         source = None
         if isinstance(command, dict):
@@ -502,11 +553,13 @@ class Session:
             except ControllerRejection as e:
                 rejected = e.code
                 r.controller.begin_step(self.data, None)
+        sched = np.empty((self.substeps, self.model.nu))
         for k in range(self.substeps):
             a = (k + 1) / self.substeps
             for r in self.robots:
                 r.controller.apply_substep(self.data, a)
-            mujoco.mj_step(self.model, self.data)
+            sched[k] = self.data.ctrl
+        yield Integrate(self.substeps, sched)
         if not np.isfinite(self.data.qpos).all():
             raise FloatingPointError("simulation diverged (non-finite state)")
         self.step_count += 1

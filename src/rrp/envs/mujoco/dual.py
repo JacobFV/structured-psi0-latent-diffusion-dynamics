@@ -553,6 +553,9 @@ class DualSession(Session):
                              controller_version=self.multi_controller_version, now=float(self.data.time),
                              execute_prefix=execute_prefix)
 
+    def batch_reason(self) -> str | None:
+        return "dual session (own command routing and mj_step loop)"
+
     def step(self, command=None, robot: int = 0):
         if command is None and self.executor.queue and any(":" in k for k in self.executor.queue[0]):
             row = self.executor.pop()

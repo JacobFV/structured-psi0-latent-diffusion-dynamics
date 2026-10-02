@@ -58,15 +58,17 @@ def env_factory(env_id: str, task: str, body, *, scene=None, env_kw: dict | None
 
 def evaluate(policy, env_id: str, task: str, body, seeds: Sequence[int], *, scene=None, batch: int = 8,
              max_seconds: float | None = None, max_steps: int | None = None, hooks: Sequence = (),
-             out: Path | None = None, env_kw: dict | None = None, row_extra: dict | None = None) -> list[Episode]:
+             out: Path | None = None, env_kw: dict | None = None, row_extra: dict | None = None,
+             eval_backend: str = "cpu", device: str | None = None) -> list[Episode]:
     """rollout of `policy` (a Policy, or a registry name for make_policy) on make_env(env_id, task, body, seed). Scene:
     `scene` (a dict, or seed -> dict) else the task's own, passed only when there is one; `env_kw` are extra env
-    kwargs (level, split, render profile). Rows (Episode.row() + row_extra) are appended to `out` (JSONL)."""
+    kwargs (level, split, render profile). `eval_backend` is `cpu` (default) or `warp` (batched physics, see rollout). Rows (Episode.row() + row_extra) are appended to `out` (JSONL)."""
     from rrp.policies.base import make_policy
     from rrp.tasks.spec import get_task
     pol = make_policy(policy) if isinstance(policy, str) else policy
     eps = rollout(env_factory(env_id, task, body, scene=scene, env_kw=env_kw), pol, get_task(task), list(seeds),
-                  batch=batch, max_seconds=max_seconds, max_steps=max_steps, hooks=hooks)
+                  batch=batch, max_seconds=max_seconds, max_steps=max_steps, hooks=hooks,
+                  eval_backend=eval_backend, device=device)
     if out is not None:
         out = Path(out)
         out.parent.mkdir(parents=True, exist_ok=True)
