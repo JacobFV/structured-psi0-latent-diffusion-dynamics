@@ -54,6 +54,7 @@ TOOLS: dict[tuple[str, str], tuple[str, str]] = {
     ("suite", "contact-waypoint"): ("rrp.harness.eval.humanoid_eval:waypoint_main", "WaypointTeacher driving a tracker on waypoint_contact"),
     ("eval", "humanoid-transfer"): ("rrp.harness.eval.humanoid_eval:transfer_main",
                                     "humanoid transfer matrix: sealed bodies x methods x demo budgets x seeds, Level 1 apart from Level 2"),
+    ("suite", "warp-parity"): ("rrp.harness.eval.warp_parity:main", "batched Warp evaluation backend vs CPU: parity statistics and episodes/s"),
     ("suite", "grasp-rig"): ("rrp.harness.eval.grasp_rig:main", "grasp contact rig [VERSION [GRIPPER [FRICTION]]]"),
     ("suite", "relations-curriculum"): ("rrp.cli.curriculum:suite_main",
                                         "curriculum schedule / competence-by-depth / interfering-pairs report (R11)"),

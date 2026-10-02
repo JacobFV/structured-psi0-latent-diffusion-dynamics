@@ -650,5 +650,5 @@ Red/green test reproduces the ±1 torso-command shift.
 - Legged latent / BC policies run at batch > 1 with one shallow controller copy and one torch generator per episode (seeded from the controller's
   seed and the episode seed); at batch = 1 the controller is used as before (its generator continues across episodes).
 - Cached results of one backend are never adopted by a run on the other (`humanoid-transfer` keys on `eval_backend`).
-- Parity (`python -m rrp.envs.warp.parity`): single-step, closed-loop outcome gate and divergence statistics under the tolerances pre-registered in
+- Parity (`rrp suite warp-parity`): single-step, closed-loop outcome gate and divergence statistics under the tolerances pre-registered in
   `research/tracks/compute.md`; Warp is fp32, so trajectories are not bit-identical to the fp64 CPU.

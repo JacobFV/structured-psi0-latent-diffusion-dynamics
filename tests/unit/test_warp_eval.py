@@ -105,7 +105,7 @@ def test_legged_policy_batch_gives_each_episode_its_own_controller_and_stream():
 @pytest.mark.slow
 def test_warp_hybrid_matches_cpu_on_the_hexapod_fixture_warp_cpu_device():
     pytest.importorskip("mujoco_warp")
-    from rrp.envs.warp.parity import FIXTURES, closed_loop, single_step
+    from rrp.harness.eval.warp_parity import FIXTURES, closed_loop, single_step
     fx = dict(FIXTURES["F2"], seeds=[0, 1])
     s = single_step(fx, "cpu")
     assert s["ok"], s

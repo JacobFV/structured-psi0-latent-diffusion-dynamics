@@ -1,8 +1,8 @@
 """Warp-vs-CPU parity and throughput of the batched evaluation backend (protocol pre-registered in research/tracks/compute.md,
 section "parity protocol"; tolerances are the constants below and are not tuned after measuring).
 
-  python -m rrp.envs.warp.parity --fixture F1 --device cuda:0 --out artifacts/runs/compute/warpeval/F1.json
-  python -m rrp.envs.warp.parity --fixture F1 --bench 8,32,64 --device cuda:0          # episodes/s, CPU vs Warp
+  rrp suite warp-parity --fixture F1 --device cuda:0 --out artifacts/runs/compute/warpeval/F1.json
+  rrp suite warp-parity --fixture F1 --bench 8,32,64 --device cuda:0          # episodes/s, CPU vs Warp
 
 Single-step parity: a CPU rollout (the reference trajectory) in which, at every control step, a copy of the CPU state is advanced by the Warp
 hybrid with the CPU's own ctrl schedule and compared with the CPU's own result (`ShadowStepper`), so errors never accumulate.
@@ -174,7 +174,7 @@ def bench(fx, device, ns) -> list[dict]:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(prog="python -m rrp.envs.warp.parity")
+    ap = argparse.ArgumentParser(prog="rrp suite warp-parity")
     ap.add_argument("--fixture", required=True, choices=sorted(FIXTURES))
     ap.add_argument("--device", default=None, help="warp device (default cuda:0 when available else cpu)")
     ap.add_argument("--seeds", type=int, default=None, help="use the first K seeds of the fixture (smoke runs; the protocol uses all)")
@@ -200,6 +200,3 @@ def main(argv=None) -> int:
         Path(a.out).write_text(json.dumps(out, indent=1, default=str))
     return 0
 
-
-if __name__ == "__main__":
-    raise SystemExit(main())
