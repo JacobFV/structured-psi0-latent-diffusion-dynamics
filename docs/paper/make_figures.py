@@ -2,10 +2,11 @@
 """Generate the paper's figures and generated tables.  Run from the repository root:
 
     PYTHONPATH=src:<dir with matplotlib, Pillow>:$HOME/work/ext/cw-site python3 docs/paper/make_figures.py \
-        {fig2|fig3|table_relations|table_envs|all}
+        {fig2|fig3|table_relations|table_envs|embodiments|roadmap|all}
 
 Outputs (docs/paper/): figures/fig2.{pdf}, figures/fig2_preview.png, figures/fig2_panel_*.png, figures/fig2_panels.json,
-figures/fig3_envs.{pdf,png}, figures/table_relations_counts.json, table_relations.tex (macros \\relsummary, \\relfull,
+figures/fig3_envs.{pdf,png}, figures/fig_roadmap.{pdf,png,json}, figures/embodiments.json, table_embodiments.tex,
+figures/table_relations_counts.json, table_relations.tex (macros \\relsummary, \\relfull,
 \\relplanned), table_envs.tex.  The tables need only the repository environment; Fig. 2 and Fig. 3 additionally need
 matplotlib / Pillow, which the repository environment does not ship, so put them on PYTHONPATH from a throwaway
 `pip install --target`.  Fig. 3 needs MuJoCo with EGL; Fig. 2 also reads the ComputerWorld wheel (cw-site, see
@@ -1758,11 +1759,342 @@ def fig3():
     print("fig3: wrote", OUT / "figures" / "fig3_envs.pdf")
 
 
+# =================================================================== [U4] embodiment count (banner + appendix table)
+# DEFINITION (printed under the banner): one embodiment = one distinct body key (arm x gripper module, one dual-arm rig,
+# one legged / humanoid body, one procedural generator seed) that was BUILT into a simulator model and SIMULATED in at
+# least one recorded run (validation, teacher screen, data collection, training or evaluation). Procedural seeds whose
+# build failed and catalogued-but-never-run bodies (humanoid sealed targets n1, berkeley, toddlerbot, g1_hands, phum
+# sealed seeds) are NOT counted. Dual rigs are unordered pairs (left/right swaps of the same two arms count once).
+# Evidence is read from the artifact stores (host main checkout + the host copy of the peer archive); the result is
+# frozen into figures/embodiments.json so the table rebuilds without the stores.
+EMB_JSON = OUT / "figures" / "embodiments.json"
+EMB_TEX = OUT / "table_embodiments.tex"
+EMB_CATS = [  # (key, label, source)
+    ("arm_fixed", "single arms: menagerie + fixture arms, each with each gripper module (pg2, tf3)",
+     "teacher validation (20 seeds) + armdiv admission screens"),
+    ("arm_proc", "procedural arms \\texttt{arm\\_gen\\_v2} (\\texttt{pa2s<seed>}, train and sealed seeds) $\\times$ gripper",
+     "armdiv admission screens (built keys only)"),
+    ("dual", "dual-arm rigs (unordered arm pairs) + ALOHA", "dual teacher validation, assign split"),
+    ("legged_proc", "procedural legged (quad / hexapod / octopod)", "legged catalog (physics validated)"),
+    ("legged_menagerie", "menagerie quadrupeds and bipeds", "legged catalog (physics validated)"),
+    ("humanoid", "menagerie humanoids", "legged catalog + tracker training metas"),
+    ("phum", "procedural humanoids \\texttt{phum\\_<seed>}", "shared-tracker training metas"),
+    ("psi0", "G1 + Dex3 through the $\\Psi_0$ / SIMPLE interface (\\texttt{g1\\_simple})", "D-141 closed-loop evals"),
+    ("pointer", "ComputerWorld pointer (\\texttt{cw\\_pointer})", "D-142 evals"),
+]
+
+
+def _stores():
+    art = Path(os.environ.get("RRP_ARTIFACTS", REPO / "artifacts"))
+    if not (art / "assets").exists():
+        art = Path.home() / "work" / "relational-robot-policy" / "artifacts"      # worktrees have no artifact store
+    peer = Path(os.environ.get("RRP_PEER_ARCHIVE", Path.home() / "work" / "rrp-data" / "peer-archive"))
+    return art, peer
+
+
+def count_embodiments() -> dict:
+    """Recompute the verified embodiment count from the artifact stores (see DEFINITION above)."""
+    art, peer = _stores()
+    cats: dict[str, set] = {k: set() for k, *_ in EMB_CATS}
+    trained: dict[str, set] = {k: set() for k, *_ in EMB_CATS}
+    ev: list[str] = []
+    # -- arms: teacher validation text (one line per key, 20 simulated seeds each)
+    tv = art / "assets" / "teacher_validation_pick_place_20seeds.txt"
+    for ln in tv.read_text().splitlines():
+        m = re.match(r"^(\S+_(?:pg2|tf3)) valid True .*\{(.*)\}", ln)
+        if m and sum(int(x) for x in re.findall(r"'(?:success|fail|infeasible)': (\d+)", m.group(2))) > 0:
+            cats["arm_fixed"].add(m.group(1))
+    ev.append(str(tv))
+    # -- arms: armdiv admission screens (keys with episodes > 0; build failures have episodes == 0)
+    for f in sorted((art / "runs" / "armdiv" / "screen").glob("*.admission.json")):
+        for k, v in json.loads(f.read_text())["keys"].items():
+            if v.get("episodes", 0) > 0:
+                cats["arm_proc" if k.startswith("pa2s") else "arm_fixed"].add(k)
+        ev.append(str(f))
+    # -- dual rigs
+    def _pair(p):
+        return p if "__" not in p else "__".join(sorted(p.split("__")))
+    for f in sorted((art / "assets" / "dual_teacher_validation").glob("*.summary.json")):
+        for k, v in json.loads(f.read_text()).items():
+            if v.get("n", 0) > 0:
+                cats["dual"].add(_pair(k.split("|", 1)[1]))
+        ev.append(str(f))
+    asg = json.loads((REPO / "research" / "splits" / "assign_pick_place_v1.json").read_text())
+    for pr in asg["pairs"]:
+        cats["dual"].add(_pair(pr["robot_pair"]))
+        if pr["split"] == "source_train":
+            trained["dual"].add(_pair(pr["robot_pair"]))
+    ev.append("research/splits/assign_pick_place_v1.json")
+    # -- legged / humanoid catalog (physics validated = built and simulated under a 3 s PD hold)
+    cat = json.loads((art / "assets" / "legged_catalog.json").read_text())
+    for b in cat["bodies"]:
+        if not (b["stages"].get("physics_validated") or {}).get("ok"):
+            continue
+        k = ("legged_proc" if b.get("source") == "procedural" else
+             "humanoid" if b.get("kind") == "humanoid" else "legged_menagerie")
+        cats[k].add(b["id"])
+    ev.append(str(art / "assets" / "legged_catalog.json"))
+    trk = art / "trackers"
+    for d in (trk.iterdir() if trk.exists() else []):
+        if d.is_dir():
+            for k in ("legged_proc", "legged_menagerie", "humanoid"):
+                if d.name in cats[k]:
+                    trained[k].add(d.name)
+    # -- tracker training metas (humanoids incl. procedural phum bodies actually trained on)
+    metas = sorted({*peer.glob("runs/*/meta.json"), *peer.glob("runs/*/*/meta.json"), *(art / "runs").glob("humanoid*/**/meta.json")})
+    for f in metas:
+        try:
+            d = json.loads(f.read_text())
+        except Exception:
+            continue
+        if not isinstance(d, dict) or d.get("kind") != "humanoid":
+            continue
+        bodies = d.get("train_bodies") if isinstance(d.get("train_bodies"), list) else [d.get("body")]
+        for b in bodies:
+            if isinstance(b, str) and b != "shared":
+                k = "phum" if b.startswith("phum_") else "humanoid"
+                cats[k].add(b)
+                trained[k].add(b)
+    ev.append(f"{len(metas)} tracker meta.json files under {peer}/runs and {art}/runs/humanoid*")
+    # -- arms trained on (frozen training pools)
+    for sp, key in (("primary_v1.json", "source_train_robots"), ("armdiv_pool_v1.json", "train_robots")):
+        for k in json.loads((REPO / "research" / "splits" / sp).read_text())[key]:
+            trained["arm_proc" if k.startswith("pa2s") else "arm_fixed"].add(k)
+    # -- single-body environments (one body each; results recorded in research/decisions.md)
+    dec = (REPO / "research" / "decisions.md").read_text()
+    cats["psi0"].add("g1_simple"); trained["psi0"].add("g1_simple")
+    cats["pointer"].add("cw_pointer"); trained["pointer"].add("cw_pointer")
+    assert "D-141" in dec and "D-142" in dec
+    for k in cats:
+        trained[k] &= cats[k]
+    rows = {k: dict(n=len(cats[k]), trained=len(trained[k]), keys=sorted(cats[k])) for k in cats}
+    total = sum(r["n"] for r in rows.values())
+    proc_built = {k for k in cats["arm_proc"]}
+    res = dict(definition="distinct body key built into a simulator model and simulated in >= 1 recorded run "
+                          "(validation, teacher screen, collection, training or evaluation); dual rigs = unordered pairs",
+               total=total, trained_total=sum(r["trained"] for r in rows.values()), rows=rows,
+               procedural_arm_seeds=len({k.rsplit('_', 1)[0] for k in proc_built}),
+               git_sha=git_sha(), evidence=[e.replace(str(Path.home()), "~") for e in ev])
+    return res
+
+
+def embodiments(recompute: bool = True) -> dict:
+    if recompute:
+        try:
+            res = count_embodiments()
+            EMB_JSON.parent.mkdir(exist_ok=True)
+            EMB_JSON.write_text(json.dumps(res, indent=1))
+        except FileNotFoundError as e:                   # stores absent: use the frozen snapshot
+            print("embodiments: stores missing, using snapshot:", e)
+    res = json.loads(EMB_JSON.read_text())
+    lab = {k: (l, s) for k, l, s in EMB_CATS}
+    lines = []
+    for k, _l, _s in EMB_CATS:
+        r = res["rows"][k]
+        lines.append(f"{lab[k][0]} & {r['n']} & {r['trained']} & {lab[k][1]}" + r"\\")
+    tex = "\n".join([
+        "% generated by make_figures.py embodiments from the artifact stores; do not edit",
+        rf"\newcommand{{\embtotal}}{{{res['total']}}}",
+        rf"\newcommand{{\embtrained}}{{{res['trained_total']}}}",
+        rf"\newcommand{{\embarms}}{{{res['rows']['arm_fixed']['n'] + res['rows']['arm_proc']['n']}}}",
+        rf"\newcommand{{\embarmproc}}{{{res['rows']['arm_proc']['n']}}}",
+        rf"\newcommand{{\embdual}}{{{res['rows']['dual']['n']}}}",
+        rf"\newcommand{{\emblegged}}{{{sum(res['rows'][k]['n'] for k in ('legged_proc', 'legged_menagerie', 'humanoid', 'phum'))}}}",
+        rf"\newcommand{{\embphum}}{{{res['rows']['phum']['n']}}}",
+        r"\newcommand{\embtable}{%",
+        r"\par\medskip\noindent\begin{minipage}{\columnwidth}\centering\scriptsize\setlength{\tabcolsep}{2.5pt}",   # in place: a float could not pass the deferred table* floats
+        r"\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}X r r >{\raggedright\arraybackslash}p{0.95in}@{}}",
+        r"\toprule", r"Embodiment class & Sim. & Trained & Evidence \\", r"\midrule", *lines, r"\midrule",
+        rf"\textbf{{total}} & \textbf{{{res['total']}}} & \textbf{{{res['trained_total']}}} & \\",
+        r"\bottomrule", r"\end{tabularx}",
+        r"\par\smallskip{\scriptsize Generated by \texttt{make\_figures.py embodiments} at \texttt{" + res["git_sha"] + r"}; keys in \texttt{figures/embodiments.json}.}",
+        r"\captionof{table}{\textbf{Embodiments counted for the banner.} Sim.\ = distinct body keys built into a simulator model and "
+        r"simulated in at least one recorded run (validation, teacher screen, collection, training or evaluation); "
+        r"Trained = of those, in a frozen training pool or a tracker's training set. Arm keys are arm $\times$ gripper "
+        r"module; procedural arms are " + str(res["procedural_arm_seeds"]) + r" built \texttt{arm\_gen\_v2} seeds; "
+        r"generator seeds whose build failed, dual left/right swaps, and declared but not yet run bodies "
+        r"(humanoid sealed targets, \texttt{phum} sealed seeds) are not counted.}",
+        r"\label{tab:embodiments}", r"\end{minipage}", "}"])
+    EMB_TEX.write_text(tex + "\n")
+    return res
+
+# =================================================================== [U5] roadmap "snake" (full-width figure)
+# Milestones: implemented relation families (done), campaign gates T0-T9 (D-147; state from campaign/STATUS.md and the
+# D-147 addenda as of 2 Oct 2026), then the planned relation entries of Table 7 clustered by family, wave W2 before P.
+# Colours follow Fig. 2's families (geometry cyan, kinematics/UI graphite, interaction amber, procedure violet); the
+# families Fig. 2 has no panel for get neutral extra hues. done = filled, now = highlighted, future = hollow.
+ROAD_FAM = {"structure": ("#8A8F98", "structure"), "geometry": ("#2BB3C0", "geometry"),
+            "kinematics": ("#3A3F47", "kinematics"), "interaction": ("#F2A33A", "interaction"),
+            "task": ("#8C7CF0", "task / procedure"), "time": ("#5CC98A", "time"),
+            "other": ("#C2577A", "prop. / aff. / lang.")}
+ROAD_NOW = "#E4572E"
+# (id, label, state) in path order; states: done | now | future
+ROAD_GATES = [
+    [("T0", "tracker pins\nverified", "done"), ("T2", "t1/g1/h1 gait\ntrackers installed", "done"),
+     ("T6", "BC gate pass;\nG4 signed", "done"), ("T7", "packet-use\ngate pass", "done"),
+     ("T8", "v2 collection\n24k episodes", "done"), ("T9", "relgen shards,\nstage A, probes", "done")],
+    [("T1", "terrain trackers\nround 2 (queued)", "now"), ("T6", "phase B: v8div\nlineages", "now"),
+     ("T7", "phase 2 heads\n(queued)", "now"), ("T8", "copy / key\nheads training", "now"),
+     ("T9", "factor sets\n{geo, ix, task}", "now"), ("T2", "steps_ub +\nteacher check", "future"),
+     ("T3", "shared\nmorph_v2_ub", "future")],
+    [("T4", "collection,\nevery h_* task", "future"), ("T5", "written decision\n→ sealed cells", "future"),
+     ("T6", "G3 → sealed\nnew-arm cells", "future"), ("T7", "closed loop:\ndirect vs struct.", "future"),
+     ("T8", "seeds → UI →\nsealed", "future"), ("T9", "competence +\ninterference", "future")],
+]
+
+
+def roadmap(out=None):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import FancyBboxPatch, Arc
+    plt.rcParams.update({"font.family": "DejaVu Sans", "pdf.fonttype": 42})
+    planned, _x, _m, _w1, _mech, _p = parse_catalog()
+    counts = json.loads((OUT / "figures" / "table_relations_counts.json").read_text())
+    items = [dict(name=n, wave=e["wave"], proposed=e["proposed"]) for n, e in planned.items()]
+    items += [dict(name=r["name"], wave="W2", proposed=False, reg=True) for r in counts["rows"] if r["status"] == "planned"]
+    impl = {}
+    for r in counts["rows"]:
+        if r["status"] == "implemented":
+            impl[r["group"]] = impl.get(r["group"], 0) + 1
+    order = list(ROAD_FAM)
+    waves = {w: [(g, sorted(i["name"] for i in items if i["wave"] == w and group_of(i["name"]) == g)) for g in order]
+             for w in ("W2", "P")}
+    waves = {w: [(g, ns) for g, ns in v if ns] for w, v in waves.items()}
+
+    W, H = 7.3, 4.0
+    fig = plt.figure(figsize=(W, H))
+    ax = fig.add_axes([0, 0, 1, 1])
+    X0, X1 = 0.55, 9.45
+    ax.set_xlim(0, 10); ax.set_ylim(-0.86, 4.95); ax.axis("off")
+    rows_y = [4.25, 3.2, 2.15, 1.1, 0.05]
+    R = (rows_y[0] - rows_y[1]) / 2
+    # ---- the path: straight rows joined by half-turns (boustrophedon)
+    def seg(y0, y1, right, color, ls="-", lw=7.0, z=1):
+        xa, xb = (X0, X1)
+        ax.plot([xa, xb], [y0, y0], color=color, lw=lw, solid_capstyle="butt", ls=ls, zorder=z)
+        if y1 is not None:
+            cx = X1 if right else X0
+            ax.add_patch(Arc((cx, (y0 + y1) / 2), 2 * R, 2 * R, theta1=-90 if right else 90, theta2=90 if right else 270,
+                             color=color, lw=lw, ls=ls, zorder=z))
+    done_c, todo_c = "#C9CCD1", "#E9EAEC"
+    for i, y in enumerate(rows_y):
+        nxt = rows_y[i + 1] if i + 1 < len(rows_y) else None
+        seg(y, nxt, right=(i % 2 == 0), color=done_c if i == 0 else todo_c)
+    # progress overlay: row 0 done + the turn into row 1 + row 1 up to the current front
+    ax.add_patch(Arc((X1, (rows_y[0] + rows_y[1]) / 2), 2 * R, 2 * R, theta1=-90, theta2=90, color=done_c, lw=7.0, zorder=1.1))
+
+    def xs_for(n, i, lo=X0 + 0.55, hi=X1 - 0.55):
+        xs = [lo + (hi - lo) * k / max(1, n - 1) for k in range(n)]
+        return xs if i % 2 == 0 else xs[::-1]
+
+    def gate(x, y, tid, lab, state):
+        fc = {"done": "#3A3F47", "now": ROAD_NOW, "future": "white"}[state]
+        tc = "white" if state != "future" else "#3A3F47"
+        if state == "now":
+            ax.add_patch(plt.Circle((x, y), 0.26, color=ROAD_NOW, alpha=0.22, zorder=3, lw=0))
+        ax.add_patch(plt.Circle((x, y), 0.17, fc=fc, ec="#3A3F47" if state != "now" else ROAD_NOW, lw=1.1, zorder=4))
+        ax.text(x, y, tid, ha="center", va="center", fontsize=6.3, color=tc, weight="bold", zorder=5)
+        ax.text(x, y - 0.24, lab, ha="center", va="top", fontsize=5.0, color="#3A3F47", linespacing=1.0, zorder=5)
+        if state == "done":
+            ax.text(x + 0.15, y + 0.14, "✓", fontsize=6.5, color="#2E9E5B", weight="bold", zorder=6)
+
+    def cluster(x, y, g, names, filled, wave, head=None, w=1.36):
+        c, disp = ROAD_FAM[g]
+        txt = "\n".join(n for n in names[:6]) + ("\n…" if len(names) > 6 else "")
+        nl = min(len(names), 6) + (1 if len(names) > 6 else 0)
+        h = 0.2 + 0.105 * nl
+        y_top = y + 0.12
+        box = FancyBboxPatch((x - w / 2, y_top - h - 0.17), w, h + 0.17, boxstyle="round,pad=0.0,rounding_size=0.06",
+                             fc=c if filled else "white", ec=c, lw=1.3, zorder=4)
+        ax.add_patch(box)
+        ax.text(x, y_top - 0.02, head or f"{disp} · {len(names)}", ha="center", va="top", fontsize=5.4, weight="bold",
+                color="white" if filled and g in ("kinematics", "task", "other", "structure") else "#1D1F22", zorder=5)
+        ax.text(x, y_top - 0.17, txt, ha="center", va="top", fontsize=4.5, family="DejaVu Sans Mono", linespacing=1.05,
+                color="white" if filled and g in ("kinematics", "task", "other", "structure") else "#3A3F47", zorder=5)
+
+    # ---- row 0: implemented relation families (one filled cluster per family) + completed gates
+    y = rows_y[0]
+    ax.text(0.05, y + 0.42, "done", fontsize=6.5, weight="bold", color="#3A3F47")
+    fam_impl = [("structure", impl.get("structure", 0)), ("geometry", impl.get("geometry", 0)),
+                ("kinematics", impl.get("kinematics", 0)), ("interaction", impl.get("interaction", 0)),
+                ("task", impl.get("task", 0)),
+                ("other", impl.get("locomotion", 0) + impl.get("ui", 0) + impl.get("probe", 0))]
+    bx = X0 + 0.25
+    ax.add_patch(FancyBboxPatch((bx - 0.12, y - 0.27), 2.55, 0.54, boxstyle="round,pad=0,rounding_size=0.06",
+                                fc="white", ec="#3A3F47", lw=0.8, zorder=3))
+    ax.text(bx - 0.04, y + 0.2, f"W1 registry: {sum(impl.values())} implemented factors", fontsize=5.3, weight="bold",
+            va="center", color="#1D1F22", zorder=5)
+    for k, (g, n) in enumerate(fam_impl):
+        c = ROAD_FAM[g][0] if g != "other" else "#B8BCC2"
+        cx = bx + 0.22 + k * 0.4
+        ax.add_patch(plt.Circle((cx, y - 0.04), 0.11, fc=c, ec="none", zorder=5))
+        ax.text(cx, y - 0.04, str(n), fontsize=5.0, ha="center", va="center", color="white", weight="bold", zorder=6)
+        lab = {"structure": "struct.", "geometry": "geo.", "kinematics": "kin.", "interaction": "ix.", "task": "task",
+               "other": "other"}[g]
+        ax.text(cx, y - 0.17, lab, fontsize=4.2, ha="center", va="top", color="#3A3F47", zorder=6, linespacing=0.9)
+    xs = [X0 + 3.15 + (X1 - 0.5 - (X0 + 3.15)) * k / 5 for k in range(6)]
+    for x, (tid, lab, st) in zip(xs, ROAD_GATES[0]):
+        gate(x, y, tid, lab, st)
+    # ---- row 1 (right to left): current front, then the next humanoid gates
+    y = rows_y[1]
+    xs = xs_for(len(ROAD_GATES[1]), 1)
+    now_x = [x for x, g in zip(xs, ROAD_GATES[1]) if g[2] == "now"]
+    ax.plot([X1, min(now_x)], [y, y], color=done_c, lw=7.0, solid_capstyle="butt", zorder=1.1)
+    ax.add_patch(FancyBboxPatch((min(now_x) - 0.42, y - 0.62), max(now_x) - min(now_x) + 0.84, 0.98,
+                                boxstyle="round,pad=0,rounding_size=0.08", fc=ROAD_NOW, alpha=0.07, ec=ROAD_NOW, lw=0.8,
+                                ls=(0, (3, 2)), zorder=0.5))
+    for x, (tid, lab, st) in zip(xs, ROAD_GATES[1]):
+        gate(x, y, tid, lab, st)
+    px = min(now_x) - 0.42
+    ax.annotate("WE ARE HERE\n2 Oct 2026", xy=(px, y + 0.1), xytext=(px - 0.95, y + 0.47), fontsize=6.4, weight="bold",
+                color=ROAD_NOW, ha="center", va="center", zorder=7,
+                arrowprops=dict(arrowstyle="-|>", color=ROAD_NOW, lw=1.2))
+    # ---- row 2: remaining campaign gates
+    y = rows_y[2]
+    ax.text(0.05, y + 0.42, "next: campaign", fontsize=6.0, weight="bold", color="#3A3F47")
+    for x, (tid, lab, st) in zip(xs_for(len(ROAD_GATES[2]), 2), ROAD_GATES[2]):
+        gate(x, y, tid, lab, st)
+    # ---- rows 3 and 4: Table 7 clusters, wave W2 then wave P
+    for i, w in ((3, "W2"), (4, "P")):
+        y = rows_y[i]
+        cl = waves[w]
+        n = len(cl)
+        lo, hi = X0 + 0.8, (X1 - 0.8) if w == "W2" else (X1 - 1.75)
+        xs = [lo + (hi - lo) * k / max(1, n - 1) for k in range(n)]
+        xs = xs if i % 2 == 0 else xs[::-1]
+        lab = {"W2": "planned wave W2", "P": "planned wave P"}[w]
+        ax.text(0.05 if i % 2 == 0 else 9.95, y + 0.42, lab, fontsize=6.0, weight="bold", color="#3A3F47",
+                ha="left" if i % 2 == 0 else "right")
+        for x, (g, names) in zip(xs, cl):
+            cluster(x, y, g, names, filled=False, wave=w)
+    ax.text(X1 + 0.05, rows_y[4] - 0.2, f"end of plan;\n{len(_x)} catalog\nfamilies are\nout of scope", fontsize=4.8,
+            color="#8A8F98", ha="right", va="top", style="italic", linespacing=1.1)
+    ax.plot([X1 - 0.02], [rows_y[4]], marker=">", ms=7, color=todo_c, zorder=1)
+    # legend
+    lx, ly = 6.35, 4.82
+    for k, (st, lab) in enumerate((("done", "done"), ("now", "in progress"), ("future", "planned"))):
+        fc = {"done": "#3A3F47", "now": ROAD_NOW, "future": "white"}[st]
+        ax.add_patch(plt.Circle((lx + k * 1.05, ly), 0.07, fc=fc, ec="#3A3F47" if st != "now" else ROAD_NOW, lw=0.9, zorder=4))
+        ax.text(lx + k * 1.05 + 0.12, ly, lab, fontsize=5.4, va="center", color="#3A3F47")
+    ax.text(lx - 0.15, ly, "T = campaign gate;  boxes = planned relation entries by family", fontsize=5.4, va="center",
+            ha="right", color="#3A3F47")
+    out = Path(out or OUT / "figures")
+    out.mkdir(exist_ok=True)
+    fig.savefig(out / "fig_roadmap.pdf")
+    fig.savefig(out / "fig_roadmap.png", dpi=200)
+    plt.close(fig)
+    (out / "fig_roadmap.json").write_text(json.dumps(dict(
+        snapshot="campaign/STATUS.md + research/decisions.md D-147 addenda, 2 Oct 2026", gates=ROAD_GATES,
+        implemented_by_group=impl, planned_by_wave={w: dict(v) for w, v in waves.items()},
+        out_of_scope=[f for _, f in _x]), indent=1, ensure_ascii=False))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("what", choices=["fig2", "fig3", "table_relations", "table_envs", "all"])
+    ap.add_argument("what", choices=["fig2", "fig3", "table_relations", "table_envs", "embodiments", "roadmap", "all"])
     a = ap.parse_args()
-    todo = ["table_relations", "table_envs", "fig2", "fig3"] if a.what == "all" else [a.what]
+    todo = ["table_relations", "table_envs", "embodiments", "roadmap", "fig2", "fig3"] if a.what == "all" else [a.what]
     for t in todo:
         if t == "table_relations":
             c = relations_table(OUT / "table_relations.tex")
@@ -1775,6 +2107,12 @@ def main():
             print("fig2: wrote", OUT / "figures" / "fig2.pdf")
         elif t == "fig3":
             fig3()
+        elif t == "embodiments":
+            r = embodiments()
+            print("embodiments:", r["total"], {k: v["n"] for k, v in r["rows"].items()})
+        elif t == "roadmap":
+            roadmap()
+            print("roadmap: wrote", OUT / "figures" / "fig_roadmap.pdf")
 
 
 if __name__ == "__main__":

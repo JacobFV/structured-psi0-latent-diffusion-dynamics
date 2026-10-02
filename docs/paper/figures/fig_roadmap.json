@@ -1,0 +1,177 @@
+{
+ "snapshot": "campaign/STATUS.md + research/decisions.md D-147 addenda, 2 Oct 2026",
+ "gates": [
+  [
+   [
+    "T0",
+    "tracker pins\nverified",
+    "done"
+   ],
+   [
+    "T2",
+    "t1/g1/h1 gait\ntrackers installed",
+    "done"
+   ],
+   [
+    "T6",
+    "BC gate pass;\nG4 signed",
+    "done"
+   ],
+   [
+    "T7",
+    "packet-use\ngate pass",
+    "done"
+   ],
+   [
+    "T8",
+    "v2 collection\n24k episodes",
+    "done"
+   ],
+   [
+    "T9",
+    "relgen shards,\nstage A, probes",
+    "done"
+   ]
+  ],
+  [
+   [
+    "T1",
+    "terrain trackers\nround 2 (queued)",
+    "now"
+   ],
+   [
+    "T6",
+    "phase B: v8div\nlineages",
+    "now"
+   ],
+   [
+    "T7",
+    "phase 2 heads\n(queued)",
+    "now"
+   ],
+   [
+    "T8",
+    "copy / key\nheads training",
+    "now"
+   ],
+   [
+    "T9",
+    "factor sets\n{geo, ix, task}",
+    "now"
+   ],
+   [
+    "T2",
+    "steps_ub +\nteacher check",
+    "future"
+   ],
+   [
+    "T3",
+    "shared\nmorph_v2_ub",
+    "future"
+   ]
+  ],
+  [
+   [
+    "T4",
+    "collection,\nevery h_* task",
+    "future"
+   ],
+   [
+    "T5",
+    "written decision\n→ sealed cells",
+    "future"
+   ],
+   [
+    "T6",
+    "G3 → sealed\nnew-arm cells",
+    "future"
+   ],
+   [
+    "T7",
+    "closed loop:\ndirect vs struct.",
+    "future"
+   ],
+   [
+    "T8",
+    "seeds → UI →\nsealed",
+    "future"
+   ],
+   [
+    "T9",
+    "competence +\ninterference",
+    "future"
+   ]
+  ]
+ ],
+ "implemented_by_group": {
+  "task": 15,
+  "kinematics": 8,
+  "structure": 9,
+  "geometry": 5,
+  "interaction": 5,
+  "locomotion": 2,
+  "probe": 26,
+  "ui": 5
+ },
+ "planned_by_wave": {
+  "W2": {
+   "structure": [
+    "id.same_material",
+    "id.scene_parent"
+   ],
+   "geometry": [
+    "geo.surface_normal"
+   ],
+   "interaction": [
+    "ix.articulation",
+    "ix.collision_seq",
+    "ix.contains",
+    "ix.impulse_flow",
+    "ix.mating",
+    "ix.tool_target"
+   ],
+   "task": [
+    "rel.task_relevance",
+    "task.cause_effect",
+    "task.precedes"
+   ],
+   "time": [
+    "time.phase_sync",
+    "time.same_track"
+   ],
+   "other": [
+    "aff.affords_at",
+    "lang.refers_to"
+   ]
+  },
+  "P": {
+   "structure": [
+    "id.same_part_class",
+    "id.same_segment"
+   ],
+   "geometry": [
+    "geo.extent",
+    "geo.occludes"
+   ],
+   "kinematics": [
+    "kin.cross_morphology"
+   ],
+   "time": [
+    "time.co_motion"
+   ],
+   "other": [
+    "aff.<verb>",
+    "aff.compatible",
+    "aff.safe_region",
+    "lang.sim",
+    "prop.*",
+    "prop.vel"
+   ]
+  }
+ },
+ "out_of_scope": [
+  "mechanics",
+  "fields and flows",
+  "fluids, thermal, electrical, magnetic, optical, chemical"
+ ]
+}
