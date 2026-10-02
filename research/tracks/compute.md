@@ -80,3 +80,23 @@ Metrics and tolerances:
    listed as such. Gate 2 is the acceptance criterion; 1 and 3 are the declared tolerances.
 Divergence statistics reported: n, mean, median, p95, p99, max per metric, per family, per backend precision (Warp fp32 vs CPU fp64).
 Throughput (episodes/s) is measured on the peer: CPU workers vs Warp, at several N, with the GPU shared and busy (it is, ~90%).
+
+### results 2026-10-02 (host, Warp on its CPU device; fp32 Warp substeps + CPU fp64 last substep)
+These validate the numerics and the plumbing against the protocol above. They are NOT throughput numbers (a CPU-device Warp run is slower than CPU MuJoCo).
+Raw output: `artifacts/runs/compute/warpeval/{F1,F2}_warpcpu.json` (untracked; numbers copied here).
+- F1 arm (12 seeds): outcomes identical 12/12 (all `success`; the gate is therefore only exercised on the success path, no failure reason was compared).
+  Single-step n=1262: median 1.8e-6, p95 1.5e-4, p99 9.97e-4, max 2.4e-3 (tolerance p99 1e-3, max 1e-2: PASS, p99 is at 99.7% of its tolerance).
+  Closed loop: arm qpos max median 8.3e-5 / p95 4.0e-4 rad (tol 0.05 / 0.15), object error median 5.9e-5 / p95 1.5e-4 m (tol 0.02 / 0.05): PASS. End-time difference ~4e-13 s.
+- F2 hexapod6 waypoint_contact (cpg tracker, 8 seeds): outcomes identical 8/8 (all `success`). Single-step n=7745: median 1.8e-7, p99 6.3e-7, max 1.1e-6
+  (tolerance p99 2e-3, max 2e-2: PASS). Base xy error median 3.1e-6, p95 6.0e-6 m (tol 0.30 / 1.0); end-time difference max 2.4e-12 s: PASS.
+  F2 note: the scripted teacher issues base_velocity commands through the cpg tracker (not raw leg control as the fixture text said).
+- Wall time on the host (Warp CPU device, includes model build/compile): arm 12 episodes CPU 2.1 s vs Warp-cpu 113 s; hexapod 8 episodes CPU 1.7 s vs 29.5 s.
+- F3 humanoid (g1, tracker g1:ub_v1, h_walk / h_turn): NOT RUN, state blocked_external (needs the peer, see below).
+- GPU throughput (episodes/s at several N, CPU workers vs Warp): NOT MEASURED, state blocked_external. Peer `ops/bin/peer_run.sh` raised
+  `AdmissionStopped: watchdog heartbeat missing or stale` on every attempt (even a 1 CPU / 1 GiB probe, 16:22 PDT); both GPU slots were held by other tracks,
+  a humanoid GPU node was queued (humanoid-first rule), and the peer GPU was ~92% busy. Not worked around (no broker/watchdog changes by this unit).
+  Resume: `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/accel-warpeval RRP_PEER_PYTHONPATH=/home/brandonin/work/ext/pylibs/mjwarp ops/bin/peer_sync.sh push`, then
+  `ops/bin/peer_run.sh --cpu 4 --mem 12G ... -- PY -m rrp.cli suite warp-parity --fixture F3w --device cpu --seeds 2`, then one GPU lease (<= 20 min, mem >= 1.35 x peak)
+  with `--fixture F1|F2|F3w|F3t --device cuda:0 --bench 8,32,64`. The CUDA-graph capture path has never run on a GPU and is the main untested risk.
+- Not done: batching the tracker MLP across envs (per-env CPU forwards remain); the ambient `compute:` block hook waits for accel-prec to land core/compute.py
+  (`eval_backend` is an explicit `evaluate/rollout` argument and `--eval-backend` flag, stored in provenance and in run_matrix records only when not `cpu`).
