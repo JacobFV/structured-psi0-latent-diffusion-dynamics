@@ -37,6 +37,13 @@ lists:
 # declared mem 5G + gpu_mem 8G (>= 1.35 x, extra headroom for the larger g1 / h1 models; the t1 lease kept its 24G + 12G).
 defaults: {retries: 3, resources: {mem: 5G, gpu_mem: 8G, max_seconds: 21600}}
 nodes:
+  train:
+    # D-147 addendum (lead, 2026-10-01): the one bounded fix attempt of the T1 steps gate = the recorded P2 fix (30 s episodes, level-up 0.6) for
+    # g1 / h1; t1 (already running) keeps the pre-registered recipe; a t1 retrain, if its eval fails for the stall, adds `t1` here.
+    per:
+      body:
+        g1: {options: {args: {episode_s: 30, level_up: 0.6}}}
+        h1: {options: {args: {episode_s: 30, level_up: 0.6}}}
   validate:
     stage: validate_tracker
     resources: {cpu: 1, mem: 4G, gpu: false, max_seconds: 7200}

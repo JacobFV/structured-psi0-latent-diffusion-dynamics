@@ -1578,3 +1578,13 @@ mechanically to the gate JSON; the exception label is passed to `tracker-install
 - D-117 declarations from the measured t1 steps_scan trainer (4096 worlds; host RSS peak 2.5 GB, GPU 3.9 GB): T1 train nodes declare 5G + 8G GPU
   (>= 1.35 x, headroom for g1 / h1); the running t1 lease keeps its 24G + 12G (no live modification).
 - Peer disk: the ~24 GB drop at 19:00 was the relations T9 copy of `latent_pp_v3dart_s1_H16` host -> peer (legitimate).
+
+### D-147 addendum 2026-10-01 (lead, 2026-10-01): T1 steps gate, the one bounded fix attempt (P2 fix), written before g1 / h1 launch
+- Evidence (t1 steps_scan, `t1_steps_gpu`, lease 1790906909_59a98a, training log): the curriculum has stayed at level 0.2 (steps <= 0.06 L) since
+  iteration ~800; window success ~35-50 % < level-up 0.7; fall rate 0.03-0.06; mean episode 876 of 1000 ticks, i.e. the non-fall failures are 20 s
+  timeouts. Same mechanism as the recorded P2 h1 v2 diagnosis (research/tracks/humanoid.md "P2 log": the 20 s episode is too short for the staircase
+  course, so the level-up threshold is never reached; that run's fix, recorded before running: 30 s episodes, level-up 0.6).
+- Decision (lead, option 1): `{g1,h1}_steps_gpu` train with `episode_s 30, level_up 0.6` (per-body `options.args` in
+  `recipes/humanoid/trackers_steps_scan.yaml`; the recipe table is unchanged) BEFORE they start; this is the ONE allowed fix attempt of the T1 steps gate.
+  t1 finishes unchanged and is validated / evaluated and recorded as is; if its eval fails for the stall reason, t1 is retrained ONCE with the same fix
+  (same attempt, same rule, no further tuning). Humanoid GPU order: gap-ring trackers (t1, h1), then g1 / h1 steps with the fix, then the t1 retrain if needed.
