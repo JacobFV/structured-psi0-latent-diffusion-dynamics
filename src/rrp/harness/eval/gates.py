@@ -100,6 +100,7 @@ def write_report(report: dict, out_dir: Path) -> Path:
 TASK_GATE_TRIALS = {
     "steps": ("forward", "arc", "push_fwd"),                               # constant forward + heading correction, never halts / pure-turns
     "gap": ("stand", "forward", "turn", "turn_fast", "arc", "push_fwd"),   # forward + sidestep, then a pure turn and a final halt
+    "gait": ("stand", "forward", "turn", "turn_fast", "arc", "push_fwd"),  # gait / *_ub trackers: the walk / turn / carry teachers issue all
 }
 EXCEPTION = dict(joint_limit_margin_min=-0.06, peak_force_bw_max=4.2, cot_max=2.5)   # D-147 addendum (lead, 2026-10-01)
 EXEMPT = ("joint_limit_margin", "peak_foot_force_bw", "cot_forward")

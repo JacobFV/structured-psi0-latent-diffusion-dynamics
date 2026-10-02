@@ -454,13 +454,16 @@ def parse_args(ap, argv=None):
 
 # ------------------------------------------------------------------ install (HS2, D-146 R2)
 def install(run: str | Path, validations: list, body: str, version: str, *, label: str, root: str | Path | None = None,
-            decision: str = "accepted") -> Path:
+            decision: str = "accepted", task: str | None = None) -> Path:
     """Register a trained actor in the tracker store `<root>/<body>/<version>/` (root default artifacts/trackers).
 
     Refuses (raises ValueError, nothing written) unless: `<run>/actor.pt` and `<run>/meta.json`-equivalent actor meta exist; every
     validation JSON (rrp.harness.eval.tracker_validation output) carries tracker_sha == the sha256 of this actor AND
     w6_gate.verdict == "pass" (the D-112 gate; fail / incomplete are never installed, a rejected actor is kept in its run dir);
-    the target version does not exist (installs are never overwritten: new version name). Writes actor.pt, meta.json (the actor's
+    the target version does not exist (installs are never overwritten: new version name). `task` (steps | gap | gait; D-147): the
+    verdict is instead `gates.tracker_verdict(validation, task)` on the task's gating trials and an `exception` verdict (lab gate passes,
+    only margin / force / CoT fail within the D-147 caps) is installed with decision `accepted_d147_exception` and its failing values
+    appended to the label. Writes actor.pt, meta.json (the actor's
     own meta + sha256 pin, install_label, installed, validation summary, decision), train_log_every10.jsonl (when the run has a
     train_log.jsonl) and the validation files. Returns the store directory."""
     import shutil
@@ -480,10 +483,19 @@ def install(run: str | Path, validations: list, body: str, version: str, *, labe
         rec = json.loads(vp.read_text())
         if rec.get("tracker_sha") != sha:
             raise ValueError(f"install: {vp} validates sha {str(rec.get('tracker_sha'))[:12]}, not this actor {sha[:12]}")
-        verdict = (rec.get("w6_gate") or {}).get("verdict")
-        if verdict != "pass":
-            raise ValueError(f"install: {vp} D-112 gate verdict is {verdict!r}, not 'pass' (failed: "
-                             f"{(rec.get('w6_gate') or {}).get('failed')})")
+        if task is not None:
+            from rrp.harness.eval.gates import tracker_verdict
+            tv = tracker_verdict(rec, task)
+            if tv["verdict"] == "fail":
+                raise ValueError(f"install: {vp} D-147 verdict for task {task!r} is 'fail' ({tv['label']}; lab {tv['lab']['checks']})")
+            if tv["verdict"] == "exception":
+                decision, label = "accepted_d147_exception", f"{label} [{tv['label']}]"
+            rec = dict(rec, w6_gate=dict(rec.get("w6_gate") or {}, verdict=tv["verdict"], task=task))
+        else:
+            verdict = (rec.get("w6_gate") or {}).get("verdict")
+            if verdict != "pass":
+                raise ValueError(f"install: {vp} D-112 gate verdict is {verdict!r}, not 'pass' (failed: "
+                                 f"{(rec.get('w6_gate') or {}).get('failed')})")
         vals.append((vp, rec))
     from rrp.envs.mujoco.legged_tracker import TRACKER_DIR
     store = Path(TRACKER_DIR if root is None else root) / body / version
@@ -517,9 +529,11 @@ def install_main(argv=None):
     ap.add_argument("--label", required=True, help="one-line install label: what it is and what its gate showed")
     ap.add_argument("--decision", default="accepted")
     ap.add_argument("--root", default=None, help="tracker store root (default artifacts/trackers)")
+    ap.add_argument("--task", default=None, choices=("steps", "gap", "gait"),
+                    help="D-147: judge by the task's gating trials; an exception verdict installs with decision accepted_d147_exception")
     a = ap.parse_args(argv)
     try:
-        store = install(a.run, a.validation, a.body, a.version, label=a.label, root=a.root, decision=a.decision)
+        store = install(a.run, a.validation, a.body, a.version, label=a.label, root=a.root, decision=a.decision, task=a.task)
     except ValueError as e:
         raise SystemExit(str(e))
     print(json.dumps(dict(installed=str(store), spec=f"{a.body}:{a.version}")))

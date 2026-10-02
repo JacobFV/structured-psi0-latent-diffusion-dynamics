@@ -167,3 +167,31 @@ def test_task_gate_trials_and_the_d147_exception_verdict():
     assert tracker_verdict(val({}, force=4.1, margin=-0.05), "steps")["verdict"] == "exception"
     assert tracker_verdict(val({}, force=4.3), "steps")["verdict"] == "fail"            # above the 4.2 BW cap
     assert tracker_verdict(val({"arc": 1.0}, force=3.5), "steps")["verdict"] == "fail"  # falls are never exempt
+
+
+def test_install_takes_a_d147_exception_only_through_the_task_verdict(tmp_path):
+    import json
+    import torch
+    from rrp.core.provenance import file_digest
+    from rrp.harness.train.tracker_training import install
+    run = tmp_path / "run"
+    run.mkdir()
+    torch.save(dict(meta=dict(body="t1", obs_dim=3)), run / "actor.pt")
+    sha = file_digest(run / "actor.pt", length=None)
+
+    def write(force, falls):
+        summ = {k: dict(fall_rate=falls.get(k, 0.0), peak_force_bw=force, joint_limit_margin_min=0.01, cot=0.5, slip_ratio=0.05)
+                for k in ("stand", "forward", "turn", "turn_fast", "arc", "push_fwd")}
+        v = dict(tracker_sha=sha, family="humanoid", summary=summ, w6_gate=dict(verdict="fail"),
+                 gate=dict(no_fall_rate=1.0, forward_ratio=0.9, turn_ratio=1.0, contact_gate=dict(slip_ratio=0.05)),
+                 robustness=dict(nominal_forward_ratio=0.9, conditions={"push": dict(no_fall_rate=1.0, forward_ratio=0.9)}))
+        p = tmp_path / f"v_{force}_{len(falls)}.json"
+        p.write_text(json.dumps(v))
+        return p
+    with pytest.raises(ValueError, match="not 'pass'"):
+        install(run, [write(3.5, {})], "t1", "a", label="x", root=tmp_path / "s")              # no task: D-112 only
+    st = install(run, [write(3.5, {})], "t1", "b", label="x", root=tmp_path / "s", task="gait")
+    m = json.loads((st / "meta.json").read_text())
+    assert m["decision"] == "accepted_d147_exception" and "peak_foot_force_bw 3.5" in m["install_label"]
+    with pytest.raises(ValueError, match="'fail'"):
+        install(run, [write(3.5, {"stand": 1.0})], "t1", "c", label="x", root=tmp_path / "s", task="gait")
