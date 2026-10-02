@@ -688,3 +688,8 @@ broker refuses (6 h cap): instance override to 21600 s segments with retries 3 (
     (lineage `trk-steps_scan-t1-p2fix`, after g1 / h1). Evidence: `artifacts/runs/humanoid/trk-steps_scan-t1/{train,validate,eval}_tracker_s1/`.
 - Host: the T1 gap ring runs on the host GPU (`trackers_gap_ring_host.yaml`); the first smoke attempts failed because the host coordinator hid
   the GPU (CUDA_VISIBLE_DEVICES= in its env; fixed, smoke nodes reset). t1 gap smoke (warm start): level 0 806/825, level 1 506/591; 2.5 GB peak.
+- 2026-10-01 22:40 (lead): g1 / h1 (P2 fix) and then the t1 P2-fix retrain go to whichever GPU frees first, peer or host
+  (`~/work/rrp-data/campaign/bin/hum_dispatch.sh g1 h1 t1`, unit `camp-hum-dispatch`, log `campaign/logs/hum_dispatch.log`): peer when it has
+  a free slot and no humanoid GPU lease, host when its single slot is free and the host gap-ring coordinator is done; one humanoid GPU job per
+  machine; each body runs train -> validate -> eval on one machine under its own ledger file (`--ledger .../ledger_<body>[_host].json`), host via
+  `recipes/humanoid/trackers_steps_scan_host.yaml`. The earlier peer-only queue units were stopped before they launched anything.

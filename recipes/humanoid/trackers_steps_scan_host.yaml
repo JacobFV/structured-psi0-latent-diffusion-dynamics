@@ -1,0 +1,14 @@
+# T1 h_steps trackers (trackers_steps_scan.yaml, incl. the D-147 P2 fix for g1 / h1 and the t1 retrain lineage) placed on the HOST GPU
+# (D-147 addendum, owner 2026-10-01). Same nodes / options / outputs; own DAG name. The campaign dispatcher sends each body to whichever
+# GPU (peer or host) frees first, with one ledger file per body (`--ledger`), so a body never runs twice. Host caps: 8 CPU, 32 GiB incl.
+# GPU memory, 1 GPU slot. Declarations as the peer instance (t1 measured 2.5 GB + 3.9 GB GPU; 5G + 8G declared).
+extends: trackers_steps_scan.yaml
+name: humanoid_trackers_steps_scan_host
+schema: dag-1
+track: humanoid
+policy: tracker
+env: mujoco/legged
+task: h_steps
+bodies: humanoid_pool_v1
+factors: []
+defaults: {placement: host}
