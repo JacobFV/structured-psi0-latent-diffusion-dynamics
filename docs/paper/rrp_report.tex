@@ -1,0 +1,402 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.57in]{geometry}
+\usepackage{array,amsmath,amssymb,booktabs,graphicx,xcolor,microtype,pifont}
+\usepackage{tabularx,multirow}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,calc,shadows.blur,backgrounds}
+\usepackage[font=small,labelfont=bf,skip=3pt]{caption}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+\titlespacing*{\section}{0pt}{6pt}{3pt}
+\titlespacing*{\subsection}{0pt}{4pt}{2pt}
+\setlength{\parskip}{1pt}
+\definecolor{rel}{HTML}{2BB3C0}   % relation cyan (film palette)
+\definecolor{ink}{HTML}{3A3F47}   % graphite
+\definecolor{amber}{HTML}{F2A33A}
+\definecolor{violet}{HTML}{8C7CF0}
+\newcommand{\pt}[1]{\textcolor{rel}{\ding{\numexpr181+#1\relax}}}
+\newcommand{\hl}[1]{\textcolor{rel!70!black}{\textbf{#1}}}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\dn}[1]{\textsc{d-#1}}
+\newcommand{\Y}{\textbf{\textcolor{rel!60!black}{Y}}}
+\newcommand{\N}{\textcolor{gray}{--}}
+\newcommand{\zcell}[1]{{\color{rel!#1!white}\rule{1.6mm}{1.6mm}}\hspace{0.2mm}}
+\input{table_relations}
+\newcommand{\sysz}{System~0}\newcommand{\sysi}{System~1}\newcommand{\sysii}{System~2}
+
+\title{\vspace{-1.6em}\textbf{Relational attention for a structured semantic latent packet:\\toward morphology-general robot control}}
+\author{Jacob Valdez \quad\small SuperCognition Labs \quad \texttt{jacob@supercognitionlabs.com}}
+\date{\small October 2026}
+
+\begin{document}
+\maketitle
+\vspace{-2.2em}
+
+\begin{abstract}\noindent
+We study robot control in which a planner (System~1) samples a continuous latent packet $z\in\mathbb{R}^{K\times M\times D}$, one slot per knot time and per body assembly, by rectified-flow matching, and a fast body-side controller (System~0) realizes the same packet as native joint targets from proprioception and touch alone. The packet is supervised to carry task meaning (target, contact, held object, goal) through probes. Every attention layer adds declared relational structure to its logits: the logit is $\langle q_i,k_j\rangle/\sqrt d$ plus a sum of factor terms (PaPE-style relative geometry, kinematic graph, contact, support and force flow, grasp, task-gated next contact, UI structure). The terms come from one declarative registry of 76 factors (75 implemented) that also drives relation-aware data generation and probe readouts, with a deploy guard that keeps simulator truth out of run-time inputs. Across arms, quadrupeds, hexapods, humanoids and a 3D UI world we record that semantic supervision raises arm competence (+0.23 [0.18, 0.28], D-134), carries a task-context halt request into legged behaviour (D-124) and lets packet edits steer a pointer (D-142), but that the latent route does not beat behaviour cloning when adapting to a new arm (D-135/D-136). A pre-registered campaign (humanoids, arm diversity, $\Psi_0$, pointer, relation factors) is running; this report states its gates and no campaign result.
+\end{abstract}
+
+\begin{tcolorbox}[colback=rel!6,colframe=rel!40,boxrule=0.5pt,arc=2pt,left=4pt,right=4pt,top=3pt,bottom=3pt]
+\textcolor{rel}{\ding{72}}\;\textbf{Contributions.}\\[1pt]
+\pt{1}~\hl{Packet interface.} System~1 $\to z[K{\times}M{\times}D]\to$ System~0, with per-assembly queries computed from public morphology (no per-ID tables); the same tensor is probed, transmitted and consumed.\\
+\pt{2}~\hl{Relational attention as a sum of declared terms.} One registry (field $\times$ operator $\times$ form $\times$ source) drives biases, kernel-compatible augmentations, gates and masks, and a deploy guard.\\
+\pt{3}~\hl{Relation-aware data.} One privileged state interface, label and scene-part registries, factor-agnostic transforms and a progressive-composition scheduler generate the data each relation needs.\\
+\pt{4}~\hl{A ledger.} Recorded results with their intervals, including negative ones, and a pre-registered campaign with its gates.
+\end{tcolorbox}
+
+\section{Introduction}
+A robot policy that is meant to move between bodies has to say what it intends in a form that survives the change of body. We take the \emph{latent packet} as that form. A planner emits $z$; a body-side controller turns the received $z$ into joint targets using only what the body itself senses. Task meaning therefore has to live on $z$, and we require evidence for that from probes \emph{and} from causal edits of the received packet.
+
+The model is organized by a naming that follows $\Psi_0$~\cite{psi0}: System~2 is an optional frozen vision-language model, System~1 the flow-matching planner, System~0 the packet realizer. Unlike $\Psi_0$'s System~0 (an off-the-shelf RL tracker), ours is a learned realizer; an RL tracker sits underneath it for legged bodies. The second ingredient is a view of attention as a sum of named relational terms. Relative geometry follows the kernel-compatible position terms of PaPE~\cite{pape}; graph, contact and task terms follow the relational-inductive-bias view~\cite{battaglia}. What is new here is bookkeeping: each term is one registry entry that also says which labels train it, which scene parts generate its data and whether it is a bias, an augmentation, a gate, a mask or only a readout.
+
+\paragraph{What this report claims.} (i)~The design, with every factor listed (Table~\ref{tab:relations-summary}, Appendix~A). (ii)~Recorded results from the ledger, each with its decision number and interval (Table~\ref{tab:results}). (iii)~A pre-registered campaign, described as a plan (Table~\ref{tab:campaign}). \emph{Not claimed:} that relation factors help (the experiment that tests this is running), that the latent route transfers across bodies (it did not on a new arm), or any physical-robot result (simulation only).
+
+\begin{figure*}[t]\centering
+% Figure 1 (system diagram) for the rrp report. Include with \input{fig1} inside a figure* (full text width) of a 10pt twocolumn article.
+% Needs: tikz with arrows.meta, positioning, fit, calc; amsmath. Facts: ~/work/rrp-data/video/intro_v2/model_facts.md, README.md (clocks), code.
+\definecolor{s2fill}{HTML}{F3C4CF}\definecolor{s2line}{HTML}{C2577A}
+\definecolor{s1efill}{HTML}{F8D9B8}\definecolor{s1eline}{HTML}{D98A3D}
+\definecolor{s1dfill}{HTML}{F6C79A}\definecolor{s1dline}{HTML}{C8742A}
+\definecolor{s0fill}{HTML}{F6E7A6}\definecolor{s0line}{HTML}{B89A2E}
+\definecolor{relcyan}{HTML}{2BB3C0}\definecolor{depgreen}{HTML}{5CC98A}
+\definecolor{ink}{HTML}{3A3F47}
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[font=\scriptsize,>={Stealth[length=3.2pt]},
+  blk/.style={draw=#1,line width=1.1pt,rounded corners=3pt,align=center,inner sep=3pt},
+  s2/.style={blk=s2line,fill=s2fill,dashed},
+  s1e/.style={blk=s1eline,fill=s1efill},
+  s1d/.style={blk=s1dline,fill=s1dfill},
+  s0/.style={blk=s0line,fill=s0fill},
+  trn/.style={draw=ink!60,fill=ink!6,dashed,line width=0.8pt,rounded corners=3pt,align=center,inner sep=3pt},
+  note/.style={font=\tiny,align=center,text=ink},
+  clk/.style={font=\tiny\itshape,text=ink!85},
+  flow/.style={->,thick,ink},
+  rel/.style={->,thick,relcyan}]
+% ---- inputs
+\node[note,anchor=east] (imgin) at (0.2,3.0) {camera image\\+ instruction};
+\node[s2,text width=33mm] (s2) at (3.0,3.0) {\textbf{System 2} \emph{(optional)}\\frozen VLM + resampler\\$\to$ 16 image tokens};
+\draw[flow,dashed,s2line] (imgin) -- (s2);
+\node[note,anchor=south] at (1.3,1.05) {public / estimated tokens};
+\foreach \i/\n in {0/morph,1/scene,2/task,3/interact}{
+  \node[s1e,minimum width=19mm,minimum height=4.6mm,inner sep=1pt,line width=0.8pt] (bank\i) at (1.3,0.55-\i*0.55) {\n};}
+\node[note,anchor=north,text width=30mm] at (1.3,-1.45) {arm: objects, task graph\\legged: joints, terrain cells\\pointer: widgets, instruction};
+% ---- System 1
+\node[s1e,text width=28mm,minimum height=22mm] (enc) at (4.9,0) {\textbf{encoder}\\[1pt]typed banks, self-attn with\\\textcolor{relcyan}{\textbf{relation bias}}\\[1pt]\tiny run once per observation};
+\node[s1d,text width=50mm,minimum height=22mm] (dec) at (10.0,0)
+  {\textbf{decoder} over packet slots $(k,m)$\\[1pt]
+   $x_{k,m}\!=\!z_{\mathrm{in}}\!+\!\mathrm{node}(\mathrm{asm}_m)\!+\!\mathrm{node\_from\_ctx}(\mathrm{morph}_m)\!+\!h_k$\\[1pt]
+   cross-attn to cached context, $\tau$-conditioned};
+\draw[s1dline,line width=0.6pt,rounded corners=4pt] ([shift={(-2mm,-2.6mm)}]enc.south west) rectangle ([shift={(2mm,2.4mm)}]dec.north east);
+\node[font=\scriptsize\bfseries,text=s1dline,anchor=north east] at ([shift={(1.5mm,-2.8mm)}]dec.south east) {System 1 (flow matching)};
+\node[note] (eps) at (10.0,3.0) {noise $\varepsilon$};
+\draw[flow] (eps) -- (dec.north |- 0,1.5);
+\node[note,anchor=west,text width=50mm,align=left] at (10.15,2.25) {rectified flow, Euler $n_{\mathrm{fe}}{=}8$;\\all $K{\times}M$ tokens denoised in parallel};
+\draw[flow] (bank0.east) -- ++(0.35,0) |- ([yshift=3mm]enc.west);
+\draw[flow] (bank3.east) -- ++(0.35,0) |- ([yshift=-3mm]enc.west);
+\draw[flow,s2line,dashed] (s2.east) -| node[right,pos=0.8,note,text=s2line,align=left]{image tokens\\(scene bank)} (enc.north);
+\draw[flow] (enc) -- node[above,note,pos=0.5]{K,V} (dec);
+% ---- packet
+\begin{scope}[shift={(14.2,0)}]
+  \foreach \k in {0,1,2,3}{\foreach \m in {0,1,2}{
+    \pgfmathsetmacro{\sh}{20+18*mod(\k*2+\m*3,5)}
+    \fill[relcyan!\sh!white,draw=relcyan!80!black,line width=0.4pt] (\k*0.42-0.84,0.42-\m*0.42-0.19) rectangle ++(0.38,0.38);}}
+  \node[font=\tiny,text=ink,anchor=south] at (0,0.78) {knots $k$};
+  \node[anchor=north,align=center,text=relcyan!55!black,inner sep=1pt] (zlab) at (0,-0.95) {\textbf{packet} $z\!\in\!\mathbb{R}^{K\times M\times D}$\\[-1pt]\tiny arm: $K{=}4$, $D{=}64$};
+\end{scope}
+\draw[relcyan,line width=1pt,rounded corners=3pt] (13.0,-0.85) rectangle (15.4,1.1);
+\draw[flow] (dec.east) -- (13.0,0);
+% ---- System 0
+\node[s0,text width=34mm,minimum height=22mm] (s0) at (18.1,0)
+  {\textbf{System 0} (realizer)\\[1pt]node queries from $q,\dot q$, touch,\\IMU (own senses); cross-attend\\packet knots, mask \texttt{route.own\_assembly}\\[1pt]\tiny no task, scene or image input};
+\draw[flow] (15.4,0) -- node[above,note,yshift=1pt]{$z$} (s0.west);
+\node[s0,fill=s0fill!40,line width=0.8pt,text width=30mm] (pd) at (18.1,-3.4) {PD / joint tracker $\to$ MuJoCo body};
+\draw[flow] (s0.south) -- node[right,note,xshift=1pt]{joint targets} (pd.north);
+\draw[flow] (pd.east) -- ++(0.9,0) |- node[near end,above,note]{} ([yshift=3mm]s0.east);
+\node[note,anchor=west,align=left] at (21.0,-1.6) {$q,\dot q$,\\touch,\\IMU};
+% ---- deploy boundary and training-only band
+\draw[depgreen,line width=1.4pt,dash pattern=on 5pt off 3pt] (-0.4,-2.75) -- (15.7,-2.75);
+\node[font=\tiny\bfseries,text=depgreen!55!black,anchor=south west] at (-0.4,-2.73) {deploy boundary: above, public and estimated inputs only};
+\node[trn,text width=40mm] (tenc) at (7.3,-3.95) {\textbf{target encoder $E$} (training only)\\demonstrated future actions\\$\to$ target packet $z^{\star}$};
+\draw[->,thick,ink!60,dashed] (tenc.north) -- (tenc.north |- 0,-1.95) -- (8.2,-1.95) -- (8.2,-1.12);
+\node[trn,text width=22mm] (lab) at (11.0,-3.95) {\textbf{labels} (sim truth)};
+\node[trn,text width=30mm] (probe) at (14.2,-3.95) {\textbf{probes} read $z$\\[-1pt]\tiny contact, goal, held object, \dots};
+\draw[rel,dashed] (zlab.south |- 0,-1.62) -- node[right,note]{} (probe.north);
+\node[note,anchor=east] at (7.15,-2.25) {flow target $z^{\star}$};
+\draw[->,thick,ink!60,dashed] (lab) -- (probe);
+\node[note,font=\tiny\bfseries,text=depgreen!45!black,anchor=north east] at (13.9,-2.8) {labels (sim truth) $\to$ probes, training only};
+% ---- clocks
+\node[clk,font=\scriptsize\itshape,anchor=north west,text width=215mm,align=left] at (-0.4,-5.3)
+  {clocks. arm: System 1 replans every 0.4\,s (4 knots), System 0 at 20\,Hz, physics 500\,Hz. legged / humanoid: replan every 20 ticks (0.4\,s), System 0 at 50\,Hz.};
+\end{tikzpicture}}
+\caption{\textbf{System overview.} System~1 encodes typed context tokens (public or estimated fields only) once per observation and denoises the packet $z$ in parallel; System~0 realizes the same $z$ from the body's own senses with no task, scene or image input. Dashed boxes are optional (System~2) or training-only (target encoder, labels, probes: simulator truth, never a deployed input).}
+\label{fig:iface}
+\end{figure*}
+
+
+\section{Architecture}
+\paragraph{System~1.} An encoder--decoder transformer trained by rectified flow~\cite{rectflow,fm}. The encoder reads clean context tokens once per observation. Tokens come in typed banks: \emph{morph} (one per action node, passive joint and assembly), \emph{scene} (tracked objects with uncertainty and an explicit null token), \emph{task} (events, role bindings, predicates, status) and \emph{interact} (touch and receipts). Legged and humanoid bodies use one global token plus per-joint, per-limb, per-foot and terrain-cell tokens; the pointer world uses UI-widget and instruction-character tokens. Only the $\Psi_0$ family and an optional arm variant read an image, through System~2 (a frozen VLM and a small resampler giving 16 image tokens).
+
+The decoder's queries are the packet slots $(k,m)$ for knot $k$ and assembly $m$,
+\begin{equation}
+\begin{aligned}x_{k,m}={}&z_{\tau}[k,m]\,\text{in-proj}\\&+\mathrm{node}(a_m)+\mathrm{node\_from\_ctx}(c_m)+h_k,\end{aligned}
+\label{eq:query}
+\end{equation}
+where $a_m$ are the assembly's public morphology features, $c_m$ its encoded morph token and $h_k$ a knot embedding. The identity of a query is thus computed from public morphology, not looked up in a per-ID table, which is what lets a new body produce new queries. Each block applies self-attention over time and across assemblies, cross-attention to the cached context and an MLP, conditioned on flow time $\tau$. Sampling integrates $\tau:0\to1$ by $8$ Euler steps over \emph{all} $K\times M$ tokens in parallel; the loss is $\lVert v-(z-\epsilon)\rVert^2$ with $z_\tau=(1-\tau)\epsilon+\tau z$. A training-only target encoder $E$ turns demonstrated future actions into the target packet; probes read meaning out of $z$ and supervise it.
+
+\begin{table}[t]\centering\small
+\caption{\textbf{Packet shape per family} ($z[K{\times}M{\times}D]$), from the code.}\label{tab:packet}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lcccl@{}}\toprule
+family & $K$ & knot times / horizon & $M$ & $D$\\\midrule
+arm / dual & 4 & 0.1--0.7\,s & 1 / 2 & 64\\
+legged / humanoid & 4 & 0.1--0.7\,s (0.8\,s) & $\le$11 & 32\\
+$\Psi_0$ (G1) & 5 & chunk steps 5--29 (0.6\,s) & 6 & 64\\
+pointer & 4 & -- & 1 & 16 (26)\\\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{System~0.} Each control tick, one query per actuated node is built from public morphology and the \emph{current} measured state ($q,\dot q$; legs add IMU, own-foot touch and an oscillator). The node queries cross-attend to the packet's knot tokens, whose times are shifted by the elapsed phase, through the routing mask \code{route.own\_assembly} (a node reads only its own assembly's knots; legged bodies add the body assembly's); then self-attention among nodes and an MLP give one normalized joint target per node. System~0 receives \emph{no} task, instruction, scene, image or System~1 state: task meaning arrives only through $z$, sensor feedback every tick. Clocks: the arm replans every 0.4\,s and runs System~0 at 20\,Hz over 500\,Hz physics; legged and humanoid bodies replan every 0.4\,s with a 0.8\,s packet at 50\,Hz.
+
+\paragraph{Deploy boundary.} Every token set separates \code{fields} (public or estimated) from \code{labels} (simulator truth). Each field and factor carries a provenance, \emph{public}, \emph{estimated} (a public estimator or the factor's own probe) or \emph{privileged}, and a deployable policy refuses privileged sources (\code{assert\_deployable}). Ground truth trains the probes; at run time only public and estimated values steer attention.
+
+\section{Relational attention bias}
+Every attention call in the model uses one shared multi-head attention whose logit is
+\begin{equation}
+\begin{aligned}A_{ij}={}&\frac{q_i^{\top}k_j}{\sqrt d}+\sum_{f\in\mathcal{B}}w_{f,h}\,\gamma_f\,v_f(i,j)\\&+\big\langle\phi_q(i),\phi_k(j)\big\rangle\;\big(-\infty\text{ if masked}\big),\end{aligned}
+\label{eq:logit}
+\end{equation}
+where each registered factor $f$ contributes one term $v_f(i,j)$ in one \emph{form}: an additive \emph{bias} ($f\in\mathcal B$), a kernel-compatible \emph{augmentation} appended to $q,k$ (the $\langle\phi_q,\phi_k\rangle$ term, so fused attention kernels still apply), a \emph{gate} $\gamma_f=2\sigma(u\cdot c+b)$ that scales another term by a task, goal or embodiment summary $c$, or a hard \emph{mask}. Three non-attention forms (message, embed, readout) reuse the same entries. Every learned coefficient is zero-initialized, so switching a factor on in a trained model is a no-op at step~0.
+
+\paragraph{Operators.} A factor is an entry over about a dozen operators, which are the only code per relation \emph{kind}: \code{diff}, \code{sqdiff+diff} (PaPE), \code{rel\_rot}, \code{align}, \code{order}, \code{same}, \code{sim}, \code{edge}, \code{hop}, \code{ancestor} (closure), \code{flow}, \code{bilinear} and \code{unary}. The PaPE term in its compact kernel-compatible form is
+\begin{equation}
+v_{\mathrm{PaPE}}(i,j)=-(r_j-r_i)^{\top}M_i(r_j-r_i)+\tilde b_i^{\top}(r_j-r_i),
+\label{eq:pape}
+\end{equation}
+with $M_i\succeq0$ diagonal in a learned frame and $\tilde b_i$ a learned direction; it splits into a \emph{distance} part and a \emph{direction} part (the first two panels of Fig.~\ref{fig:fig2}). Graph terms come from declared morphology (\code{kin.ancestor}, siblings, same assembly) and from the supplied task graph (actor, patient, destination edges). Pair terms that cannot be read from public inputs (contact, support, held-by, handover, next contact) are \code{bilinear}: $\langle U x_i,Vx_j\rangle$ is at once the attention term and the pair probe, so the bias \emph{is} a supervised attention subspace, and its estimate can feed a graph factor (\code{ix.support}$\to$\code{ix.force\_flow}) with source \emph{probe}, deployable. \code{task.next\_contact} is gated by the task so that the same scene shows several candidate edges and the bias narrows to the one the task needs.
+
+\paragraph{Sites and controls.} Factors attach at the encoder (\code{ctx>ctx}), decoder cross- and self-attention (\code{act>ctx}, \code{act>act}) and System~0 routing (\code{node>knot}). Uniform controls apply to any factor: \code{off}, \code{zero}, \code{rewired} (keys permuted, degree preserving), \code{shuffled}, \code{reversed}, and for message factors \code{serialized}, the same facts as hashed text (the equal-information baseline).
+
+\paragraph{Probes and diagnostics.} Probes are readouts in the same registry. Attention maps and probe accuracy are diagnostics: causal use is shown by editing the packet or the context and rolling out (Section~\ref{sec:results}, D-142, D-124). Fig.~\ref{fig:fig2} shows factor \emph{values} computed from real simulator states, not learned attention.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig2.pdf}
+\caption{\textbf{The attention logit, one term at a time.}
+Each panel stretches one term of $\mathrm{logit}(i,j)$ for a single query token (ring) over a real simulator state; frame colour is the relation family
+(geometry, kinematics/UI, contact/support/grasp, procedure). The content term $\langle q_i,k_j\rangle/\sqrt{d}$ is learned and data-dependent, so it has no panel.
+\emph{The values shown are computed by the factor operators of \texttt{rrp.policies.relations} on real simulator states; they are not trained attention.}
+Panels 1--2 run the PaPE kernel with hand-set, illustrative coefficients (the model learns them per head); panels 3 and 8 are public, given structure (G1 kinematic tree; computerworld widget tree).
+For probe-sourced pair terms (panels 4--7) the colour shows the simulator-truth label that trains the probe; the deployed term is the probe's estimate, which is not shown.
+Scenes: scripted-teacher Panda pick-and-place states (1, 2, 4, 6, 7), a teleported three-cube stack (5), a G1 keyframe (3), a rendered desktop UI (8).
+Planned relation factors are omitted.}
+\label{fig:fig2}
+\end{figure*}
+
+\relsummary
+
+\section{Relation-aware data and curriculum}
+Each relation may need data that decouples one invariance, so data generation is as declarative as the factors. A single privileged \code{StateView} (capability \code{privileged\_truth}, implemented per backend) exposes poses, contacts, joints, cameras and UI trees for \emph{supervision only}. Four registries sit on it: \code{LABELS} (18 label functions, each with a provenance \code{gt}, \code{task} or \code{estimator}), \code{PARTS} (7 composable scene components: \code{table\_objects}, \code{camera\_depth}, \code{grasp\_target}, \code{stack}, \code{terrain\_steps}, \code{cw\_viewport}, \code{cw\_depth}, each declaring the dynamics it activates, requires and conflicts with), \code{TRANSFORMS} (6 factor-agnostic sample transforms: \code{reveal}, \code{surprise}, \code{cf\_swap}, \code{noise}, \code{occlude}, \code{subsample}) and one composition operator that returns a scene covering a requested set of active dynamics. A factor entry names its \code{label} and its \code{gen} parts or transforms; decoupling pairs are copies of a scene that differ only in one factor's value.
+
+\paragraph{Progressive composition.} One scheduler samples the generated rows. Every factor starts at composition depth $k{=}1$ (isolated parts); it is promoted to $k{+}1$ when its competence $c_f\ge\theta_f$ for two consecutive intervals; per-factor shares are $\propto s_{\min}+s_f$, clipped to $[2\%,35\%]$, with struggle $s_f=(1-c_f)+0.5\,p_f+i_f+e_f$ (plateau, interference and attributed failures); the full-task share follows a rising floor. Steering is a small grammar (boost, pin, freeze, drop, revert) logged for exact replay. \emph{State:} implemented and plumbing-smoked; the campaign run that measures competence by depth and interference (T9) is in progress, so there is no curriculum result in this report. The \code{cf\_swap}, \code{reveal} and \code{surprise} transforms produce the decoupling and progressive-information variants of the contact and next-contact labels.
+
+\section{Environments, bodies and tasks}
+All simulation is native MuJoCo~\cite{mujoco} with robot models largely from MuJoCo Menagerie~\cite{menagerie} (plus a batched Warp legged env and the $\Psi_0$ SIMPLE benchmark on Isaac Sim) behind one environment, one policy and one task interface; one harness runs any accepted policy $\times$ environment $\times$ task triple and records declined pairs with reasons. Table~\ref{tab:envs} lists the bodies and tasks and Fig.~\ref{fig:envs} shows one frame of each environment. Evaluation routes use matched seeds: R0 scripted teacher (privileged), R1 oracle packet $E(\text{expert chunk})$ (diagnostic, not deployable), R2 generated packet (deployable), plus a behaviour-cloning (BC) positive control and task-context edit suites. Splits are sealed before results.
+
+\input{table_envs}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig3_envs.pdf}
+\caption{\textbf{The five environments.} One rendered frame each. The arm and dual-arm frames are mid-episode states of the scripted teacher (privileged source); the quadruped, humanoid and computerworld frames are reset states with no controller running, so they show the scene, not a rollout.}
+\label{fig:envs}
+\end{figure*}
+
+% Section 6. Fragment. Needs table_results.tex input in the main file (placed here for float order).
+\section{Results so far}\label{sec:results}
+Table~\ref{tab:results} lists every result recorded to the snapshot of 2 Oct 2026, with the setting, the comparison and the interval recorded in the cited decision. Results come from three environments (arm pick--place, legged locomotion, ComputerWorld pointer) and one third-party humanoid policy; none of them is a cross-body transfer claim. Source labels follow the repository convention: \emph{learned latent} and \emph{learned BC} are policies under test; \emph{scripted teacher} and \emph{privileged oracle} are references.
+
+\paragraph{Semantic packet supervision helps within the training bodies.} On four arm bodies and two training seeds the latent route with semfix succeeds in 425/480 R2 episodes against 314/480 for the capacity-matched nosem control, a difference of $+0.23$ [0.18, 0.28], with semfix ahead in 8/8 body$\times$seed cells (D-134). The latent route stays below the BC control on panda (135/180 against 58/60) and the binding (rebind) effect is seed-dependent for both variants. An earlier ``semantic supervision hurts'' result was a confound: the unbounded probe loss shrank System-0 updates to $\approx$0.002--0.004 against 0.70--0.92 for nosem; with the bounded loss the three variants read 81/90, 83/90 and 21/90 (bounded, nosem, original; D-085, D-087). Comparisons made before that fix are not used here.
+
+\paragraph{The packet is causally used, in two environments.} In legged locomotion, editing the packet's task-context ``halt'' component changes forward progress by $-0.40$\,m [$-0.50$, $-0.30$] on anymal\_c and $-0.66$\,m [$-0.72$, $-0.59$] on go2 for semfix against nosem, ordered in 3/3 seeds, while an irrelevant edit moves the body by at most 0.02\,m (D-124). In ComputerWorld a probe-guided edit reduces the distance to the original target from 163\,px to 41 and 22\,px for semfix; a random edit of equal norm gives 102--105\,px, and nosem edits behave like random ones (D-142). The edits are partial (the probe reads the new target in 8--10 of 25 episodes) and task success is unchanged. These are rollouts after edits, not probe accuracies.
+
+\paragraph{Zero-shot transfer to a new arm is not supported.} On sealed xarm7 targets, latent and BC policies both score 0/200 zero-shot. With target demonstrations BC fine-tuning reaches 69--192 of 200 depending on target, whereas flow fine-tuning gives 0 and a System-0 refit at most 38 (D-135). Joint flow and realizer adaptation, added \emph{after} D-135 and therefore post-hoc, beats the refit in 12/12 cells (595 against 130 of 1{,}200 for semfix) but stays below BC fine-tuning in 12/12 (595 against 842), with every Newcombe upper bound below zero (D-136). On the known arm with a new gripper (panda\_tf3) semfix reaches 154/200 zero-shot, nosem 32 and BC 199 (D-135). A dev-seed diagnosis (D-135 addendum) attributes the D-135 failure to the protocol adapting one module at a time and not to an inability of the latent route to adapt; even so, the latent route adapts about half as fast per update as BC and never beats it on a new body in the data so far.
+
+\paragraph{Pointer control: close to BC in-distribution, no copy on unseen strings.} On the sealed \texttt{sealed\_id} set ($n{=}400$, one training seed, sealed once) BC solves 398 (0.995 [0.982, 0.999]), semfix 372 (0.930 [0.901, 0.951]) and nosem 368 (0.920 [0.889, 0.943]); the scripted System-0 route (\texttt{eng}) solves 185 (D-142). The semfix--nosem difference is not distinguishable ($p{=}0.68$, McNemar); BC is ahead of semfix ($p{=}2.2\times10^{-7}$). On unseen words and names every learned method scores 0/50 on typing and 0/50 on form filling; unseen calculator pairs reach 45--50/50. The learned realizers do not copy characters from the instruction; a copy head is the pre-registered test (Sec.~\ref{sec:campaign}).
+
+\paragraph{Structure on a pretrained humanoid policy: a failed diagnosis, not a negative result.} On the released $\Psi_0$ checkpoint, 20 closed-loop episodes give 20/20 [0.84, 1.00] released, 19/20 [0.76, 0.99] direct fine-tuning and 0/20 [0.00, 0.16] with the structured head (D-141). The offline diagnosis traced the 0/20 to an integration fault (an out-of-distribution commanded-torso state), so it is not evidence against structure. The pre-registered packet-use gate that was added afterwards passed (gap 0.0782; D-146, D-147), and the closed-loop comparison is queued (Sec.~\ref{sec:campaign}).
+
+% Table 3 (results so far). Fragment: needs booktabs, array, tabularx, amsmath. Source of every cell: numbers_check.md.
+\begin{table*}[t]\centering\footnotesize
+\setlength{\tabcolsep}{3pt}\renewcommand{\arraystretch}{1.08}
+\caption{\textbf{Results so far} (recorded results only; interim numbers of running campaign nodes are not listed). ``Latent'' = learned System~1 $\to$ packet $\to$ learned System~0, deployable route (R2); ``BC'' = learned behaviour-cloning control on the same demonstrations; ``teacher'', ``oracle'' = scripted / privileged references, never policies under test. Intervals are the 95\% intervals recorded in the cited decision (Wilson for rates, Newcombe for rate differences); ``counts'' = no interval recorded. $\mathrm{semfix}$ = semantic packet supervision with the bounded probe NLL (D-085); $\mathrm{nosem}$ = capacity-matched control without it.}
+\label{tab:results}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.35cm}>{\raggedright\arraybackslash}p{4.3cm}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{1.55cm}@{}}
+\toprule
+Question & Setting (env, bodies, seeds, $n$) & Comparison & Result [95\% CI as recorded] & Decision \\
+\midrule
+Does semantic packet supervision help the arm latent route? &
+Arm pick--place, 4 bodies $\times$ 2 training seeds, 240 R2 episodes per lineage (480 pooled per variant); v6 data, teacher v2, grasp v2.1 &
+latent semfix vs latent nosem; BC reference &
+semfix 425/480 (0.89) vs nosem 314/480 (0.65): $+0.23$ [0.18, 0.28]; semfix wins 8/8 body$\times$seed cells. Binding (rebind) is seed-dependent for both. Latent is below BC on panda (semfix 135/180; BC 58/60; BC 60/60 on parm6). &
+D-134 \\
+\addlinespace
+Does the latent route transfer \emph{zero-shot} to a new arm? &
+Sealed targets xarm7\_pg2, xarm7\_tf3 (new arm), panda\_tf3 (new gripper, known arm); 2 seeds $\times$ 100 sealed scenes, k/200 pooled &
+latent semfix / nosem vs BC; zero-shot, then flow SFT, system-0 refit, BC SFT at 5/20/100 target demos &
+xarm7: zero-shot 0/200 for latent and BC; BC SFT 69--140 (pg2), 143--192 (tf3); latent refit $\le$38, flow SFT 0. panda\_tf3: semfix zero-shot 154, nosem 32, BC 199. counts. \textbf{Not supported.} &
+D-135 \\
+\addlinespace
+Does joint flow + realizer adaptation close the gap? \emph{(post-hoc)} &
+Same sealed xarm7 scenes; 2 seeds; 6 target$\times$budget cells per variant (1{,}200 episodes); method added \emph{after} D-135 &
+joint adaptation (update-matched 150/300/600) vs refit-only vs BC SFT &
+Beats refit in 12/12 cells (semfix 595 vs 130 of 1{,}200); below BC SFT in 12/12 cells (semfix 595 vs 842; gap $-0.07$ to $-0.34$; nosem $-0.30$ to $-0.80$; every Newcombe upper bound $<0$). semfix 595 vs nosem 151. Latent never beats BC. &
+D-136 \\
+\addlinespace
+Does the packet carry a task-context ``halt'' into legged behaviour? &
+mujoco/legged, contact v2, anymal\_c and go2, 3 training seeds each; R2 success $n{=}90$ per variant; forward-progress change over 2--5\,s &
+latent semfix $-$ nosem, pooled &
+anymal\_c $-0.40$\,m [$-0.50$, $-0.30$]; go2 $-0.66$ [$-0.72$, $-0.59$]; 3/3 seeds ordered (exact $p{=}0.05$); irrelevant-edit control $\le0.02$\,m; success comparable (anymal\_c 78 vs 83/90, go2 87 vs 87). t1 under sourced limits: untestable (BC 0/30). &
+D-124 \\
+\addlinespace
+Was ``semantic supervision hurts'' real? (confound found and fixed) &
+t1 humanoid (inflated-torque tracker), R2, 3 training seeds, $n{=}90$ &
+bounded-NLL sem vs nosem vs original sem &
+81/90 vs 83/90 vs 21/90. The unbounded probe NLL scaled System-0 updates by $\approx$0.002--0.004 (nosem 0.70--0.92); earlier sem-vs-nosem comparisons were confounded. counts. &
+D-085, D-087 \\
+\addlinespace
+Pointer on ComputerWorld: how does the latent route compare? &
+4 tasks, \texttt{sealed\_id} $n{=}400$ (100/task), 1 training seed, sealed once; teacher 400/400, oracle$\to$scripted System~0 400/400 (references) &
+latent semfix vs nosem vs BC vs scripted-System-0 route (\texttt{eng}) &
+BC 398 (0.995 [0.982, 0.999]); semfix 372 (0.930 [0.901, 0.951]); nosem 368 (0.920 [0.889, 0.943]); eng 185 (0.463). McNemar: BC vs semfix $p{=}2.2\mathrm{e}{-}7$; semfix vs nosem $p{=}0.68$. &
+D-142 \\
+\addlinespace
+\ldots unseen words and names &
+\texttt{sealed\_heldout} $n{=}150$ (50 calc / type / form), 1 seed &
+all learned methods &
+Typing and form-filling 0/50 each (0/100 unseen words and names) for every learned method; unseen calculator pairs 45--50/50. No method copies characters from the instruction. &
+D-142 \\
+\addlinespace
+\ldots causal use of the packet &
+Probe-guided packet edit, 25 dev episodes each on calc and form, 1 seed &
+semfix vs nosem vs random edit of equal norm &
+Approach to the original target: 163\,px (no edit) / 102--105 (random) $\to$ 41 / 22 (semfix); nosem edits $\approx$ random (128--141 vs 137--144\,px). Edits partial (probe reads the new target in 8--10/25). Task success unchanged. &
+D-142 \\
+\addlinespace
+Does adding structure to a pretrained humanoid VLA work? &
+$\Psi_0$ TabletopGraspMP L0 (SIMPLE / Isaac Sim 5.1, path-traced), 10 eval configs $\times$ 2 repeats, $n{=}20$ per arm &
+released $\Psi_0$ (third-party) vs direct fine-tune vs structured &
+Released 20/20 [0.84, 1.00]; direct 19/20 [0.76, 0.99]; structured 0/20 [0.00, 0.16], diagnosed as an integration bug (System~0 ignores the packet); not evidence against structure. &
+D-141 \\
+\addlinespace
+\ldots after the fix: packet-use gate &
+T7 phase 1, held-out episodes; gate = err$(R(\bar z))-$err$(R(E(a)))\ge$ margin 0.05 &
+stage A with state dropout and permuted-packet hinge &
+\textbf{PASS}: gap 0.0782 (0.0843 vs 0.0060). Closed-loop structured evaluations are queued, not results. &
+D-146, D-147 \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+
+% Section 7. Fragment.
+\section{Pre-registered campaign}\label{sec:campaign}
+The remaining claims are decided by a ten-node campaign (T0--T9; D-147, \texttt{research/readiness.md} section B) whose tests and reading rules were written before the corresponding runs. Table~\ref{tab:campaign} gives each node's state at the snapshot. At most two GPU leases run at a time, humanoid first; a failed gate is recorded and not retried with other settings. Sealed splits are hash-pinned and each cell runs once; infeasible or failed cells are reported as such.
+
+\paragraph{Humanoid (T0--T5).} Question: with pinned, gated trackers, does the legged relation preset change dev transfer relative to the same recipe without it (\texttt{preset:legged} against \texttt{legged-none}, at least two seeds, matched data and updates)? A tracker is installed only if it passes the D-112 gate, or the labelled D-147 exception (joint margin $\ge-0.06$, peak force $\le4.2$ body weights, cost of transport $\le2.5$, task evaluation $\ge0.9$). One bounded fix per failed gate is allowed. Terrain-scan trackers failed round 1 (T1), so terrain tasks are currently \emph{unsupported}; a task with teacher success below 0.8 is held back (T4). The test is the dev transfer tables followed by a written decision before any sealed cell (T5); no humanoid transfer claim is made until then.
+
+\paragraph{Arm diversity (T6).} H1: a latent route trained on 65 distinct arm kinematics transfers to new arms better than the v6 13-body lineages, zero-shot and at 5, 20 and 100 target demonstrations, and closes the gap to BC fine-tuning. H2: kinematic static features (\texttt{kinfeat}) help further. Success is $k/100$ per cell with Wilson intervals; three Newcombe contrasts: (a) v8div $-$ v6 latent per primary target, (b) v8div latent $-$ v8div BC fine-tuning at equal budget, (c) kinfeat $-$ no-kinfeat. A contrast counts only if its interval excludes 0; tiers are not pooled; zero-shot is reported apart from adaptation. Gate G3 requires v8div semfix $\ge$ v6 semfix $-0.05$ on the original bodies and a BC expert $\ge0.85$ on the new arms (BC half passed). A null or negative H1 is recorded as \texttt{failed\_hypothesis}; targets and budgets are not changed.
+
+\paragraph{Packet use in $\Psi_0$ (T7).} Question: does a structured head that reads the packet change closed-loop pick--place relative to direct fine-tuning? The gate requires err\,$R(\bar z)-$err\,$R(E(a))\ge0.05$; a failure ends the node as \texttt{failed\_hypothesis}. It passed (0.0782). No numerical threshold is recorded for the closed-loop comparison (20 episodes; D-141: released 20/20, direct 19/20), so it is reported with intervals and not as pass or fail.
+
+\paragraph{ComputerWorld pointer (T8).} Dev seeds, 50 per task, three training seeds; a difference counts only if it has the same sign in at least two of three paired seeds and exceeds the larger within-arm seed range. P-SEEDS: is the D-142 ordering stable? P-UI: do \texttt{ui.*} factors help (mean gain $\ge4$ points on $\ge2$ tasks, no task losing more than the seed range)? P-COPY: does a copy head fix unseen typing ($\ge10/50$ on both \texttt{open\_type} and \texttt{fill\_form} of \texttt{sealed\_heldout})? P-KEY: does a discrete key code help (dev gain above the seed range)? Sealed sets are evaluated once per arm and seed after the dev table is written. The scripted route cannot copy and is excluded from P-COPY.
+
+\paragraph{Relation factors (T9).} Question: do geometry, interaction and task factor sets added at stage A give probes with measurable competence, and do they interfere? The recorded tests are per-factor competence by curriculum depth and an interference table against the base set (two seeds). \textbf{No numerical success threshold is recorded for T9}; it can establish only that the diagnostics work, not downstream performance. Probes and attention maps are diagnostics; causal use is shown by edits and rollouts (Sec.~\ref{sec:results}).
+
+% Table 4 (campaign T0-T9). Fragment: needs booktabs, array, tabularx. Snapshot: campaign/STATUS.md of 2026-10-02 14:00 PDT; decisions at main a9667433.
+\providecommand{\st}[1]{{\ttfamily\scriptsize #1}}
+\begin{table*}[t]\centering\footnotesize
+\setlength{\tabcolsep}{3pt}\renewcommand{\arraystretch}{1.08}
+\caption{\textbf{Campaign T0--T9} (D-147; gates from \texttt{research/readiness.md} section B and the D-147 addenda), state as of 2 Oct 2026 14:00 PDT. States use the repository's progress vocabulary only. A recorded gate outcome is listed when one exists; counts of nodes that are still \st{running} are deliberately omitted. ``L'' = body leg length (step heights are given in units of L).}
+\label{tab:campaign}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{4.3cm}>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+ & Track and run & Pre-registered gate & State & Recorded gate outcome \\
+\midrule
+T0 & humanoid: pinned trackers and warm starts &
+\texttt{t1:contact\_v2} and warm-start checkpoints present with the recorded sha256 &
+\st{verified} &
+Pins match; its D-112 report reproduces D-114 (no new run). \\
+\addlinespace
+T1 & humanoid: terrain-scan trackers, \texttt{h\_steps} (t1, g1, h1) and \texttt{h\_gap} (t1, h1) &
+D-112 gate; task eval $\ge$0.9 per height/level; labelled exception only for joint margin, peak force, CoT within caps (D-147); one bounded fix per failed gate &
+\st{failed\_hypothesis} (round 1); round 2 \st{planned} &
+steps t1 2/20 at 0.10\,L, 0/20 above; g1 0/20 at every height; h1 10/20 at 0.10 and 0.15\,L, 0/20 above; gap t1 0/20; gap h1 20/20 at level 1.0 but stand-trial falls and force above cap. None installable. \\
+\addlinespace
+T2 & humanoid: wholebody \texttt{*\_ub} gait trackers (t1, g1, h1), then \texttt{steps\_ub} trackers &
+Lab gate; teacher check \texttt{h\_carry} $\ge$10/12 both sides, \texttt{h\_steps\_carry} $\ge$8/10, else \st{blocked\_external} and excluded &
+gait trackers \st{completed}; \texttt{steps\_ub} \st{planned} &
+t1, g1, h1 \texttt{ub\_v1} gait trackers installed under the labelled D-147 exception (lab gate pass, no falls; only the joint margin fails: 0.0183 / 0.0191 / 0.0160 against 0.02). Teacher check not yet run. \\
+\addlinespace
+T3 & humanoid: shared \texttt{morph\_v2\_ub} tracker &
+Gate on every source body &
+\st{planned} &
+--- \\
+\addlinespace
+T4 & humanoid: collection for every \texttt{h\_*} task &
+Teacher success $\ge$0.8 per task, else the task is held back with a note &
+\st{planned} &
+--- \\
+\addlinespace
+T5 & humanoid: lineages, \texttt{preset:legged} vs \texttt{legged-none}, $\ge$2 seeds, dev transfer tables &
+Dev tables, then a \emph{written decision} before any sealed cell (D-138 methods, matched data and updates) &
+\st{planned} &
+No sealed humanoid cell has run. \\
+\addlinespace
+T6 & armdiv: BC 1702, kinfeat BC 1701; G4 signature; v8div lineages $\to$ G3 $\to$ sealed &
+BC expert $\ge$0.85 on new training arms; v8div semfix $\ge$ v6 semfix $-0.05$ on original bodies; G4 protocol signed before any lineage; each sealed cell once &
+\st{running} (phase B: lineage stage A) &
+BC gate \textbf{PASS}: 117/120 new arms for both BC experts, 59/60 and 60/60 on v6 bodies, 60/60 held-out. G4 signed 2 Oct. Latent half of G3 and sealed cells: not yet. \\
+\addlinespace
+T7 & $\Psi_0$: labels $\to$ stage A $\to$ packet-use gate $\to$ structured head $\to$ closed loop &
+Gate gap $\ge$ margin 0.05, else \st{failed\_hypothesis} and nothing trains after it &
+phase 1 \st{completed}; phase 2 \st{running} &
+Gate \textbf{PASS}: gap 0.0782 (err$\,R(\bar z)$ 0.0843 vs err$\,R(E)$ 0.0060). Closed-loop direct vs structured: not yet. \\
+\addlinespace
+T8 & pointer v2: collection $\to$ copy / key heads $\to$ seeds $\to$ UI factors, dev tables &
+P-KEY, P-COPY, P-SEEDS, P-UI rules (Sec.~\ref{sec:campaign}); sealed only after a written decision &
+collection \st{completed}; copy \st{running}; seeds, UI \st{planned} &
+Collection: 4$\times$6{,}000 teacher episodes, 0 teacher failures. Oracle packets $\to$ scripted System~0: 50/50 on each task (privileged reference, not a policy result). \\
+\addlinespace
+T9 & relation factors: relgen shards $\to$ shared stage A $\to$ factor sets \{geo, ix, task\} vs base, seeds 1, 2 &
+Per-factor competence by depth; interference table &
+shards, stage A, probes \st{completed}; factor-set training \st{running} &
+None yet. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+
+% Limitations. Fragment.
+\section{Limitations}\label{sec:limitations}
+The evidence is narrow. (i) \emph{No cross-body transfer claim.} Zero-shot transfer to new arms is 0/200 for every method, the latent route has not beaten BC on any new body, and the humanoid transfer sealed cells have not been run. (ii) \emph{Seeds.} Most ComputerWorld numbers are one training seed (D-142); the legged result has three seeds per body (D-124), with exact seed-ordering $p{=}0.05$. Intervals cover evaluation episodes, not training-seed variance. (iii) \emph{Post-hoc analysis.} The joint-adaptation method of D-136 was added after the sealed results of D-135 on the same scenes; it is labelled and not a pre-registered test. (iv) \emph{Partial edits.} Packet edits move behaviour part of the way (the probe reads the edit in 8--10 of 25 cases) and are demonstrated on calculator and form tasks only. (v) \emph{Unseen strings.} All learned pointer methods fail on unseen typing and form text (0/100); this is a negative result about the current realizers. (vi) \emph{Pretrained humanoid.} The structured arm's 0/20 was an integration fault, fixed only offline so far; the closed-loop comparison has not run. (vii) \emph{Humanoid trackers.} Terrain trackers failed their gates and the one installed gait tracker is a labelled exception to the joint-margin rule. (viii) \emph{Simulation.} All results are simulated, with scripted or privileged teachers; sim-truth labels train probes and are not deployable inputs. No physical robot was commanded. (ix) \emph{Snapshot.} The campaign table is a snapshot; running nodes may finish with results that are not shown here.
+
+
+\begingroup\small\setlength{\parskip}{0pt}\setlength{\itemsep}{0pt}
+\begin{thebibliography}{9}\setlength{\itemsep}{0pt}\setlength{\parsep}{0pt}
+\bibitem{psi0} S.~Wei \emph{et al.} $\Psi_0$: An open foundation model towards universal humanoid loco-manipulation. arXiv:2603.12263, 2026.
+\bibitem{pape} C.\,K.~{\O}hrstr{\o}m \emph{et al.} Parabolic position encoding: vision-centric, principled, extrapolatable, general (PaPE). arXiv:2602.01418, 2026.
+\bibitem{rectflow} X.~Liu, C.~Gong, Q.~Liu. Flow straight and fast: learning to generate and transfer data with rectified flow. arXiv:2209.03003, 2022.
+\bibitem{fm} Y.~Lipman \emph{et al.} Flow matching for generative modeling. arXiv:2210.02747, 2022.
+\bibitem{battaglia} P.\,W.~Battaglia \emph{et al.} Relational inductive biases, deep learning, and graph networks. arXiv:1806.01261, 2018.
+\bibitem{mujoco} E.~Todorov, T.~Erez, Y.~Tassa. MuJoCo: a physics engine for model-based control. IROS, 2012.
+\bibitem{menagerie} Google DeepMind. MuJoCo Menagerie: a collection of high-quality simulation models for MuJoCo. \texttt{github.com/google-deepmind/mujoco\_menagerie}, 2022.
+\end{thebibliography}\endgroup
+
+\appendix
+\section{Relation tables (generated)}\label{app:relations}
+Both tables are written by \code{make\_figures.py table\_relations} from the live registries and the candidate catalog; nothing about an implemented factor is typed by hand.
+\relfull
+\relplanned
+
+\end{document}

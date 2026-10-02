@@ -1,0 +1,2328 @@
+{
+ "ambiguous": [
+  "26 probe.* factors: readout targets are legacy packet labels of the task-data pipeline, not relgen LABELS -> data gen N (readout Y)",
+  "catalog lists `kin.mirror` as W1 (family 'symmetry / lattice') but no such factor is registered",
+  "catalog lists `ui.contains` as W1 (family 'user interface') but no such factor is registered",
+  "geo.above: data gen Y only via the field label 'pos3d' (no declared `label`) and scene part(s) ['table_objects']",
+  "id.slot_handle: form 'embed' is neither an attention-logit term nor a readout (net-internal structure): attention N, readout N",
+  "leg.com_support: form 'readout' with a relgen label (com_support) -> data gen Y, readout Y, attention N",
+  "msg.incidence: form 'message' is neither an attention-logit term nor a readout (net-internal structure): attention N, readout N",
+  "route.assembly_reads: form 'mask' counted as attention (hard routing mask, not an additive bias)",
+  "route.own_assembly: form 'mask' counted as attention (hard routing mask, not an additive bias)",
+  "ui.above: data gen Y only via the entry-name label 'above' (no declared `label`) and scene part(s) ['cw_viewport', 'cw_depth']",
+  "ui.drag_to: label 'drag_to' needs caps ['teacher_drag'] that no registered env's StateView provides -> data envs: none (the generator exists, no env can run it yet)",
+  "ui.same_window: data gen Y only via the entry-name label 'same_window' (no declared `label`) and scene part(s) ['cw_viewport', 'cw_depth']"
+ ],
+ "by_family": {
+  "geometry": {
+   "attention": 5,
+   "data_gen": 5,
+   "implemented": 5,
+   "planned": 3,
+   "readout": 4
+  },
+  "interaction": {
+   "attention": 5,
+   "data_gen": 5,
+   "implemented": 5,
+   "planned": 6,
+   "readout": 4
+  },
+  "kinematics": {
+   "attention": 8,
+   "data_gen": 0,
+   "implemented": 8,
+   "planned": 1,
+   "readout": 0
+  },
+  "locomotion": {
+   "attention": 1,
+   "data_gen": 2,
+   "implemented": 2,
+   "planned": 0,
+   "readout": 2
+  },
+  "other": {
+   "attention": 0,
+   "data_gen": 0,
+   "implemented": 0,
+   "planned": 8,
+   "readout": 0
+  },
+  "probe": {
+   "attention": 0,
+   "data_gen": 0,
+   "implemented": 26,
+   "planned": 0,
+   "readout": 26
+  },
+  "structure": {
+   "attention": 7,
+   "data_gen": 0,
+   "implemented": 9,
+   "planned": 4,
+   "readout": 0
+  },
+  "task": {
+   "attention": 15,
+   "data_gen": 1,
+   "implemented": 15,
+   "planned": 3,
+   "readout": 1
+  },
+  "time": {
+   "attention": 0,
+   "data_gen": 0,
+   "implemented": 0,
+   "planned": 3,
+   "readout": 0
+  },
+  "ui": {
+   "attention": 5,
+   "data_gen": 5,
+   "implemented": 5,
+   "planned": 0,
+   "readout": 1
+  }
+ },
+ "epistemic_mechanisms": [
+  "confidence",
+  "ambiguity",
+  "belief update / revision / persistence / decay",
+  "novelty"
+ ],
+ "forms": {
+  "aug": 13,
+  "bias": 31,
+  "embed": 1,
+  "mask": 2,
+  "message": 1,
+  "readout": 27
+ },
+ "git_sha": "a9667433",
+ "meta": [
+  "costs / values",
+  "data / supervision provenance",
+  "joints"
+ ],
+ "out_of_scope": [
+  "fields and flows",
+  "fluids, thermal, electrical, magnetic, optical, chemical",
+  "mechanics"
+ ],
+ "planned": [
+  "aff.<verb>",
+  "aff.affords_at",
+  "aff.compatible",
+  "aff.safe_region",
+  "geo.extent",
+  "geo.occludes",
+  "geo.surface_normal",
+  "id.same_material",
+  "id.same_part_class",
+  "id.same_segment",
+  "id.scene_parent",
+  "ix.articulation",
+  "ix.collision_seq",
+  "ix.contains",
+  "ix.impulse_flow",
+  "ix.mating",
+  "ix.tool_target",
+  "kin.cross_morphology",
+  "lang.refers_to",
+  "lang.sim",
+  "prop.*",
+  "prop.vel",
+  "rel.task_relevance",
+  "task.cause_effect",
+  "task.precedes",
+  "time.co_motion",
+  "time.phase_sync",
+  "time.same_track"
+ ],
+ "registries": {
+  "factors": 76,
+  "labels": 18,
+  "parts": 7,
+  "transforms": 6
+ },
+ "rows": [
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.actor_of",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.consumed_by",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.destination_of",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.enables",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "kinematics",
+   "label": null,
+   "label_how": null,
+   "name": "edge.foot_of",
+   "nets": [
+    "legged",
+    "humanoid"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "kinematics",
+   "label": null,
+   "label_how": null,
+   "name": "edge.kin_child",
+   "nets": [
+    "legged",
+    "humanoid",
+    "psi0"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "kinematics",
+   "label": null,
+   "label_how": null,
+   "name": "edge.kin_parent",
+   "nets": [
+    "arm",
+    "dual",
+    "legged",
+    "humanoid",
+    "psi0"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "kinematics",
+   "label": null,
+   "label_how": null,
+   "name": "edge.limb_adjacent",
+   "nets": [
+    "legged",
+    "humanoid"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.maintained",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "kinematics",
+   "label": null,
+   "label_how": null,
+   "name": "edge.mirror",
+   "nets": [
+    "legged",
+    "humanoid",
+    "psi0"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.node_actor_of",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "structure",
+   "label": null,
+   "label_how": null,
+   "name": "edge.node_in_assembly",
+   "nets": [
+    "arm",
+    "dual",
+    "legged",
+    "humanoid"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.output_to",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "kinematics",
+   "label": null,
+   "label_how": null,
+   "name": "edge.over_cell",
+   "nets": [
+    "legged",
+    "humanoid"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.patient_of",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.pred_arg",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.produced",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.role_in_event",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.role_points_to",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "structure",
+   "label": null,
+   "label_how": null,
+   "name": "edge.same_assembly",
+   "nets": [
+    "legged",
+    "humanoid",
+    "psi0"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "structure",
+   "label": null,
+   "label_how": null,
+   "name": "edge.same_node",
+   "nets": [
+    "arm",
+    "dual",
+    "legged",
+    "humanoid",
+    "psi0"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.support_of",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "task",
+   "label": null,
+   "label_how": null,
+   "name": "edge.target_of",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "edge",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": null,
+   "envs": [
+    "mujoco/arm",
+    "mujoco/dual"
+   ],
+   "field": "pos3d",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "geometry",
+   "label": "pos3d",
+   "label_how": "field",
+   "name": "geo.above",
+   "nets": [
+    "arm",
+    "dual",
+    "pointer"
+   ],
+   "op": "order",
+   "parts": [
+    "table_objects"
+   ],
+   "readout": false,
+   "sources": [
+    "given",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "cam_uvd",
+   "envs": [
+    "mujoco/arm",
+    "mujoco/dual"
+   ],
+   "field": "cam_uvd",
+   "form": "aug",
+   "gates": [],
+   "gen": [
+    "camera_depth"
+   ],
+   "group": "geometry",
+   "label": "cam_uvd",
+   "label_how": "declared",
+   "name": "geo.depth3d",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "sqdiff+diff",
+   "parts": [
+    "camera_depth"
+   ],
+   "readout": true,
+   "sources": [
+    "probe",
+    "given",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "contact_normal",
+   "envs": [
+    "mujoco/arm",
+    "mujoco/dual",
+    "mujoco/legged",
+    "warp/legged",
+    "simple"
+   ],
+   "field": "normal",
+   "form": "aug",
+   "gates": [],
+   "gen": [],
+   "group": "geometry",
+   "label": "contact_normal",
+   "label_how": "declared",
+   "name": "geo.normal_align",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "align",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given",
+    "probe",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "orient",
+   "envs": [
+    "mujoco/arm",
+    "mujoco/dual"
+   ],
+   "field": "orient",
+   "form": "aug",
+   "gates": [],
+   "gen": [
+    "table_objects"
+   ],
+   "group": "geometry",
+   "label": "orient",
+   "label_how": "declared",
+   "name": "geo.orient",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "rel_rot",
+   "parts": [
+    "table_objects"
+   ],
+   "readout": true,
+   "sources": [
+    "given",
+    "probe",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "pos3d",
+   "envs": [
+    "mujoco/arm",
+    "mujoco/dual"
+   ],
+   "field": "pos3d",
+   "form": "aug",
+   "gates": [],
+   "gen": [
+    "table_objects"
+   ],
+   "group": "geometry",
+   "label": "pos3d",
+   "label_how": "declared",
+   "name": "geo.pos3d",
+   "nets": [
+    "arm",
+    "dual",
+    "pointer"
+   ],
+   "op": "sqdiff+diff",
+   "parts": [
+    "table_objects"
+   ],
+   "readout": true,
+   "sources": [
+    "given",
+    "probe",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "assembly_id",
+   "form": "aug",
+   "gates": [],
+   "gen": [],
+   "group": "structure",
+   "label": null,
+   "label_how": null,
+   "name": "id.same_assembly",
+   "nets": [
+    "arm",
+    "dual",
+    "legged",
+    "humanoid",
+    "psi0"
+   ],
+   "op": "same",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "entity_id",
+   "form": "aug",
+   "gates": [],
+   "gen": [],
+   "group": "structure",
+   "label": null,
+   "label_how": null,
+   "name": "id.same_body",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "same",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "entity_id",
+   "form": "embed",
+   "gates": [],
+   "gen": [],
+   "group": "structure",
+   "label": null,
+   "label_how": null,
+   "name": "id.slot_handle",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "contact_pairs",
+   "envs": [
+    "mujoco/arm",
+    "mujoco/dual"
+   ],
+   "field": "hidden",
+   "form": "aug",
+   "gates": [],
+   "gen": [
+    "grasp_target"
+   ],
+   "group": "interaction",
+   "label": "contact_pairs",
+   "label_how": "declared",
+   "name": "ix.contact",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "bilinear",
+   "parts": [
+    "grasp_target"
+   ],
+   "readout": true,
+   "sources": [
+    "probe",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "support_closure",
+   "envs": [
+    "mujoco/arm",
+    "mujoco/dual"
+   ],
+   "field": "edges:support-v1",
+   "form": "bias",
+   "gates": [],
+   "gen": [
+    "stack"
+   ],
+   "group": "interaction",
+   "label": "support_closure",
+   "label_how": "declared",
+   "name": "ix.force_flow",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "flow",
+   "parts": [
+    "stack"
+   ],
+   "readout": false,
+   "sources": [
+    "probe",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "handover_pairs",
+   "envs": [
+    "mujoco/arm",
+    "mujoco/dual"
+   ],
+   "field": "hidden",
+   "form": "aug",
+   "gates": [],
+   "gen": [
+    "grasp_target"
+   ],
+   "group": "interaction",
+   "label": "handover_pairs",
+   "label_how": "declared",
+   "name": "ix.handover",
+   "nets": [
+    "dual"
+   ],
+   "op": "bilinear",
+   "parts": [
+    "grasp_target"
+   ],
+   "readout": true,
+   "sources": [
+    "probe",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "held_pairs",
+   "envs": [
+    "mujoco/arm",
+    "mujoco/dual"
+   ],
+   "field": "hidden",
+   "form": "aug",
+   "gates": [],
+   "gen": [
+    "grasp_target"
+   ],
+   "group": "interaction",
+   "label": "held_pairs",
+   "label_how": "declared",
+   "name": "ix.held_by",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "bilinear",
+   "parts": [
+    "grasp_target"
+   ],
+   "readout": true,
+   "sources": [
+    "probe",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "support_pairs",
+   "envs": [
+    "mujoco/arm",
+    "mujoco/dual"
+   ],
+   "field": "hidden",
+   "form": "aug",
+   "gates": [],
+   "gen": [
+    "stack"
+   ],
+   "group": "interaction",
+   "label": "support_pairs",
+   "label_how": "declared",
+   "name": "ix.support",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "bilinear",
+   "parts": [
+    "stack"
+   ],
+   "readout": true,
+   "sources": [
+    "probe",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "kinematics",
+   "label": null,
+   "label_how": null,
+   "name": "kin.ancestor",
+   "nets": [
+    "arm",
+    "dual",
+    "legged",
+    "humanoid",
+    "psi0"
+   ],
+   "op": "ancestor",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:*",
+   "form": "bias",
+   "gates": [],
+   "gen": [],
+   "group": "kinematics",
+   "label": null,
+   "label_how": null,
+   "name": "kin.sibling",
+   "nets": [
+    "arm",
+    "dual",
+    "legged",
+    "humanoid",
+    "psi0"
+   ],
+   "op": "hop",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": true,
+   "declared_label": "com_support",
+   "envs": [
+    "mujoco/legged",
+    "warp/legged"
+   ],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "locomotion",
+   "label": "com_support",
+   "label_how": "declared",
+   "name": "leg.com_support",
+   "nets": [
+    "legged",
+    "humanoid"
+   ],
+   "op": "inert",
+   "parts": [
+    "terrain_steps"
+   ],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "foothold_next",
+   "envs": [
+    "mujoco/legged",
+    "warp/legged"
+   ],
+   "field": "hidden",
+   "form": "aug",
+   "gates": [],
+   "gen": [
+    "terrain_steps"
+   ],
+   "group": "locomotion",
+   "label": "foothold_next",
+   "label_how": "declared",
+   "name": "leg.foothold",
+   "nets": [
+    "legged",
+    "humanoid"
+   ],
+   "op": "bilinear",
+   "parts": [
+    "terrain_steps"
+   ],
+   "readout": true,
+   "sources": [
+    "probe",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "edges:arm-rel-v1",
+   "form": "message",
+   "gates": [],
+   "gen": [],
+   "group": "structure",
+   "label": null,
+   "label_how": null,
+   "name": "msg.incidence",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "contact",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.arm.acting_on",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "focus",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.arm.focused_on",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "goal_effect",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.arm.goal_effect",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "held",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.arm.held_by",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "gaze",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.arm.looking_at",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "future_disp",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.arm.observed_effect",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "rel_tcp",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.arm.rel_pos",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "subtask",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.arm.subtask",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "visible",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.arm.visible",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "contact_k",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.legged.contact",
+   "nets": [
+    "legged",
+    "humanoid"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "disp",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.legged.disp",
+   "nets": [
+    "legged",
+    "humanoid"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "fall",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.legged.fall",
+   "nets": [
+    "legged",
+    "humanoid"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "goal",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.legged.goal",
+   "nets": [
+    "legged",
+    "humanoid"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "subtask",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.legged.subtask",
+   "nets": [
+    "legged",
+    "humanoid"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "phase",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.pointer.phase",
+   "nets": [
+    "pointer"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "rel",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.pointer.rel",
+   "nets": [
+    "pointer"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "slot",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.pointer.slot",
+   "nets": [
+    "pointer"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "active_hand",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.psi0.active_hand",
+   "nets": [
+    "psi0"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "base_cmd",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.psi0.base_cmd",
+   "nets": [
+    "psi0"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "base_disp",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.psi0.base_disp",
+   "nets": [
+    "psi0"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "contact",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.psi0.contact",
+   "nets": [
+    "psi0"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "grasp_face",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.psi0.grasp_face",
+   "nets": [
+    "psi0"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "grasp_pt",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.psi0.grasp_pt",
+   "nets": [
+    "psi0"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "hand_dist",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.psi0.hand_dist",
+   "nets": [
+    "psi0"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "lift",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.psi0.lift",
+   "nets": [
+    "psi0"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": false,
+   "data_gen": false,
+   "declared_label": "target_pos",
+   "envs": [],
+   "field": "packet",
+   "form": "readout",
+   "gates": [],
+   "gen": [],
+   "group": "probe",
+   "label": null,
+   "label_how": null,
+   "legacy_label": true,
+   "name": "probe.psi0.target_pos",
+   "nets": [
+    "psi0"
+   ],
+   "op": "inert",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "assembly_id",
+   "form": "mask",
+   "gates": [],
+   "gen": [],
+   "group": "structure",
+   "label": null,
+   "label_how": null,
+   "name": "route.assembly_reads",
+   "nets": [
+    "arm",
+    "dual",
+    "legged",
+    "humanoid",
+    "psi0"
+   ],
+   "op": "same",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "assembly_id",
+   "form": "mask",
+   "gates": [],
+   "gen": [],
+   "group": "structure",
+   "label": null,
+   "label_how": null,
+   "name": "route.own_assembly",
+   "nets": [
+    "arm",
+    "dual",
+    "legged",
+    "humanoid",
+    "psi0"
+   ],
+   "op": "same",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "next_contact",
+   "envs": [
+    "mujoco/arm",
+    "mujoco/dual",
+    "mujoco/legged",
+    "warp/legged",
+    "simple"
+   ],
+   "field": "hidden",
+   "form": "aug",
+   "gates": [
+    "task"
+   ],
+   "gen": [
+    "reveal",
+    "surprise"
+   ],
+   "group": "task",
+   "label": "next_contact",
+   "label_how": "declared",
+   "name": "task.next_contact",
+   "nets": [
+    "arm",
+    "dual"
+   ],
+   "op": "bilinear",
+   "parts": [],
+   "readout": true,
+   "sources": [
+    "probe",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": [
+    "reveal",
+    "surprise"
+   ]
+  },
+  {
+   "attn": true,
+   "data_gen": false,
+   "declared_label": null,
+   "envs": [],
+   "field": "track_id",
+   "form": "aug",
+   "gates": [],
+   "gen": [],
+   "group": "time",
+   "label": null,
+   "label_how": null,
+   "name": "time.same_track",
+   "nets": [],
+   "op": "same",
+   "parts": [],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "planned",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": null,
+   "envs": [
+    "computerworld"
+   ],
+   "field": "zlayer",
+   "form": "bias",
+   "gates": [],
+   "gen": [
+    "cw_viewport",
+    "cw_depth"
+   ],
+   "group": "ui",
+   "label": "above",
+   "label_how": "entry-name",
+   "name": "ui.above",
+   "nets": [
+    "pointer"
+   ],
+   "op": "order",
+   "parts": [
+    "cw_viewport",
+    "cw_depth"
+   ],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "drag_to",
+   "envs": [],
+   "field": "hidden",
+   "form": "aug",
+   "gates": [],
+   "gen": [
+    "cw_viewport",
+    "cw_depth"
+   ],
+   "group": "ui",
+   "label": "drag_to",
+   "label_how": "declared",
+   "name": "ui.drag_to",
+   "nets": [
+    "pointer"
+   ],
+   "op": "bilinear",
+   "parts": [
+    "cw_viewport",
+    "cw_depth"
+   ],
+   "readout": true,
+   "sources": [
+    "probe",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "focus_next",
+   "envs": [
+    "computerworld"
+   ],
+   "field": "edges:ui-rel-v1",
+   "form": "bias",
+   "gates": [],
+   "gen": [
+    "cw_viewport",
+    "cw_depth"
+   ],
+   "group": "ui",
+   "label": "focus_next",
+   "label_how": "declared",
+   "name": "ui.focus_next",
+   "nets": [
+    "pointer"
+   ],
+   "op": "edge",
+   "parts": [
+    "cw_viewport",
+    "cw_depth"
+   ],
+   "readout": false,
+   "sources": [
+    "given",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": []
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": "label_for",
+   "envs": [
+    "computerworld"
+   ],
+   "field": "edges:ui-rel-v1",
+   "form": "bias",
+   "gates": [],
+   "gen": [
+    "reveal",
+    "surprise",
+    "cw_viewport",
+    "cw_depth"
+   ],
+   "group": "ui",
+   "label": "label_for",
+   "label_how": "declared",
+   "name": "ui.label_for",
+   "nets": [
+    "pointer"
+   ],
+   "op": "edge",
+   "parts": [
+    "cw_viewport",
+    "cw_depth"
+   ],
+   "readout": false,
+   "sources": [
+    "given",
+    "gt"
+   ],
+   "status": "implemented",
+   "transforms": [
+    "reveal",
+    "surprise"
+   ]
+  },
+  {
+   "attn": true,
+   "data_gen": true,
+   "declared_label": null,
+   "envs": [
+    "computerworld"
+   ],
+   "field": "parent_id",
+   "form": "bias",
+   "gates": [],
+   "gen": [
+    "cw_viewport",
+    "cw_depth"
+   ],
+   "group": "ui",
+   "label": "same_window",
+   "label_how": "entry-name",
+   "name": "ui.same_window",
+   "nets": [
+    "pointer"
+   ],
+   "op": "same",
+   "parts": [
+    "cw_viewport",
+    "cw_depth"
+   ],
+   "readout": false,
+   "sources": [
+    "given"
+   ],
+   "status": "implemented",
+   "transforms": []
+  }
+ ],
+ "totals": {
+  "attn": 46,
+  "epistemic": 4,
+  "gen": 18,
+  "implemented": 75,
+  "meta_rows": 3,
+  "planned_catalog": 27,
+  "planned_entries": 28,
+  "planned_registry": 1,
+  "readout": 38,
+  "registry_total": 76,
+  "xfam": 3
+ }
+}

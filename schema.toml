@@ -35,7 +35,10 @@ instance_max_lines = 80                                                         
 
 [area.docs]
 allow = ["docs/architecture.md", "docs/relations.md", "docs/strategy.md", "docs/experiments_roadmap.md",
-         "docs/robot_training_considerations.md"]
+         "docs/robot_training_considerations.md",
+         "docs/paper/rrp_report.tex", "docs/paper/make_figures.py", "docs/paper/figures/*.pdf",
+         "docs/paper/figures/*.png", "docs/paper/figures/*.json", "docs/paper/rrp_report.pdf",
+         "docs/paper/table_relations.tex", "docs/paper/table_envs.tex"]
 
 [area.research]
 allow = ["research/decisions.md", "research/registry.jsonl", "research/relations_catalog.md",

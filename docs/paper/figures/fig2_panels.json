@@ -1,0 +1,398 @@
+{
+ "figure": "fig2",
+ "seed": 3000001,
+ "runtime_s": 4.4,
+ "honesty": "values are computed by rrp factor operators (FactorSite.contributions / OPS value) or are relgen simulator-truth labels, on real simulator states; NOT trained attention",
+ "omitted_planned_factors": [
+  "time.same_track"
+ ],
+ "panels": [
+  {
+   "panel": 1,
+   "factor": "geo.pos3d",
+   "term": "b_dist",
+   "family": "geometry",
+   "frame_color": "#2BB3C0",
+   "png": "figures/fig2_panel_1_geo_pos3d.png",
+   "badge": "illustrative coefficients; learned per head",
+   "scene_tag": "teacher state (scripted)",
+   "env": "mujoco/arm",
+   "body": "panda_pg2",
+   "task": "pick_place(n_distractors=2)",
+   "seed": 3000001,
+   "tick": 29,
+   "phase": "descend",
+   "query": "cube",
+   "source_kind": "given pos3d (simulator poses of the entity tokens) + hand-set PaPE coefficients (illustrative)",
+   "scene_source": "scripted privileged teacher (PickPlaceTeacher), state replayed from reset",
+   "coefficients": {
+    "a": [
+     40.0,
+     40.0,
+     40.0
+    ],
+    "b": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "g": 1.0,
+    "W_p": "I"
+   },
+   "term_over": "every non-robot pixel (exact mj_multiRay world point per pixel through the real PapeOp kernel); numbers = token values",
+   "stats": {
+    "token": {
+     "min": -1.9744645125989635,
+     "max": 3.8074210095828676e-07,
+     "argmax": "cube"
+    },
+    "pixel": {
+     "min": -19.999388314021083,
+     "max": -0.019362068903895135
+    }
+   },
+   "token_values": {
+    "cube": 3.8074210095828676e-07,
+    "target": -1.9744645125989635,
+    "obj:distractor0": -1.2377353675489147,
+    "obj:distractor1": -0.607132530940028,
+    "gripper": -0.27188167644784045
+   },
+   "closed_form_max_abs_err": 1.1559242807379633e-06,
+   "ray_seg_agreement": 0.9999666666666667,
+   "code_path": "FactorSite(['geo.pos3d']).contributions -> PapeOp.features (W_p=I, a=softplus(bias), b=bias, g=1, weights zeroed); per-query constant r_i^T M r_i + b^T r_i removed (softmax-invariant); asserted == -(r_j-r_i)^T M (r_j-r_i) + b^T (r_j-r_i)"
+  },
+  {
+   "panel": 2,
+   "factor": "geo.pos3d",
+   "term": "b_dir",
+   "family": "geometry",
+   "frame_color": "#2BB3C0",
+   "png": "figures/fig2_panel_2_geo_pos3d.png",
+   "badge": "illustrative coefficients; learned per head",
+   "scene_tag": "teacher state (scripted)",
+   "env": "mujoco/arm",
+   "body": "panda_pg2",
+   "task": "pick_place(n_distractors=2)",
+   "seed": 3000001,
+   "tick": 29,
+   "phase": "descend",
+   "query": "cube",
+   "source_kind": "given pos3d (simulator poses of the entity tokens) + hand-set PaPE coefficients (illustrative)",
+   "scene_source": "scripted privileged teacher (PickPlaceTeacher), state replayed from reset",
+   "coefficients": {
+    "a": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "b": [
+     12.0,
+     0.0,
+     0.0
+    ],
+    "g": 1.0,
+    "W_p": "I"
+   },
+   "term_over": "every non-robot pixel (exact mj_multiRay world point per pixel through the real PapeOp kernel); numbers = token values",
+   "stats": {
+    "token": {
+     "min": -2.2070577414980193,
+     "max": 0.5707452026853304,
+     "argmax": "obj:distractor0"
+    },
+    "pixel": {
+     "min": -7.395294216488864,
+     "max": 2.1329681602964143
+    }
+   },
+   "token_values": {
+    "cube": 2.1138284012067743e-07,
+    "target": -2.2070577414980193,
+    "obj:distractor0": 0.5707452026853304,
+    "obj:distractor1": -0.642319944714572,
+    "gripper": -0.03659036478903488
+   },
+   "closed_form_max_abs_err": 2.9094312625765895e-07,
+   "ray_seg_agreement": 0.9999666666666667,
+   "code_path": "FactorSite(['geo.pos3d']).contributions -> PapeOp.features (W_p=I, a=softplus(bias), b=bias, g=1, weights zeroed); per-query constant r_i^T M r_i + b^T r_i removed (softmax-invariant); asserted == -(r_j-r_i)^T M (r_j-r_i) + b^T (r_j-r_i)"
+  },
+  {
+   "panel": 3,
+   "factor": "kin.ancestor",
+   "term": "b_kin",
+   "family": "kinematics/UI",
+   "frame_color": "#3A3F47",
+   "png": "figures/fig2_panel_3_kin_ancestor.png",
+   "badge": "given: kin_parent graph (body morphology)",
+   "scene_tag": "simulator state (G1 keyframe)",
+   "env": "mujoco/humanoid (rrp.envs.mujoco.humanoid_scenes)",
+   "body": "g1 (36 command-dim tokens, g1-dim-rel-v1)",
+   "task": "h_steps keyframe 0 (static pose, no policy)",
+   "seed": 3000001,
+   "tick": 0,
+   "query": "l_wrist_yaw",
+   "source_kind": "given (kinematic tree)",
+   "scene_source": "simulator keyframe (no controller, no motion)",
+   "stats": {
+    "min": 0.0,
+    "max": 1.0,
+    "argmax": "l_shoulder_pitch",
+    "n_ancestors": 10,
+    "ancestors": [
+     "l_shoulder_pitch",
+     "l_shoulder_roll",
+     "l_shoulder_yaw",
+     "l_elbow",
+     "l_wrist_roll",
+     "l_wrist_pitch",
+     "waist_roll",
+     "waist_pitch",
+     "waist_yaw",
+     "base_height"
+    ]
+   },
+   "drawn_dims": [
+    "l_elbow",
+    "l_shoulder_pitch",
+    "l_shoulder_roll",
+    "l_shoulder_yaw",
+    "l_wrist_pitch",
+    "l_wrist_roll",
+    "l_wrist_yaw",
+    "r_elbow",
+    "r_shoulder_pitch",
+    "r_shoulder_roll",
+    "r_shoulder_yaw",
+    "r_wrist_pitch",
+    "r_wrist_roll",
+    "r_wrist_yaw",
+    "waist_pitch",
+    "waist_roll",
+    "waist_yaw"
+   ],
+   "not_drawn": "finger and base dims have no link in the rendered MuJoCo model (still tokens, values in the op output)",
+   "parent_chain_check": "all 36 rows equal an independent parent-chain walk of G.DIM_PARENT",
+   "ray_seg_agreement": 0.966295058343174,
+   "code_path": "FactorSite(['kin.ancestor']).contributions -> ClosureOp.value over RelCtx edges 'dims>dims' = real bodies.g1_simple.relation_matrix(); site.f['kin__ancestor'].w = 1"
+  },
+  {
+   "panel": 4,
+   "factor": "ix.contact",
+   "term": "b_contact",
+   "family": "contact/support/grasp",
+   "frame_color": "#F2A33A",
+   "png": "figures/fig2_panel_4_ix_contact.png",
+   "badge": "label (sim truth) -> trains the probe; deployed term = probe estimate",
+   "scene_tag": "teacher state (scripted)",
+   "env": "mujoco/arm",
+   "body": "panda_pg2",
+   "task": "pick_place(n_distractors=2)",
+   "seed": 3000001,
+   "tick": 40,
+   "phase": "close",
+   "query": "gripper",
+   "source_kind": "label (relgen contact_pairs, simulator contact truth; privileged)",
+   "scene_source": "scripted privileged teacher state",
+   "stats": {
+    "min": 0.0,
+    "max": 1.0,
+    "argmax": "cube"
+   },
+   "token_values": {
+    "cube": 1.0,
+    "target": 0.0,
+    "obj:distractor0": 0.0,
+    "obj:distractor1": 0.0,
+    "gripper": 0.0
+   },
+   "n_contact_points_drawn": 8,
+   "ray_seg_agreement": 0.9998652794297086,
+   "code_path": "relgen.LABELS['contact_pairs'].fn(StateView, TokenIndex) = the supervision target of the ix.contact bilinear probe (deployed bias = learned probe estimate; NOT computed here); white dots = StateView.contacts() positions"
+  },
+  {
+   "panel": 5,
+   "factor": "ix.force_flow",
+   "term": "b_flow",
+   "family": "contact/support/grasp",
+   "frame_color": "#F2A33A",
+   "png": "figures/fig2_panel_5_ix_force_flow.png",
+   "badge": "label (sim truth) -> trains the probe; deployed term = probe estimate",
+   "scene_tag": "teleported stack + settle",
+   "env": "mujoco/arm",
+   "body": "panda_pg2",
+   "task": "pick_place cubes teleported into a 3-stack (Session.teleport_object, logged as an intervention) then 10 ticks of settling",
+   "seed": 3000001,
+   "tick": 10,
+   "query": "obj:distractor0",
+   "source_kind": "gt: privileged support_pairs edges (relgen) closed by the REAL flow op; deployed term = closure of the ix.support probe estimate",
+   "scene_source": "figure-only intervention scene (teleported stack); arm held by the teacher, far above",
+   "stack_bottom_to_top": [
+    "obj:distractor0",
+    "obj:distractor1",
+    "cube"
+   ],
+   "stats": {
+    "min": 0.0,
+    "max": 1.0,
+    "argmax": "cube"
+   },
+   "closure_check": "FactorSite flow output == relgen.support_closure label for all token pairs",
+   "token_values": {
+    "cube": 1.0,
+    "target": 0.0,
+    "obj:distractor0": 0.0,
+    "obj:distractor1": 1.0,
+    "gripper": 0.0
+   },
+   "ray_seg_agreement": 0.9998338622760868,
+   "code_path": "FactorSite([{'name':'ix.force_flow','source':'gt'}]).contributions -> ClosureOp.value over rc.edges['ctx>ctx#support-v1@gt'] = relgen support_pairs; convention: A[a,b] = a supports b, so the query row reaches everything it (transitively) carries"
+  },
+  {
+   "panel": 6,
+   "factor": "ix.held_by",
+   "term": "b_held",
+   "family": "contact/support/grasp",
+   "frame_color": "#F2A33A",
+   "png": "figures/fig2_panel_6_ix_held_by.png",
+   "badge": "label (sim truth) -> trains the probe; deployed term = probe estimate",
+   "scene_tag": "teacher state (scripted)",
+   "env": "mujoco/arm",
+   "body": "panda_pg2",
+   "task": "pick_place(n_distractors=2), lift phase",
+   "seed": 3000001,
+   "tick": 58,
+   "phase": "lift",
+   "query": "cube",
+   "source_kind": "label (relgen held_pairs, simulator truth; privileged)",
+   "scene_source": "scripted privileged teacher state (the dual-arm handover is replaced by this single-arm lift)",
+   "stats": {
+    "min": 0.0,
+    "max": 1.0,
+    "argmax": "gripper"
+   },
+   "token_values": {
+    "cube": 0.0,
+    "target": 0.0,
+    "obj:distractor0": 0.0,
+    "obj:distractor1": 0.0,
+    "gripper": 1.0
+   },
+   "cube_z": 0.1377439018087784,
+   "ray_seg_agreement": 0.9997576333832049,
+   "code_path": "relgen.LABELS['held_pairs'].fn(StateView, TokenIndex) = supervision target of the ix.held_by bilinear probe (deployed bias = learned probe estimate; NOT computed here)"
+  },
+  {
+   "panel": 7,
+   "factor": "task.next_contact",
+   "term": "g_task b_next",
+   "family": "procedure",
+   "frame_color": "#8C7CF0",
+   "png": "figures/fig2_panel_7_task_next_contact.png",
+   "badge": "label (sim truth) -> trains the probe; deployed term = probe estimate",
+   "scene_tag": "teacher state; synthetic reveal",
+   "env": "mujoco/arm",
+   "body": "panda_pg2",
+   "task": "pick_place(n_distractors=2), approach",
+   "seed": 3000001,
+   "tick": 29,
+   "phase": "descend",
+   "query": "gripper (manipulator)",
+   "source_kind": "label: relgen task.next_contact_sample + TRANSFORMS['reveal'] (R9, unmodified) posterior over candidate targets; evidence schedule is SYNTHETIC",
+   "scene_source": "scripted privileged teacher state",
+   "evidence": [
+    {
+     "t": 0,
+     "excludes": [
+      "obj:distractor0"
+     ]
+    },
+    {
+     "t": 1,
+     "excludes": [
+      "obj:distractor1"
+     ]
+    }
+   ],
+   "posterior_by_t": {
+    "0": {
+     "cube": 0.5,
+     "obj:distractor0": 0.0,
+     "obj:distractor1": 0.5
+    },
+    "1": {
+     "cube": 1.0,
+     "obj:distractor0": 0.0,
+     "obj:distractor1": 0.0
+    }
+   },
+   "shown_t": 0,
+   "stats": {
+    "min": 0.0,
+    "max": 0.5,
+    "argmax": "cube"
+   },
+   "next_contact_label_now": {
+    "cube": 0.0,
+    "target": 0.0,
+    "obj:distractor0": 0.0,
+    "obj:distractor1": 0.0,
+    "gripper": 0.0
+   },
+   "ray_seg_agreement": 0.9999666666666667,
+   "code_path": "relgen.task.next_contact_sample(candidates, StateView, evidence) -> TRANSFORMS['reveal'].fn(schedule=[t]) posterior q(e) ~ prior * 1[e not excluded]; the deployed bias is the task-gated bilinear probe (NOT computed here)"
+  },
+  {
+   "panel": 8,
+   "factor": "ui.label_for",
+   "term": "b_ui",
+   "family": "kinematics/UI",
+   "frame_color": "#3A3F47",
+   "png": "figures/fig2_panel_8_ui_label_for.png",
+   "badge": "given: public UI tree (no probe)",
+   "scene_tag": "computerworld (rendered); grey frame: ui.above",
+   "env": "computerworld (rrp.envs.computerworld, cw-site)",
+   "body": "desktop UI (public widget tree)",
+   "task": "cw/fill_form",
+   "seed": 3000001,
+   "tick": 0,
+   "query": "slot 20 (role=label, box=(133, 237, 180, 256))",
+   "source_kind": "given (public role / window / scene order / z-layer); no probe, no privileged input",
+   "scene_source": "rendered computerworld desktop frame (cropped); no teacher, no policy",
+   "stats": {
+    "label_for": {
+     "min": 0.0,
+     "max": 1.0,
+     "argmax": 23
+    },
+    "above": {
+     "min": -1.0,
+     "max": 1.0,
+     "argmax": 30,
+     "n_nonzero": 37
+    }
+   },
+   "label_for_partners": [
+    23
+   ],
+   "crop": [
+    122,
+    215,
+    392,
+    418
+   ],
+   "above_drawn": [
+    [
+     1,
+     -1.0
+    ],
+    [
+     32,
+     1.0
+    ]
+   ],
+   "n_slots": 51,
+   "code_path": "FactorSite(['ui.label_for','ui.above']).contributions -> EdgeOp (public ui_edges, channel label_for) and OrderOp (public zlayer); site.w = 1, f['ui__above'].w = 1"
+  }
+ ]
+}
