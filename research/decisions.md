@@ -1656,3 +1656,17 @@ falls everywhere), gap h1 (eval 20/20; stand-trial falls, force 4.43, margin -0.
 - The humanoid dispatcher places on the host while it holds fewer GPU leases than its slots (humanoid first, handoff rule).
 - T2 gait `*_ub` complete: `g1:ub_v1` (sha 3b325887d9a0d58d; only joint margin 0.0191 fails) and `h1:ub_v1` (sha 296be6e14ba53e1f; only margin 0.0160)
   installed under the D-147 exception (gait trials, lab gate pass, no falls in any trial), like `t1:ub_v1` (margin 0.0183).
+
+### D-147 addendum 2026-10-02 (unit prec): the `compute` block (one shared helper for precision / TF32 / compile / CUDA graphs)
+- `RunConfig.compute` + `rrp/core/compute.py` serve every trainer; the duplicated bf16 code in pointer and Psi0 is gone. ABSENT is the default
+  and is omitted from the serialised config (hash, goldens, pre-registered and in-flight runs unchanged). Non-default blocks hash in, are
+  pinned in `stage_versions` and recorded in the stage manifest: different compute settings never adopt each other's outputs.
+- Legacy numerics are the default per trainer (behavior: fp32 + TF32 matmul; pointer, Psi0: bf16 autocast; the rest fp32). The fp32 islands
+  (loss reductions, probe variance terms, flow / likelihood terms) are the identity until `precision` is set explicitly to bf16.
+- Nuance, accepted: legacy Psi0 gated autocast on `dev == "cuda"` exactly (so "cuda:0" ran fp32); the helper uses `startswith("cuda")`. The
+  pipeline always passes "cuda", so no existing run changes.
+- Compile wraps methods on the instance (no `_orig_mod.` keys, checkpoints unchanged); a first-call failure falls back to eager and is
+  recorded in `compute.json`. adapt.py keeps TF32 forced off (likelihood ratios). Tracker PPO (warp_tracker_ppo) is NOT wired: its update is a
+  small MLP minibatch next to physics rollouts, and the PPO advantage / ratio math must stay fp32; revisit only if a profile shows the update
+  dominating. `target_adapt` does not exist in this tree.
+- Enable phase (switching any run to bf16 / compile) is a separate decision after the measured effect in research/tracks/compute.md.

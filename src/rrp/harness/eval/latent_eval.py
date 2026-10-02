@@ -21,6 +21,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from rrp.core.compute import f32
 from rrp.harness import hooks as H
 from rrp.policies.system0 import LatentSystem0
 from rrp.harness.data.collect import privileged_labels
@@ -102,6 +103,7 @@ def _goal_terms(out, lab, smask):
     return "goal_effect" in out and "goal_effect" in lab
 
 
+@f32
 def readout_loss(out: dict, lab: dict, smask: torch.Tensor, m0: int = 0, lv_min: float = -8.0) -> tuple[torch.Tensor, dict]:
     """lab: held/contact/visible/focus [B,S] (manipulator 0 for held/contact/rel), rel_tcp/future_disp [B,S,3],
     gaze [B,S], subtask [B]. Positions scaled to decimeters for conditioning.

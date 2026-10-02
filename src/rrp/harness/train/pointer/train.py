@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from rrp.core import compute
 from rrp.harness.train.pointer.data import Demos, pointer_geometry
 from rrp.harness.train.pointer.losses import _agg, _fin, action_loss, action_metrics, probe_loss, probe_metrics
 from rrp.harness.train.pointer.relmix import drag_label_dict, needs_drag
@@ -19,8 +20,9 @@ from rrp.policies.relations.base import provenance
 
 
 # ------------------------------------------------------------------------------------------------ shared helpers
-def setup(a):
-    """(device, Demos) for a trainer's args; seeds torch / numpy from `--seed` (init, sampling, noise) and the
+def setup(a, name: str = "pointer"):
+    """(device, Demos, Cx) for a trainer's args (`Cx`: the shared compute helper's autocast / compile for this trainer;
+    the pointer trainers' historical bf16-CUDA autocast is `compute.LEGACY['pointer']`); seeds torch / numpy from `--seed` (init, sampling, noise) and the
     train / validation episode split from the SEPARATE `--split-seed` (so a seed sweep compares models on one held-out
     set); refuses packs collected under another geometry and any split leak."""
     geom = pointer_geometry()
@@ -29,7 +31,7 @@ def setup(a):
     dev = a.device or ("cuda" if torch.cuda.is_available() else "cpu")
     data = Demos(sorted(a.data), dev, geom, seed=a.split_seed)
     check_no_leak(data, load_split(a.split))
-    return dev, data
+    return dev, data, compute.setup(name, dev)
 
 
 def ui_fields_needed(specs) -> bool:
@@ -126,11 +128,6 @@ def record_estimates(ctx, specs) -> None:
     ctx.record_rc = any(s.control != "off" and get_factor(s.name).readout is not None for s in specs)
 
 
-def amp(dev):
-    """bf16 autocast on CUDA (losses are computed in fp32)."""
-    return torch.autocast("cuda", dtype=torch.bfloat16, enabled=str(dev).startswith("cuda"))
-
-
 def set_lr(opt, step, total, lr, warm=500):
     f = min(1.0, (step + 1) / warm) * 0.5 * (1 + math.cos(math.pi * min(1.0, step / total)))
     for g in opt.param_groups:
@@ -201,13 +198,14 @@ def _with_targets(a):
 def cmd_rep(a):
     from rrp.policies.pointer import new_pointer_probe, nets, run_pointer_probe
     from rrp.policies.system0 import bundle_versions
-    dev, data = setup(a)
+    dev, data, cx = setup(a, "pointer.rep")
     dt = data.geom.dt
     N = nets()
     specs = factor_specs(a, data)
     arch = dict(E=dict(dz=a.dz, **factor_arch(specs)), R=dict(dz=a.dz), P=dict(dz=a.dz, lv_min=a.lv_min))
     E, R, P = N["PointerEncoder"](**arch["E"]).to(dev), N["PointerRealizer"](**arch["R"]).to(dev), \
         new_pointer_probe(**arch["P"]).to(dev)
+    E, R = cx.compile(E, "E"), cx.compile(R, "R")
     record_estimates(E.ctx, specs)
     stream = make_stream(a, data, specs, dev)
     w_sem = a.w_sem if a.variant == "semfix" else 0.0
@@ -215,7 +213,7 @@ def cmd_rep(a):
     def step_fn(ix):
         b, ch, lab = data.batch(ix)
         ch = _with_targets(ch)
-        with amp(dev):
+        with cx.autocast():
             mu, lv, z, dxy, bl, kl = _rep_forward(E, R, b, ch, dev, dt)
             po = run_pointer_probe(P, z) if w_sem > 0 else None
         mu, lv = mu.float(), lv.float()
@@ -238,6 +236,7 @@ def cmd_rep(a):
     cfg = dict(variant=a.variant, arch=arch, w_sem=w_sem, lv_min=a.lv_min, beta=a.beta, w_xy=a.w_xy, steps=a.steps,
                batch=a.batch, lr=a.lr, seed=a.seed, split_seed=a.split_seed, data=sorted(a.data), tasks=list(TASKS),
                target="latent", factors=provenance(specs))
+    cx.write_stamp(Path(a.out).with_suffix(".compute.json"))
     save_checkpoint(a.out, kind="pointer_rep", state=dict(E=E, R=R, P=P), config=cfg,
                     versions=dict(latent_space_version=lsv, realizer_compat_version=rcv), metrics=log[-1],
                     factors=specs)
@@ -303,7 +302,7 @@ def eng_targets(data, dev, bs=4096, version=None):
 # ------------------------------------------------------------------------------------------------ flow
 def cmd_flow(a):
     from rrp.policies.pointer import eng_layout, load_pointer_bundle, nets, run_pointer_probe
-    dev, data = setup(a)
+    dev, data, cx = setup(a, "pointer.flow")
     N = nets()
     copy_key = getattr(a, "key_head", "free") == "copy"
     ev = eng_layout(getattr(a, "eng_version", None) or "cw_pointer_eng.v1").version
@@ -326,7 +325,7 @@ def cmd_flow(a):
                 p.requires_grad_(False)
     specs = factor_specs(a, data)
     arch = dict(S=dict(dz=dz, **factor_arch(specs), **(dict(copy_key=True) if copy_key else {})))
-    S = N["PointerFlow"](**arch["S"]).to(dev)
+    S = cx.compile(N["PointerFlow"](**arch["S"]).to(dev), "S", methods=("velocity",))
     record_estimates(S.ctx, specs)
     stream = make_stream(a, data, specs, dev)
     tr = Z[data.train_idx]
@@ -336,7 +335,7 @@ def cmd_flow(a):
 
     def step_fn(ix):
         b, _, lab = data.batch(ix)
-        with amp(dev):
+        with cx.autocast():
             loss, logs = S.loss(b, Z[ix], probe_fn=(lambda zc: probe_loss(run_pointer_probe(P, zc), lab, P.specs))
                                 if P is not None else None, w_sem=w_sem)
         Lfx, fx_logs = supervise(S.ctx, specs, data, ix, stream)
@@ -347,6 +346,7 @@ def cmd_flow(a):
     cfg = dict(variant=variant, target=a.target, representation=a.representation, arch=arch, w_sem=w_sem,
                steps=a.steps, batch=a.batch, lr=a.lr, seed=a.seed, split_seed=a.split_seed, data=sorted(a.data),
                tasks=list(TASKS), factors=provenance(specs))
+    cx.write_stamp(Path(a.out).with_suffix(".compute.json"))
     save_checkpoint(a.out, kind="pointer_flow", state=dict(S=S), config=cfg, versions=versions, metrics=log[-1],
                     factors=specs)
 
@@ -375,12 +375,12 @@ def _eval_flow(S, Z, data, dev, R=None, n=2048) -> dict:
 # ------------------------------------------------------------------------------------------------ bc
 def cmd_bc(a):
     from rrp.policies.pointer import nets
-    dev, data = setup(a)
+    dev, data, cx = setup(a, "pointer.bc")
     N = nets()
     specs = factor_specs(a, data)
     arch = dict(BC=dict(**factor_arch(specs), **(dict(copy_key=True) if getattr(a, "key_head", "free") == "copy"
                                                  else {})))
-    BC = N["PointerBC"](**arch["BC"]).to(dev)
+    BC = cx.compile(N["PointerBC"](**arch["BC"]).to(dev), "BC")
     record_estimates(BC.ctx, specs)
     stream = make_stream(a, data, specs, dev)
 
@@ -389,7 +389,7 @@ def cmd_bc(a):
 
     def step_fn(ix):
         b, ch, _ = data.batch(ix)
-        with amp(dev):
+        with cx.autocast():
             xy, bl, kl = BC(b)
         ch["dxy_target"] = to_steps(ch["xy"])
         Lxy, Lb, Lk = action_loss(to_steps(xy.float()), bl, kl, ch)
@@ -414,12 +414,13 @@ def cmd_bc(a):
               log_every=a.log_every, stream=stream)
     cfg = dict(variant="bc", arch=arch, steps=a.steps, batch=a.batch, lr=a.lr, seed=a.seed, split_seed=a.split_seed,
                data=sorted(a.data), tasks=list(TASKS), w_xy=a.w_xy, factors=provenance(specs))
+    cx.write_stamp(Path(a.out).with_suffix(".compute.json"))
     save_checkpoint(a.out, kind="pointer_bc", state=dict(BC=BC), config=cfg, versions=dict(bc="cw_pointer_bc.v1"),
                     metrics=log[-1], factors=specs)
 
 
 # ------------------------------------------------------------------------------------------------ probe
-def fit_probe(Z, data, dev, *, dz: int, metadata_only: bool = False, steps: int, batch: int, lr: float, seed: int):
+def fit_probe(Z, data, dev, cx, *, dz: int, metadata_only: bool = False, steps: int, batch: int, lr: float, seed: int):
     """A post-hoc packet probe trained on frozen packets Z [N, K, 1, dz] with the shared loop (no clip, no eval)."""
     from rrp.policies.pointer import new_pointer_probe, run_pointer_probe
     torch.manual_seed(seed)
@@ -427,7 +428,7 @@ def fit_probe(Z, data, dev, *, dz: int, metadata_only: bool = False, steps: int,
 
     def step_fn(ix):
         _, _, lab = data.batch(ix)
-        with amp(dev):
+        with cx.autocast():
             po = run_pointer_probe(P, Z[ix])
         return probe_loss(po, lab, P.specs)[0], {}
 
@@ -440,7 +441,7 @@ def cmd_probe(a):
     """Post-hoc probes on frozen packets (E posterior means, or packets generated by a flow): the same probe recipe
     for every representation, plus the metadata-only control (no z). Reports held-out-episode metrics."""
     from rrp.policies.pointer import load_pointer_bundle, run_pointer_probe
-    dev, data = setup(a)
+    dev, data, cx = setup(a, "pointer.probe")
     rb = load_pointer_bundle(a.representation, dev)
     Z = frozen_mu(rb["modules"]["E"], data, dev)
     if a.flow:
@@ -452,7 +453,7 @@ def cmd_probe(a):
                 Z[ix] = S.sample(data.batch(ix)[0], nfe=8)
     res = {}
     for name, meta in (("probe", False), ("metadata_only", True)):
-        P = fit_probe(Z, data, dev, dz=Z.shape[-1], metadata_only=meta, steps=a.steps, batch=a.batch, lr=a.lr,
+        P = fit_probe(Z, data, dev, cx, dz=Z.shape[-1], metadata_only=meta, steps=a.steps, batch=a.batch, lr=a.lr,
                       seed=a.seed)
         acc = {}
         with torch.no_grad():

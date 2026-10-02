@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from rrp.core.compute import upcast
 from rrp.policies.nets.attention import MHA
 from rrp.policies.nets.batch import NODE_DIM
 from rrp.policies.nets.flow import MLP
@@ -100,6 +101,7 @@ class ActionCodec(nn.Module):
     def loss(self, a, valid, node_feats, node_mask, effect_target=None):
         z, mu, logvar = self.encode(a, node_feats, node_mask, sample=True)
         a_hat, eff = self.decode(z, node_feats, node_mask)
+        mu, logvar, a_hat, eff = upcast(mu, logvar, a_hat, eff)       # fp32 losses under an explicit bf16
         m = valid & node_mask[:, None, :]
         rec = masked_reconstruction_loss(a_hat, a, m)
         mm = m.to(mu.dtype)[..., None].expand_as(mu)

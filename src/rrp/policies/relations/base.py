@@ -12,6 +12,7 @@ provide and `resolve(family=..., env_caps=..., training=...)` refuses a spec the
 from __future__ import annotations
 
 import fnmatch
+from rrp.core.compute import f32, upcast
 from rrp.core.provenance import json_digest
 import json
 import math
@@ -475,6 +476,7 @@ def to_json(specs: Sequence[FactorSpec]) -> list[dict]:
 
 
 # ------------------------------------------------------------------ supervision of the estimates a forward wrote
+@f32
 def gaussian_nll(pred, target, mask, lv_min: float = -8.0, lv_max: float = 6.0):
     """Gaussian NLL of `target` [..., d] under pred[..., :d] (mean) / pred[..., d:2d] (log-variance, clamped to
     [lv_min, lv_max]); mean over the True entries of `mask` (the canonical probe / estimate loss)."""
@@ -546,7 +548,7 @@ def estimates_loss(rc: RelCtx, specs: Sequence[FactorSpec]):
         if ("pair", s.name) in rc.estimates:
             site = rc.memo[("pair_site", s.name)]
             qs, ks = rc.token_sets(site)
-            logit, kind = rc.estimates[("pair", s.name)], (d.readout.loss if d.readout else "bce")
+            logit, kind = upcast(rc.estimates[("pair", s.name)]), (d.readout.loss if d.readout else "bce")
             if d.label not in qs.labels:
                 metrics[f"{s.name}_acc"] = (0.0, 0)
                 continue
@@ -577,8 +579,9 @@ def estimates_loss(rc: RelCtx, specs: Sequence[FactorSpec]):
                 metrics[f"{s.name}_mae"] = (0.0, 0)
                 continue
             y, (mu, _) = ts.labels[lab], rc.estimates[(set_name, fld)]
+            mu, lvs = upcast(mu, rc.estimates[(set_name, fld, "logvar")])      # fp32 island under an explicit bf16
             m = _label_valid(ts, lab, ts.mask.shape) & ts.mask
-            terms.append(gaussian_nll(torch.cat([mu, rc.estimates[(set_name, fld, "logvar")]], -1), y.to(mu.dtype), m,
+            terms.append(gaussian_nll(torch.cat([mu, lvs], -1), y.to(mu.dtype), m,
                                       p.get("lv_min", -8.0)))
             metrics[f"{s.name}_mae"] = (float(((mu.detach() - y).abs() * m[..., None]).sum()), int(m.sum()) * y.shape[-1])
         if terms:

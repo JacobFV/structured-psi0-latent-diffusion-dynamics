@@ -14,6 +14,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from rrp.core.compute import f32
 from rrp.policies.nets.attention import MHA
 from rrp.policies.relations.base import FactorSpec, gaussian_nll, get_factor, resolve  # noqa: F401 (re-exported)
 
@@ -118,6 +119,7 @@ class ReadoutProbe(nn.Module):
 
 
 # ------------------------------------------------------------------ losses (one table for every readout)
+@f32
 def readout_loss(out: dict, labels: dict, specs, masks: dict | None = None) -> tuple[torch.Tensor, dict]:
     """labels[ReadoutDef.label] (target), masks[query] (bool over the prediction's leading dims; default all).
     Weight = FactorSpec.weight (default 1). Returns (total, {probe_<query>: float})."""

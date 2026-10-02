@@ -31,6 +31,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from rrp.core import compute
 from rrp.core.provenance import file_digest
 from rrp.policies.psi0.data import CachedDataset, collate
 from rrp.policies.psi0 import load_launch_config, psi_home
@@ -177,6 +178,7 @@ def train(argv=None):
         gate = require_gate(a.gate, a.stage_a)
     torch.manual_seed(a.seed); np.random.seed(a.seed)
     dev = a.device
+    cx = compute.setup("psi0.train", dev)      # LEGACY['psi0']: bf16 CUDA autocast, as before
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     meta = json.loads((Path(a.feat_dir) / "meta.json").read_text())
     tr_eps, va_eps = split_episodes(meta["episodes"], a.val_eps, 1234)          # same split for every arm
@@ -196,6 +198,7 @@ def train(argv=None):
         masked = model.fit_state_mask(state_std(ds))
         print(f"[train] constant-input mask: {len(masked)} state dims zeroed {masked}", flush=True)
         model = model.to(dev)
+        cx.compile(model.E, "E")
         if a.rec_w_cmd != 1.0:
             w = torch.ones(N.DA); w[list(N.CMD_DIMS)] = a.rec_w_cmd; model.rec_dim_w = w
         shared = list(model.E.parameters())
@@ -211,6 +214,7 @@ def train(argv=None):
         info = N.load_pretrained_blocks(model.header, a.action_header)
         print(f"[train] pretrained blocks: {info}", flush=True)
         model = model.to(dev)
+        cx.compile(model.header, "header")
         shared = list(model.header.transformer_blocks[-1].parameters())
         lr = a.lr
     params = [p for p in model.parameters() if p.requires_grad]
@@ -236,7 +240,7 @@ def train(argv=None):
         for pg in opt.param_groups:
             pg["lr"] = cosine_lr(step, a.steps, a.warmup, lr)
         ts = time.time()
-        with torch.autocast("cuda" if dev == "cuda" else "cpu", dtype=torch.bfloat16, enabled=dev == "cuda"):
+        with cx.autocast():
             if a.arm == "stageA":
                 loss, logs, parts = model.loss(b, w_kl=a.w_kl, w_sem=a.w_sem if "labels" in b else 0.0,
                                                lv_min=a.lv_min, z_noise=a.z_noise, w_grasp=a.w_grasp,
@@ -264,7 +268,7 @@ def train(argv=None):
     # validation (held-out episodes): flow/rec loss + probe metrics
     model.eval()
     vals, pm = [], {}
-    with torch.no_grad(), torch.autocast("cuda" if dev == "cuda" else "cpu", dtype=torch.bfloat16, enabled=dev == "cuda"):
+    with torch.no_grad(), cx.autocast():
         for b in dlv:
             b = to_dev(b, dev)
             l, logs, _ = (model.loss(b, w_kl=a.w_kl, w_sem=a.w_sem if "labels" in b else 0.0, lv_min=a.lv_min)
@@ -298,6 +302,7 @@ def train(argv=None):
     ck_out = out / ("stage_a.pt" if a.arm == "stageA" else "final.pt")
     summ["provenance"] = make_provenance(source_label("learned", str(ck_out)), weights=dict(head=weights_digest(model.state_dict())),
                                          flags=dict(arm=a.arm, zero_prev_action=True), notes="Ψ₀ matched fine-tune").model_dump(mode="json")
+    cx.write_stamp(out)
     (out / "summary.json").write_text(json.dumps(summ, indent=1, default=str))
     print("[train] done", json.dumps({k: summ[k] for k in ("arm", "steps", "gpu_seconds", "val", "val_probe")}), flush=True)
 
@@ -321,6 +326,7 @@ def fit_probes(argv=None):
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     dev = "cuda"
+    cx = compute.setup("psi0.probes", dev)
     summ = json.loads(Path(a.train_summary).read_text())
     A = N.load_stage_a(a.stage_a); A = A.to(dev).eval()
     head = None
@@ -344,7 +350,7 @@ def fit_probes(argv=None):
             except StopIteration:
                 it = iter(dl); b = next(it)
             b = to_dev(b, dev)
-            with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
+            with torch.no_grad(), cx.autocast():
                 z = zs_of(A, b, head).float()
             l, _ = N.probe_loss(N.run_probe(P, z), b["labels"], P.specs, lv_min=-4.0)
             opt.zero_grad(); l.backward(); opt.step(); step += 1
@@ -352,7 +358,7 @@ def fit_probes(argv=None):
         with torch.no_grad():
             for b in torch.utils.data.DataLoader(dv, batch_size=128, collate_fn=collate):
                 b = to_dev(b, dev)
-                with torch.autocast("cuda", dtype=torch.bfloat16):
+                with cx.autocast():
                     z = zs_of(A, b, head).float()
                 for k, (s_, n_) in N.probe_metrics(N.run_probe(P, z), b["labels"], P.specs).items():
                     ps, pn = pm.get(k, (0.0, 0)); pm[k] = (ps + s_, pn + n_)
@@ -404,6 +410,7 @@ def heldout(argv=None):
     a = ap.parse_args(argv)
     if a.structured and not a.stage_a:
         raise SystemExit("heldout --structured needs --stage-a (the head is built over its stage A)")
+    cx = compute.setup("psi0.heldout", a.device)
     eps = {int(x) for x in a.val_episodes.split(",")}
     lc = load_launch_config(Path(a.run_dir))
     maxmin = lc.data.transform.field
@@ -443,7 +450,7 @@ def heldout(argv=None):
         g = torch.Generator(device=a.device).manual_seed(0)
         for b0 in range(0, len(idx), 32):
             b = to_dev(collate([ds[i] for i in idx[b0:b0 + 32]]), a.device)
-            with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16, enabled=a.device == "cuda"):
+            with torch.no_grad(), cx.autocast():
                 pred = m.sample(b, nfe=a.nfe, generator=g).float()
             p = np.asarray(maxmin.denormalize(pred.cpu().numpy()))
             gt = np.asarray(maxmin.denormalize(b["actions"].float().cpu().numpy()))

@@ -10,7 +10,7 @@ DAG file (YAML; a recipe: recipes/templates/arm_lineage.yaml is the template, re
   defaults: {placement, retries, resources: {cpu, mem, gpu, gpu_mem, max_seconds}, max_parallel, admission_timeout_s,
              max_parallel_gpu, max_cpu, max_mem_gib, shared_budget}   # caps over the running nodes (declared
              # resources) of this DAG, or with shared_budget: true of every DAG ledger of the same track
-  base: RunConfig fields shared by every node (flags!, params, options)
+  base: RunConfig fields shared by every node (flags!, params, options, compute)
   nodes: {name: {stage, tag, deps, resources, placement, retries, only: {axis: [values]},
                  per: {axis: {value: <config overlay>}}, config: <RunConfig overlay>, scope: point|global}}
 Inputs reference upstream nodes as "@node" or "@node:file" (the planner adds the dependency) and existing runs by id.
@@ -358,7 +358,7 @@ def _build_rc(spec, n, nname, point, lineage, track, family, env, lists, resolve
     d = dict(schema_version=SCHEMA_VERSION, family=family, stage=stage, variant=point.get("variant", cfg.pop("variant", "na")),
              seed=int(point.get("seed", cfg.pop("seed", 0))), lineage=lineage, track=track,
              tag=n.get("tag"), inputs=inputs, flags=flags, params=cfg.pop("params", {}) or {},
-             options=cfg.pop("options", {}) or {},
+             options=cfg.pop("options", {}) or {}, compute=cfg.pop("compute", None),   # `compute:` block (core/compute.py)
              note=" | ".join(x for x in (spec.get("caveat"), n.get("note")) if x))   # caveat: every manifest (not hashed)
     cfg.pop("variant", None)
     cfg.pop("seed", None)

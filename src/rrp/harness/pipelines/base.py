@@ -271,11 +271,14 @@ class RunContext:
     specs: tuple
     _prev: bool | None = None
     applied: bool = True
+    _prev_compute: object = None
 
     def restore(self) -> None:
+        from rrp.core import compute
         from rrp.policies.features import kinfeat
         if self.applied:
             kinfeat.set_base_axes(self._prev)
+            compute.configure(self._prev_compute)
 
     def __enter__(self):
         return self
@@ -295,7 +298,8 @@ def inherited_run_config() -> RunConfig | None:
 
 def apply_run_context(rc: RunConfig | None = None) -> RunContext:
     """Resolve the factor list of `rc` and configure the process from it: `feat.base_axes` (kinfeat's ambient value),
-    and, with `options.deploy`, the deploy guard (no ground-truth factor source may be active). Called at stage entry
+    the ambient compute block (`core.compute`: precision / TF32 / compile, read by the trainers' `compute.setup`), and, with
+    `options.deploy`, the deploy guard (no ground-truth factor source may be active). Called at stage entry
     in the parent (`Pipeline.run`) and in every child a stage spawns (`child_main`): the RunConfig is the one channel,
     `$RRP_KINFEAT` no longer exists. Without `rc` (a grandchild, `rrp.cli.main`) the context is the rendered config
     at `$RRP_RUN_CONTEXT`; with no variable set there is no context and nothing is applied."""
@@ -308,7 +312,9 @@ def apply_run_context(rc: RunConfig | None = None) -> RunContext:
     if rc.options.get("deploy"):
         from rrp.policies.relations.base import assert_deployable
         assert_deployable(specs)
-    return RunContext(base_axes=axes, specs=specs, _prev=kinfeat.set_base_axes(axes))
+    from rrp.core import compute
+    return RunContext(base_axes=axes, specs=specs, _prev=kinfeat.set_base_axes(axes),
+                      _prev_compute=compute.configure(rc.compute))       # the `compute:` block (None = today's behaviour)
 
 
 def child_main(argv: list[str]) -> int:
@@ -349,7 +355,10 @@ def stage_versions(rc: RunConfig) -> dict:
         defs = [asdict(get_factor(n)) for n in sorted({s.name for s in specs})]
         cat = "cat-" + json_digest(defs, 12, default=repr)
     factors = stamp_versions({}, specs or None, [kinfeat.VERSION] if axes else []).get("factors", "")   # the checkpoint's string
-    return dict(pipeline=str(PIPELINE_VERSION), factors=factors, catalog=cat)
+    pins = dict(pipeline=str(PIPELINE_VERSION), factors=factors, catalog=cat)
+    if rc.compute is not None:                  # a non-default compute block (core/compute.py) pins the outputs it produced
+        pins["compute"] = json_digest(rc.compute.to_dict(), 12)
+    return pins
 
 
 class Pipeline:
@@ -441,7 +450,10 @@ def write_stage_manifest(ctx: StageContext, spec: StageSpec, res: dict, *, start
     versions = dict(res.get("versions") or {})
     if pins["factors"]:
         versions.setdefault("factors", pins["factors"])           # a stage's measured value wins
-    prov = make_provenance(src, flags=rc.flag_dict(), versions=versions,
+    flags = rc.flag_dict()
+    if rc.compute is not None:
+        flags["compute"] = rc.compute.to_dict()       # absent (not null) at the default so existing provenance is unchanged
+    prov = make_provenance(src, flags=flags, versions=versions,
                            notes=f"pipeline {rc.family}/{rc.stage} {rc.run_id}")
     extra = dict(schema="pipeline-manifest-1", run_id=rc.run_id, config_hash=rc.config_hash(), pins=pins,
                  runconfig=rc.model_dump(mode="json"), native_config=_safe_native(ctx),

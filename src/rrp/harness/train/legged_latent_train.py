@@ -33,6 +33,8 @@ import torch
 
 from rrp.policies.features.legged import (MAX_N, MAX_M, KNOT_TIMES, TICK_DT, H, MAX_J, KNOT_TICKS, EVENT_SLOTS,
                                           TARGET_SLOTS, target_slot_cols, task_view_of)
+from rrp.core import compute
+from rrp.core.compute import upcast
 from rrp.core.sealed import SealedSplit
 from rrp.policies.bundles import _dev, checkpoint_provenance, legged_flags
 from rrp.policies.nets.legged_latent import (LeggedFlow, REALIZER_GROUPS, build_legged_rep, group_masks, legged_probe,
@@ -337,12 +339,13 @@ def rep_step(E, R, P, data, i, j, specs, beta, train=True, qd_drop=0.0):
     relational factors' pair estimates by `estimates_loss`."""
     b = data.train_batch(i)
     mu, lv, rc = E.encode(b, data.beh(i))
+    mu, lv = upcast(mu, lv)                              # KL / sampling in fp32 under an explicit bf16 (core/compute.py)
     z = mu + torch.randn_like(mu) * (0.5 * lv).exp() if train else mu
     br, ph, a1, am = data.realizer_batch(i, j)
     if train and qd_drop > 0:                    # counter the proprioceptive (joint-velocity) shortcut, D-056
         keep = (torch.rand(len(i), 1, device=br["qd"].device) >= qd_drop).float()
         br = dict(br); br["qd"] = br["qd"] * keep
-    pred = R(z, br, ph)
+    pred = upcast(R(z, br, ph))
     m = am.float()
     l_real = (((pred - a1) ** 2) * m).sum() / m.sum()
     mm = b["asm_mask"][:, None, :, None].float().expand_as(mu)
@@ -514,12 +517,14 @@ def _save(path, **kw):
 def train_rep(cfg, out: Path):
     _assert_sealed(cfg)
     dev = _dev()
+    cx = compute.setup("legged_latent.rep", dev)
     torch.manual_seed(cfg.get("seed", 0))
     rng = np.random.default_rng(cfg.get("seed", 0))
     data = LeggedData(Path(cfg["data"]), cfg["bodies"], dev)
     lc = cfg["latent"]
     specs = _legged_specs(lc)
     E, R, P = (m.to(dev) for m in build_legged_rep(lc, specs))
+    E, R = cx.compile(E, "E", methods=("encode",)), cx.compile(R, "R")
     params = [p for m in (E, R, P) for p in m.parameters()]
     steps, lr = cfg["steps"], cfg.get("lr", 3e-4)
     opt = torch.optim.AdamW(params, lr=lr, weight_decay=1e-4)
@@ -547,10 +552,11 @@ def train_rep(cfg, out: Path):
             Bm = b_["counts"]["main"]
         i = data.sample(Bm, rng)
         j = torch.from_numpy(rng.integers(0, MAX_J + 1, Bm)).to(dev)
-        loss, logs, _ = rep_step(E, R, P, data, i, j, specs, lc.get("beta_kl", 1e-3), qd_drop=lc.get("qd_dropout", 0.0))
-        if shard is not None:
-            el, elogs = rel.loss(E.encode(shard, None)[2], step - 1)
-            loss, logs = (Bm * loss + (B - Bm) * el) / B, dict(logs, relgen=float(el.detach()), n_relgen=B - Bm, **elogs)
+        with cx.autocast():
+            loss, logs, _ = rep_step(E, R, P, data, i, j, specs, lc.get("beta_kl", 1e-3), qd_drop=lc.get("qd_dropout", 0.0))
+            if shard is not None:
+                el, elogs = rel.loss(E.encode(shard, None)[2], step - 1)
+                loss, logs = (Bm * loss + (B - Bm) * el) / B, dict(logs, relgen=float(el.detach()), n_relgen=B - Bm, **elogs)
         opt.zero_grad()
         loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -565,6 +571,7 @@ def train_rep(cfg, out: Path):
             _save(out / f"snap_s{step}.pt", E=E.state_dict(), R=R.state_dict(), P=P.state_dict(), cfg=cfg,
                   result=dict(latent_space_version=f"legged-ls-{cfg['name']}", step=step,
                               upper_trained=data.upper_trained, action_groups=data.action_groups))
+    cx.write_stamp(out)
     res = dict(steps=steps, wall_s=time.time() - t0, bodies=cfg["bodies"], n_rows=data.n,
                n_train_rows=len(data.train_idx), n_heldout_rows=len(data.test_idx),
                latent_space_version=f"legged-ls-{cfg['name']}", upper_trained=data.upper_trained,
@@ -577,6 +584,7 @@ def train_rep(cfg, out: Path):
 def fit_probe(cfg, out: Path):
     """Post-hoc MEASUREMENT probe on detached frozen z (identical for sem / nosem); metadata-only control."""
     dev = _dev()
+    cx = compute.setup("legged_latent.probe_fit", dev)
     rcfg, E, R, _, rres, specs = load_legged_rep(Path(cfg["representation"]), dev)
     _assert_sealed(rcfg)
     data = LeggedData(Path(rcfg["data"]), rcfg["bodies"], dev)
@@ -594,11 +602,12 @@ def fit_probe(cfg, out: Path):
         rng = np.random.default_rng(5)
         for step in range(cfg.get("steps", 6000)):
             i = data.sample(256, rng)
-            with torch.no_grad():
-                b = data.ctx_batch(i)
-                mu, _ = E(b, data.beh(i))
-            loss, _ = readout_loss(*_terms(legged_probe_read(P, mu, b["asm_mask"], b["body_asm"]), data.labels(i), b,
-                                           unit_specs))
+            with cx.autocast():
+                with torch.no_grad():
+                    b = data.ctx_batch(i)
+                    mu = compute.upcast(E(b, data.beh(i))[0])
+                loss, _ = readout_loss(*_terms(legged_probe_read(P, mu, b["asm_mask"], b["body_asm"]), data.labels(i), b,
+                                               unit_specs))
             opt.zero_grad(); loss.backward(); opt.step()
         P.eval()
         agg, sh = {}, {}
@@ -623,6 +632,7 @@ def fit_probe(cfg, out: Path):
 
 def train_flow(cfg, out: Path):
     dev = _dev()
+    cx = compute.setup("legged_latent.flow", dev)
     torch.manual_seed(cfg.get("seed", 0))
     rng = np.random.default_rng(cfg.get("seed", 0))
     rcfg, E, R, P, rres, specs = load_legged_rep(Path(cfg["representation"]), dev)
@@ -630,6 +640,7 @@ def train_flow(cfg, out: Path):
     data = LeggedData(Path(rcfg["data"]), rcfg["bodies"], dev)
     dz = rcfg["latent"]["dz"]
     F_ = LeggedFlow(dz=dz, D=cfg.get("width", 256), layers=cfg.get("layers", 4), factors=specs).to(dev)
+    F_ = cx.compile(F_, "flow", methods=("velocity",))
     # target standardization over valid (knot, assembly) entries
     with torch.no_grad():
         zs = []
@@ -681,21 +692,23 @@ def train_flow(cfg, out: Path):
             Bm = b_["counts"]["main"]
         i = data.sample(Bm, rng)
         b = data.train_batch(i)
-        with torch.no_grad():
-            zt, _ = E(b, data.beh(i))
         lab = data.labels(i)
         fn = (lambda zc: readout_loss(*_terms(legged_probe_read(P, zc, b["asm_mask"], b["body_asm"]), lab, b, unit))) \
             if w > 0 else None
-        loss, logs = F_.loss(b, zt, fn, w, cfg.get("packet_tau_min", 0.6))
-        if shard is not None:
-            el, elogs = rel.loss(F_.prepare(shard).rc, step - 1)
-            loss, logs = (Bm * loss + (B - Bm) * el) / B, dict(logs, relgen=float(el.detach()), n_relgen=B - Bm, **elogs)
+        with cx.autocast():
+            with torch.no_grad():
+                zt = compute.upcast(E(b, data.beh(i))[0])
+            loss, logs = F_.loss(b, zt, fn, w, cfg.get("packet_tau_min", 0.6))
+            if shard is not None:
+                el, elogs = rel.loss(F_.prepare(shard).rc, step - 1)
+                loss, logs = (Bm * loss + (B - Bm) * el) / B, dict(logs, relgen=float(el.detach()), n_relgen=B - Bm, **elogs)
         opt.zero_grad(); loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(F_.parameters(), 1.0)
         opt.step(); sch.step()
         if step % 200 == 0:
             log.write(json.dumps(dict(step=step, t=time.time() - t0, loss=float(loss.detach()), gn=float(gn), cuda_peak_mb=cuda_peak_mb(), **logs)) + "\n")
             log.flush()
+    cx.write_stamp(out)
     res = dict(steps=steps, wall_s=time.time() - t0, representation=cfg["representation"],
                latent_space_version=rres["latent_space_version"], upper_trained=rres.get("upper_trained", False),
                action_groups=rres.get("action_groups"), eval=eval_flow(F_, E, R, P, data, specs))

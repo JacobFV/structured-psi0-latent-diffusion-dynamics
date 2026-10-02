@@ -21,16 +21,20 @@ from rrp.policies.nets.codec import ActionCodec, CodecConfig
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 from rrp.ops.workload import CheckpointSignal
 
+from rrp.core import compute
 from rrp.core.provenance import FEATURIZER_VERSION  # noqa: E402
 
 
-def device_setup():
+def device_setup(name: str = "behavior"):
+    """(device, cap info, Cx): the shared compute helper (core/compute.py) applies the precision / TF32 settings (the
+    behaviour trainers' historical TF32-matmul default is `compute.LEGACY['behavior']`)."""
     if torch.cuda.is_available():
         from rrp.ops.workload import apply_cap
         info = apply_cap()
-        torch.backends.cuda.matmul.allow_tf32 = True
-        return torch.device("cuda"), info
-    return torch.device("cpu"), {"cuda": False}
+        dev = torch.device("cuda")
+    else:
+        dev, info = torch.device("cpu"), {"cuda": False}
+    return dev, info, compute.setup(name, dev)
 
 
 def encode_targets(codec: ActionCodec | None, batch, a, v):
@@ -67,7 +71,7 @@ def prefetch(gen, depth: int = 3):
 
 
 def train_codec(cfg: dict, out_dir: Path) -> dict:
-    dev, ginfo = device_setup()
+    dev, ginfo, cx = device_setup("behavior.codec")
     sig = CheckpointSignal()
     torch.manual_seed(cfg["seed"])
     rng = random.Random(cfg["seed"])
@@ -77,14 +81,15 @@ def train_codec(cfg: dict, out_dir: Path) -> dict:
         if cfg.get("heldout_robots") else []
     dsh = ChunkDataset(hold, cfg["horizon"], stride=4) if hold else None
     ccfg = CodecConfig(**cfg["codec"])
-    model = ActionCodec(ccfg).to(dev)
+    model = cx.compile(ActionCodec(ccfg).to(dev), "codec", methods=("encode", "decode"))
     opt = torch.optim.AdamW(model.parameters(), lr=cfg.get("lr", 3e-4), weight_decay=1e-4)
     log = open(out_dir / "train_log.jsonl", "a")
     step, t0 = 0, time.time()
     for epoch in range(cfg["epochs"]):
         for batch, a, v, lab, eff in ds.batches(cfg["batch_size"], rng):
             batch, a, v, eff = batch.to(dev), a.to(dev), v.to(dev), eff.to(dev)
-            loss, logs = model.loss(a[..., 0], v, batch.node_feats, batch.node_mask, eff)
+            with cx.autocast():
+                loss, logs = model.loss(a[..., 0], v, batch.node_feats, batch.node_mask, eff)
             opt.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -97,6 +102,7 @@ def train_codec(cfg: dict, out_dir: Path) -> dict:
                 break
         if sig.requested:
             break
+    cx.write_stamp(out_dir)
     res = dict(steps=step, wall_s=time.time() - t0, train_chunks=len(ds))
     if dsh:
         res["heldout_recon"] = evaluate_codec(model, dsh, dev)
@@ -130,7 +136,7 @@ def evaluate_codec(model, ds, dev, max_batches=50) -> dict:
 
 
 def train_policy(cfg: dict, out_dir: Path) -> dict:
-    dev, ginfo = device_setup()
+    dev, ginfo, cx = device_setup("behavior.policy")
     sig = CheckpointSignal()
     torch.manual_seed(cfg["seed"])
     np.random.seed(cfg["seed"])
@@ -158,7 +164,7 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
         for p in codec.parameters():
             p.requires_grad_(False)       # frozen codec for the policy experiment
     pcfg = PolicyConfig.from_dict(cfg["policy"])
-    model = FlowPolicy(pcfg).to(dev)
+    model = cx.compile(FlowPolicy(pcfg).to(dev), "flow", methods=("velocity",))
     swap = cfg.get("swap_alignment")
     proj, pairs = None, []
     params = list(model.parameters())
@@ -213,19 +219,20 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
         for batch, a, v, lab, eff in (prefetch(it) if cfg.get("prefetch") else it):
             batch, a, v = batch.to(dev), a.to(dev), v.to(dev)
             target = encode_targets(codec, batch, a, v)
-            loss, logs = model.loss(batch, target, v, generator=gen)
-            if rel is not None:
-                b, shard = rel.draw(dev)
-                if shard is not None:
-                    n_rel = cfg["batch_size"] - b["counts"]["main"]
-                    el, elogs = rel.loss(model.prepare(shard).rc, step)
-                    loss, logs = loss + (n_rel / cfg["batch_size"]) * el, dict(logs, relgen=float(el.detach()),
-                                                                               n_relgen=n_rel, **elogs)
-            if proj is not None and len(pairs) >= 8:
-                sl = swap_alignment_loss(model, proj, rng.sample(pairs, min(swap.get("pairs_per_step", 64), len(pairs))),
-                                         dev)
-                loss = loss + swap.get("weight", 0.1) * sl
-                logs["swap_align"] = float(sl.detach())
+            with cx.autocast():
+                loss, logs = model.loss(batch, target, v, generator=gen)
+                if rel is not None:
+                    b, shard = rel.draw(dev)
+                    if shard is not None:
+                        n_rel = cfg["batch_size"] - b["counts"]["main"]
+                        el, elogs = rel.loss(model.prepare(shard).rc, step)
+                        loss, logs = loss + (n_rel / cfg["batch_size"]) * el, dict(logs, relgen=float(el.detach()),
+                                                                                   n_relgen=n_rel, **elogs)
+                if proj is not None and len(pairs) >= 8:
+                    sl = swap_alignment_loss(model, proj, rng.sample(pairs, min(swap.get("pairs_per_step", 64), len(pairs))),
+                                             dev)
+                    loss = loss + swap.get("weight", 0.1) * sl
+                    logs["swap_align"] = float(sl.detach())
             opt.zero_grad()
             loss.backward()
             gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -263,6 +270,7 @@ def train_policy(cfg: dict, out_dir: Path) -> dict:
                             versions=dict(policy=pcfg.name, featurizer=FEATURIZER_VERSION,
                                           codec=(codec.cfg.version if codec else None)),
                             config=cfg, data_cursor=dict(epoch=epoch), extra=dict(sched=sched.state_dict()))
+    cx.write_stamp(out_dir)
     res = dict(steps=step, wall_s=time.time() - t0, train_chunks=len(ds), swap_pairs=len(pairs),
                n_params=sum(p.numel() for p in model.parameters()),
                gpu=ginfo, interrupted=sig.requested)

@@ -23,6 +23,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from rrp.core import compute
 from rrp.policies.bundles import load_representation
 from rrp.policies.system0 import make_realizer
 from rrp.harness.data.latent import LatentData
@@ -49,13 +50,14 @@ def joint_adapt(flow_ckpt: Path, rep_path: Path, packed_dir: Path, budget: int, 
     from rrp.policies.nets.latent_batch import assembly_batch
     from rrp.harness.train.latent_train import _bundle, _dev
     dev = _dev()
+    cx = compute.setup("joint_adapt", dev)
     torch.manual_seed(seed)
     rng = random.Random(seed)
     st = load_checkpoint(Path(flow_ckpt), map_location=dev)
     cfgj = st["config"]
     lcfg, E, _, P, _ = load_representation(Path(cfgj["representation"]), dev)
     pcfg = PolicyConfig.from_dict(dict(cfgj["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz))
-    flow = FlowPolicy(pcfg).to(dev)
+    flow = cx.compile(FlowPolicy(pcfg).to(dev), "flow", methods=("velocity",))
     flow.load_state_dict(st["model"])
     st0 = load_checkpoint(Path(rep_path), map_location=dev)
     lcfg_r, E_r, R_old, P_r, rep_res = load_representation(Path(rep_path), dev)
@@ -115,7 +117,7 @@ def joint_adapt(flow_ckpt: Path, rep_path: Path, packed_dir: Path, budget: int, 
             flow.train()
             z = torch.cat([zg[:ng], z[ng:]], 0)
         phase = torch.as_tensor(j * lcfg.control_dt, dtype=z.dtype, device=dev)
-        pred = R(z, am, kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm"))
+        pred = compute.upcast(R(z, am, kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm")))
         m = (r["v1"] & r["node_mask"]).float()
         return ((pred - r["a1"]) ** 2 * m).sum() / m.sum().clamp(min=1)
 
@@ -125,12 +127,13 @@ def joint_adapt(flow_ckpt: Path, rep_path: Path, packed_dir: Path, budget: int, 
         do_r = mode == "joint" or step >= nf_steps
         sel, tgt, j = data.sample(B, rng, lcfg.max_phase_ticks if do_r else 0, pool)
         batch, a, v, lab, r = data.fetch(sel, tgt, dev)
-        with torch.no_grad():
-            af, am, ai = assembly_tokens(batch)
-            mu, logvar = E(batch, a, v, af, am, ai)
-        ab = assembly_batch(batch)
-        lf = flow_loss(batch, ab, am, mu, lab) if do_f else None
-        lr_ = real_loss(ab, am, mu, logvar, torch.as_tensor(j, device=dev), r) if do_r else None
+        with cx.autocast():
+            with torch.no_grad():
+                af, am, ai = assembly_tokens(batch)
+                mu, logvar = compute.upcast(*E(batch, a, v, af, am, ai))
+            ab = assembly_batch(batch)
+            lf = flow_loss(batch, ab, am, mu, lab) if do_f else None
+            lr_ = real_loss(ab, am, mu, logvar, torch.as_tensor(j, device=dev), r) if do_r else None
         loss = sum(x for x in (lf, lr_) if x is not None)
         (opt_f if do_f else opt_r).zero_grad()
         if mode == "joint":
@@ -149,6 +152,7 @@ def joint_adapt(flow_ckpt: Path, rep_path: Path, packed_dir: Path, budget: int, 
         if (step + 1) % 50 == 0:
             log.append(dict(step=step + 1, flow=None if lf is None else float(lf.detach()),
                             real=None if lr_ is None else float(lr_.detach())))
+    cx.write_stamp(out_dir)
     res = dict(version=JOINT_ADAPT_VERSION, mode=mode, gen_frac=gen_frac, budget=budget, seed=seed,
                demo_episodes=len(chosen), demo_control_transitions=len(pool), optimizer_updates=total,
                flow_updates=nf_steps, realizer_updates=nr_steps, lr=lr, batch_size=B, nfe=nfe, wall_s=time.time() - t0,

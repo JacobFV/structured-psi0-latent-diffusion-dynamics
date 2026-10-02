@@ -19,11 +19,11 @@ from rrp.policies.nets.flow import FlowPolicy, PolicyConfig
 def sft(source_ckpt: Path, dataset: Path, target_robot: str, budget: int, *, seed: int, out_dir: Path,
         steps: int = 300, lr: float = 1e-4, batch_size: int = 128, modules: str = "all",
         demo_pool_seeds=(1000000, 1100000)) -> dict:
-    dev, _ = device_setup()
+    dev, _, cx = device_setup("behavior.sft")
     out_dir.mkdir(parents=True, exist_ok=True)
     st = load_checkpoint(source_ckpt, map_location=dev)
     pcfg = PolicyConfig.from_dict(st["config"]["policy"])
-    model = FlowPolicy(pcfg).to(dev)
+    model = cx.compile(FlowPolicy(pcfg).to(dev), "flow", methods=("velocity",))
     model.load_state_dict(st["model"])
     pool = load_episodes(dataset, robots={target_robot}, seeds=demo_pool_seeds)
     pool.sort(key=lambda e: e[0]["meta"]["seed"])
@@ -43,7 +43,8 @@ def sft(source_ckpt: Path, dataset: Path, target_robot: str, budget: int, *, see
     while step < steps:
         for batch, a, v, lab, eff in ds.batches(min(batch_size, max(8, len(ds))), rng, drop_last=False):
             batch, a, v = batch.to(dev), a.to(dev), v.to(dev)
-            loss, logs = model.loss(batch, a, v)
+            with cx.autocast():
+                loss, logs = model.loss(batch, a, v)
             opt.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -53,6 +54,7 @@ def sft(source_ckpt: Path, dataset: Path, target_robot: str, budget: int, *, see
                 log.write(json.dumps(dict(step=step, loss=float(loss.detach()), **logs)) + "\n")
             if step >= steps:
                 break
+    cx.write_stamp(out_dir)
     res = dict(target=target_robot, budget=budget, seed=seed, demo_episodes=len(eps), demo_control_transitions=transitions,
                optimizer_updates=step, chunk_presentations=step * batch_size, wall_s=time.time() - t0,
                changed_modules=modules, trainable_params=sum(p.numel() for p in params),
@@ -73,11 +75,11 @@ def sft_packed(source_ckpt: Path, target_packed_dir: Path, budget: int, *, seed:
     import numpy as np
     from rrp.harness.data.packed import PackedChunkDataset
     from rrp.policies.nets.codec import ActionCodec, CodecConfig
-    dev, _ = device_setup()
+    dev, _, cx = device_setup("behavior.sft_packed")
     st = load_checkpoint(source_ckpt, map_location=dev)
     cfgj = st["config"]
     pcfg = PolicyConfig.from_dict(cfgj["policy"])
-    model = FlowPolicy(pcfg).to(dev)
+    model = cx.compile(FlowPolicy(pcfg).to(dev), "flow", methods=("velocity",))
     model.load_state_dict(st["model"])
     codec = None
     if cfgj.get("codec_checkpoint"):
@@ -109,7 +111,8 @@ def sft_packed(source_ckpt: Path, target_packed_dir: Path, budget: int, *, seed:
         batch, a, v, lab, _ = data.collate(sel)
         batch, a, v = batch.to(dev), a.to(dev), v.to(dev)
         target = encode_targets(codec, batch, a, v)
-        loss, logs = model.loss(batch, target, v, generator=gen)
+        with cx.autocast():
+            loss, logs = model.loss(batch, target, v, generator=gen)
         opt.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -117,6 +120,7 @@ def sft_packed(source_ckpt: Path, target_packed_dir: Path, budget: int, *, seed:
         if (step + 1) % 50 == 0:
             log.write(json.dumps(dict(step=step + 1, loss=float(loss.detach()), **logs)) + "\n")
             log.flush()
+    cx.write_stamp(out_dir)
     res = dict(target=Path(target_packed_dir).name, budget=budget, seed=seed, demo_episodes=len(chosen),
                demo_episode_pack_ids=chosen, demo_control_transitions=len(pool), optimizer_updates=steps,
                batch_rows=B, chunk_presentations=steps * B, lr=lr, wall_s=time.time() - t0,

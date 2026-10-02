@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import ast
 import copy
+from .compute import Compute
 from .provenance import json_digest
 import json
 import operator
@@ -28,7 +29,7 @@ import re
 from pathlib import Path
 from typing import Annotated, Any, Literal, Union
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_serializer, model_validator
 
 SCHEMA_VERSION = "runconfig-1"
 BUILTIN_FAMILIES = ("arm", "dual", "legged", "pointer", "psi0")   # pointer / psi0: no meaning-changing flags (D-145 P4c)
@@ -265,6 +266,20 @@ class RunConfig(Strict):
     options: dict[str, Any] = Field(default_factory=dict)    # pipeline-wrapper arguments (robots, seed sets, workers)
     note: str = ""
     legacy: None = None      # frozen key: always null; kept so config_hash / config.json of every existing run stay valid
+    compute: Compute | None = None   # precision / TF32 / compile / CUDA graphs / seeds_per_job / eval_backend (core/compute.py).
+    #   None = today's behaviour and is serialised as ABSENT (every existing hash is unchanged); a non-default block hashes in.
+
+    @field_validator("compute")
+    @classmethod
+    def _compute_default_is_absent(cls, v):
+        return None if v is not None and v.is_default else v        # an all-default block IS the absent block
+
+    @model_serializer(mode="wrap")
+    def _omit_absent_compute(self, handler):
+        d = handler(self)
+        if d.get("compute") is None:
+            d.pop("compute", None)
+        return d
 
     @model_validator(mode="after")
     def _check(self):

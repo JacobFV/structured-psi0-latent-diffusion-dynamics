@@ -49,10 +49,10 @@ def cmd_edit(a):
     from rrp.envs.computerworld import scene_widgets
     from rrp.policies.pointer import (LearnedSystem0, PointerSystemI, load_pointer_bundle, pointer_packet,
                                       run_pointer_probe)
-    dev, data = setup(a)
+    dev, data, cx = setup(a, "pointer.diagnostics")
     rb, fb = load_pointer_bundle(a.representation, dev), load_pointer_bundle(a.flow, dev)
     Z = frozen_mu(rb["modules"]["E"], data, dev)
-    P = fit_probe(Z, data, dev, dz=Z.shape[-1], steps=a.probe_steps, batch=512, lr=1e-3, seed=a.seed)
+    P = fit_probe(Z, data, dev, cx, dz=Z.shape[-1], steps=a.probe_steps, batch=512, lr=1e-3, seed=a.seed)
     for p in P.parameters():
         p.requires_grad_(False)
     lsv, rcv = rb["versions"]["latent_space_version"], rb["versions"]["realizer_compat_version"]

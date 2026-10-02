@@ -17,6 +17,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from rrp.core.compute import f32
 from rrp.policies.features.featurizer import BANKS, HASH_DIM
 from rrp.policies.nets.attention import MHA
 from rrp.policies.nets.batch import Batch, BANK_DIMS, NODE_DIM, relation_token_sets
@@ -40,6 +41,7 @@ def interpolate_target(noise: torch.Tensor, data: torch.Tensor, tau):
     return z, data - noise
 
 
+@f32
 def masked_mse(pred: torch.Tensor, target: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
     m = mask.to(pred.dtype)
     while m.dim() < pred.dim():

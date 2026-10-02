@@ -27,6 +27,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from rrp.core import compute
+from rrp.core.compute import upcast
 from rrp.core.provenance import resolve_zero_prev_action
 from rrp.policies.nets.checkpoint import save_checkpoint, load_checkpoint
 from rrp.harness.data.packed import PackedChunkDataset
@@ -105,10 +107,11 @@ def representation_step(E, R, P, data_b, cfg: LatentConfig, train=True):
         batch, a, v, lab, nf, cf = augment(batch, a, v, lab, cfg.cf_mix)
     af, am, ai = assembly_tokens(batch)
     mu, logvar = E(batch, a, v, af, am, ai)
+    mu, logvar = upcast(mu, logvar)                    # KL / sampling in fp32 under an explicit bf16 (core/compute.py)
     z = mu + torch.randn_like(mu) * (0.5 * logvar).exp() if train else mu
     kt = torch.tensor(cfg.knot_times, dtype=z.dtype, device=z.device)
     phase = torch.as_tensor(j * cfg.control_dt, dtype=z.dtype, device=z.device)
-    pred = R(z[:nf], am[:nf], kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm"))
+    pred = upcast(R(z[:nf], am[:nf], kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm")))
     m = (r["v1"] & r["node_mask"]).float()
     l_real = ((pred - r["a1"]) ** 2 * m).sum() / m.sum().clamp(min=1)
     mm = am[:, None, :, None].float().expand_as(mu)
@@ -167,6 +170,7 @@ def _explicit_zpa(cfg_json: dict, out_dir: Path, last_name: str, where: str) -> 
 def train_representation(cfg_json: dict, out_dir: Path) -> dict:
     cfg_json = _explicit_zpa(cfg_json, out_dir, "rep_last.pt", f"train_representation({out_dir})")
     dev = _dev()
+    cx = compute.setup("latent.rep", dev)
     sig = CheckpointSignal()
     cfg = LatentConfig(**cfg_json["latent"])
     seed = cfg_json.get("seed", 0)
@@ -174,7 +178,8 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
     rng = random.Random(seed)
     data = LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False),
                       anchor=cfg_json.get("realizer_anchor", False))
-    E, R = TargetEncoder(cfg).to(dev), LatentRealizer(cfg.dz, layers=cfg.realizer_layers, factors=cfg.realizer_factors).to(dev)
+    E = cx.compile(TargetEncoder(cfg).to(dev), "E")
+    R = cx.compile(LatentRealizer(cfg.dz, layers=cfg.realizer_layers, factors=cfg.realizer_factors).to(dev), "R")
     R.anchor = cfg_json.get("realizer_anchor", False)
     specs, probe_kw = _readout_probe_specs(cfg_json.get("probe", {}))
     P = ReadoutProbe(cfg.dz, cfg.knots, specs=specs, **probe_kw).to(dev)
@@ -210,10 +215,11 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
         else:
             sel, tgt, j = data.sample(Bm, rng, cfg.max_phase_ticks)
             batch, a, v, lab, r = data.fetch(sel, tgt, dev)
-        loss, logs, _ = representation_step(E, R, P, (batch, a, v, lab, r, torch.as_tensor(j, device=dev)), cfg)
-        if shard is not None:
-            el, elogs = rel.loss(E.context(shard)[2], step)
-            loss, logs = (Bm * loss + (B - Bm) * el) / B, dict(logs, relgen=float(el.detach()), n_relgen=B - Bm, **elogs)
+        with cx.autocast():
+            loss, logs, _ = representation_step(E, R, P, (batch, a, v, lab, r, torch.as_tensor(j, device=dev)), cfg)
+            if shard is not None:
+                el, elogs = rel.loss(E.context(shard)[2], step)
+                loss, logs = (Bm * loss + (B - Bm) * el) / B, dict(logs, relgen=float(el.detach()), n_relgen=B - Bm, **elogs)
         opt.zero_grad()
         loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -226,6 +232,7 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
         if step % 2000 == 0 or sig.requested:
             save_checkpoint(last, model=_bundle(E, R, P), optimizer=opt, step=step, versions=dict(latent=cfg.version()),
                             config=cfg_json, extra=dict(sched=sched.state_dict(), **_rng_state(rng)))
+    cx.write_stamp(out_dir)
     res = dict(steps=step, wall_s=time.time() - t0, interrupted=sig.requested, latent_space_version=cfg.version(),
                realizer_compat_version=f"rz-{cfg.version()}-{REALIZER_RECURRENT_STATE}",
                eval=evaluate_representation(E, R, P, data, cfg, dev) if not sig.requested else None)
@@ -301,6 +308,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     from rrp.policies.nets.latent_batch import assembly_batch
     cfg_json = _explicit_zpa(cfg_json, out_dir, "policy_last.pt", f"train_latent_flow({out_dir})")
     dev = _dev()
+    cx = compute.setup("latent.flow", dev)
     sig = CheckpointSignal()
     seed = cfg_json.get("seed", 0)
     torch.manual_seed(seed)
@@ -309,7 +317,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     pack_free = cfg_json.get("gen_dagger_frac", 0.0) >= 1.0 and bool(cfg_json.get("init_from"))
     data = None if pack_free else LatentData(Path(cfg_json["packed_dir"]), zero_prev_action=cfg_json.get("zero_prev_action", False))
     pcfg = PolicyConfig.from_dict(dict(cfg_json["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz))
-    model = FlowPolicy(pcfg).to(dev)
+    model = cx.compile(FlowPolicy(pcfg).to(dev), "flow", methods=("velocity",))
     opt = torch.optim.AdamW(model.parameters(), lr=cfg_json.get("lr", 3e-4), weight_decay=1e-4)
     steps = cfg_json["steps"]
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=cfg_json.get("lr", 3e-4), total_steps=steps, pct_start=0.05)
@@ -375,32 +383,33 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
         else:
             sel, tgt, j = data.sample(Bm, rng, 0)
             batch, a, v, lab, r = data.fetch(sel, tgt, dev)
-        if Bp:
-            with torch.no_grad():
-                af, am, ai = assembly_tokens(batch)
-                z_target, _ = E(batch, a, v, af, am, ai)             # clean target = frozen posterior mean
-            ab = assembly_batch(batch)
-            smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
-            S = batch.bank_tokens["scene"].shape[1]
-            pl_fn = (lambda zc: readout_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
-            valid = am[:, None, :].expand(-1, lcfg.knots, -1)
-            loss, logs = model.loss(ab, z_target, valid, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem,
-                                    packet_tau_min=cfg_json.get("packet_tau_min", 0.0))
-            if shard is not None:
-                el, elogs = rel.loss(model.prepare(assembly_batch(shard)).rc, step)
-                loss, logs = (Bm * loss + (Bp - Bm) * el) / Bp, dict(logs, relgen=float(el.detach()), n_relgen=Bp - Bm, **elogs)
-        if Bg:
-            from rrp.policies.nets.batch import collate_inputs
-            it = [gd_items[grng.randrange(len(gd_items))] for _ in range(Bg)]
-            bd = collate_inputs([x[0] for x in it]).to(dev)
-            afd, amd, aid = assembly_tokens(bd)
-            zt = torch.zeros(Bg, lcfg.knots, amd.shape[1], lcfg.dz, device=dev)
-            for i_, x in enumerate(it):
-                m_ = x[1].shape[1]
-                zt[i_, :, :m_] = torch.from_numpy(x[1]).to(dev)
-            ld, _ = model.loss(assembly_batch(bd), zt, amd[:, None, :].expand(-1, lcfg.knots, -1), generator=gen)
-            logs = dict(logs, gen_dagger=float(ld.detach()))
-            loss = (Bp * loss + Bg * ld) / B
+        with cx.autocast():
+            if Bp:
+                with torch.no_grad():
+                    af, am, ai = assembly_tokens(batch)
+                    z_target = compute.upcast(E(batch, a, v, af, am, ai)[0])             # clean target = frozen posterior mean
+                ab = assembly_batch(batch)
+                smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
+                S = batch.bank_tokens["scene"].shape[1]
+                pl_fn = (lambda zc: readout_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
+                valid = am[:, None, :].expand(-1, lcfg.knots, -1)
+                loss, logs = model.loss(ab, z_target, valid, generator=gen, packet_loss_fn=pl_fn, packet_weight=w_sem,
+                                        packet_tau_min=cfg_json.get("packet_tau_min", 0.0))
+                if shard is not None:
+                    el, elogs = rel.loss(model.prepare(assembly_batch(shard)).rc, step)
+                    loss, logs = (Bm * loss + (Bp - Bm) * el) / Bp, dict(logs, relgen=float(el.detach()), n_relgen=Bp - Bm, **elogs)
+            if Bg:
+                from rrp.policies.nets.batch import collate_inputs
+                it = [gd_items[grng.randrange(len(gd_items))] for _ in range(Bg)]
+                bd = collate_inputs([x[0] for x in it]).to(dev)
+                afd, amd, aid = assembly_tokens(bd)
+                zt = torch.zeros(Bg, lcfg.knots, amd.shape[1], lcfg.dz, device=dev)
+                for i_, x in enumerate(it):
+                    m_ = x[1].shape[1]
+                    zt[i_, :, :m_] = torch.from_numpy(x[1]).to(dev)
+                ld, _ = model.loss(assembly_batch(bd), zt, amd[:, None, :].expand(-1, lcfg.knots, -1), generator=gen)
+                logs = dict(logs, gen_dagger=float(ld.detach()))
+                loss = (Bp * loss + Bg * ld) / B
         opt.zero_grad()
         loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -412,6 +421,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
             log.flush()
         if step % cfg_json.get("snapshot_every", 1000) == 0 or sig.requested:
             snapshot()
+    cx.write_stamp(out_dir)
     res = dict(steps=step, wall_s=time.time() - t0, interrupted=sig.requested,
                latent_space_version=rep_res["latent_space_version"],
                realizer_compat_version=rep_res["realizer_compat_version"],
@@ -481,6 +491,7 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
     representation; both of its call sites (`cli/latent.py`, `harness/pipelines/arm.py`) are this unit's own files
     and were renamed with it."""
     dev = _dev()
+    cx = compute.setup("latent.probe_fit", dev)
     lcfg, E, R, _, rep_res = load_representation(rep_path, dev)
     rep_cfg = load_checkpoint(rep_path, map_location="cpu")["config"]
     data = LatentData(packed_dir, zero_prev_action=resolve_zero_prev_action(      # same inputs as E saw (B-1)
@@ -497,11 +508,12 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
         batch, a, v, lab, r = data.fetch(sel, tgt, dev)
         if cf_mix > 0:        # probe also sees counterfactual-binding packets (labels follow the binding)
             batch, a, v, lab, _, _ = augment(batch, a, v, lab, cf_mix, gcf)
-        with torch.no_grad():
-            af, am, ai = assembly_tokens(batch)
-            mu, _ = E(batch, a, v, af, am, ai)
         smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
-        loss, _ = readout_loss(P(mu.detach(), am, smask.shape[1]), lab, smask)
+        with cx.autocast():
+            with torch.no_grad():
+                af, am, ai = assembly_tokens(batch)
+                mu = compute.upcast(E(batch, a, v, af, am, ai)[0])
+            loss, _ = readout_loss(P(mu.detach(), am, smask.shape[1]), lab, smask)
         opt.zero_grad()
         loss.backward()
         opt.step()
@@ -525,7 +537,8 @@ def fit_probes_on_frozen(rep_path: Path, packed_dir: Path, out_path: Path, steps
     f = lambda d: {k: (x / n if n else None) for k, (x, n) in d.items()}
     res = dict(steps=steps, wall_s=time.time() - t0, metadata_only=metadata_only, cf_mix=cf_mix,
                encoded_target=f(agg), encoded_target_shuffled=f(sh), binding_counterfactual=f(cfm),
-               latent_space_version=rep_res["latent_space_version"])
+               latent_space_version=rep_res["latent_space_version"],
+               **({} if cx.requested.is_default else dict(compute=cx.stamp()["effective"])))
     torch.save(dict(state=P.state_dict(), cfg=dict(dz=lcfg.dz, knots=lcfg.knots, metadata_only=metadata_only,
                                                      seed=seed, **pk), result=res), out_path)
     out_path.with_suffix(".json").write_text(json.dumps(res, indent=1))
@@ -539,11 +552,12 @@ def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, se
     from rrp.harness.eval.adaptation import nested_budget_indices
     from rrp.policies.nets.latent_batch import assembly_batch
     dev = _dev()
+    cx = compute.setup("latent.sft", dev)
     st = load_checkpoint(flow_ckpt, map_location=dev)
     cfgj = st["config"]
     lcfg, E, R, P, rep_res = load_representation(Path(cfgj["representation"]), dev)
     pcfg = PolicyConfig.from_dict(dict(cfgj["policy"], horizon=lcfg.knots, latent_dim=lcfg.dz))
-    model = FlowPolicy(pcfg).to(dev)
+    model = cx.compile(FlowPolicy(pcfg).to(dev), "flow", methods=("velocity",))
     model.load_state_dict(st["model"])
     data = LatentData(target_packed_dir, zero_prev_action=resolve_zero_prev_action(   # as the source flow (B-1)
         cfgj, where=f"sft_latent_flow: source flow {flow_ckpt}", new_run=False))
@@ -560,19 +574,21 @@ def sft_latent_flow(flow_ckpt: Path, target_packed_dir: Path, budget: int, *, se
     for step in range(steps):
         sel = np.array(sorted(rng.sample(pool, B) if len(pool) >= B else [rng.choice(pool) for _ in range(B)]))
         batch, a, v, lab, r = data.fetch(sel, sel, dev)
-        with torch.no_grad():
-            af, am, ai = assembly_tokens(batch)
-            zt, _ = E(batch, a, v, af, am, ai)
-        ab = assembly_batch(batch)
-        smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
-        S = smask.shape[1]
-        fn = (lambda zc: readout_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
-        loss, _ = model.loss(ab, zt, am[:, None, :].expand(-1, lcfg.knots, -1), packet_loss_fn=fn,
-                             packet_weight=w_sem)
+        with cx.autocast():
+            with torch.no_grad():
+                af, am, ai = assembly_tokens(batch)
+                zt = compute.upcast(E(batch, a, v, af, am, ai)[0])
+            ab = assembly_batch(batch)
+            smask = batch.bank_mask["scene"] & lab["slot_valid"].bool()
+            S = smask.shape[1]
+            fn = (lambda zc: readout_loss(P(zc, am, S), lab, smask, lv_min=lcfg.lv_min)) if w_sem > 0 else None
+            loss, _ = model.loss(ab, zt, am[:, None, :].expand(-1, lcfg.knots, -1), packet_loss_fn=fn,
+                                 packet_weight=w_sem)
         opt.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         opt.step()
+    cx.write_stamp(out_dir)
     res = dict(budget=budget, seed=seed, demo_episodes=len(chosen), demo_control_transitions=transitions,
                optimizer_updates=steps, wall_s=time.time() - t0, changed_modules="system_i_flow_only",
                frozen=["target_encoder", "packet_probes", "system0_realizer"],
@@ -595,6 +611,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     ids with budget_seed, default = seed); the result records demo_episodes / demo_control_transitions."""
     cfg_json = _explicit_zpa(cfg_json, out_dir, "rz_last.pt", f"refit_realizer({out_dir})")
     dev = _dev()
+    cx = compute.setup("latent.refit", dev)
     sig = CheckpointSignal()
     seed = cfg_json.get("seed", 0)
     torch.manual_seed(seed)
@@ -609,7 +626,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
     for k_ in ("layers", "width", "z_norm"):                  # capacity / input-normalization overrides (ladder sprint)
         if f"realizer_{k_}" in cfg_json:
             arch[k_] = cfg_json[f"realizer_{k_}"]
-    R = make_realizer(lcfg.dz, lcfg.realizer_layers, arch, lcfg.realizer_factors).to(dev)
+    R = cx.compile(make_realizer(lcfg.dz, lcfg.realizer_layers, arch, lcfg.realizer_factors).to(dev), "R")
     R.anchor = cfg_json.get("realizer_anchor", False)
     R.drop_qd = cfg_json.get("realizer_drop_qd", False)
     if cfg_json.get("init", "fresh") == "old":
@@ -666,7 +683,8 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
         j = torch.as_tensor(j, device=dev)
         with torch.no_grad():
             af, am, ai = assembly_tokens(batch)
-            mu, logvar = E(batch, a, v, af, am, ai)
+            with cx.autocast():
+                mu, logvar = compute.upcast(*E(batch, a, v, af, am, ai))
             z = mu + torch.randn_like(mu) * (0.5 * logvar).exp()
             zn = cfg_json.get("z_noise_rel", 0.0)
             if zn > 0:              # robustness to generator error: isotropic noise with relative norm ~ U(0, zn) per sample
@@ -679,7 +697,8 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
             from rrp.policies.system0 import QD_COL
             keep = (torch.rand(r["node"].shape[0], 1, device=dev) >= qdp).to(r["node"].dtype)
             r["node"] = r["node"].clone(); r["node"][:, :, QD_COL] = r["node"][:, :, QD_COL] * keep
-        pred = R(z, am, kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm"))
+        with cx.autocast():
+            pred = compute.upcast(R(z, am, kt, phase, r["node"], r["node_mask"], r["local"], node_asm=r.get("node_asm")))
         m = (r["v1"] & r["node_mask"]).float()
         w0 = cfg_json.get("j0_weight", 1.0)
         if w0 != 1.0:                                  # extra weight on the first tick of a packet (phase j = 0)
@@ -700,8 +719,9 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
                 from rrp.policies.system0 import QD_COL
                 keep = (torch.rand(Bd, 1, device=dev) >= cfg_json["realizer_qd_dropout"]).float()
                 nd_[:, :, QD_COL] = nd_[:, :, QD_COL] * keep
-            pd = R(zd, amd, kt, dag["j"][idx].float() * lcfg.control_dt, nd_, nmask,
-                   dag["local"][idx].float())
+            with cx.autocast():
+                pd = compute.upcast(R(zd, amd, kt, dag["j"][idx].float() * lcfg.control_dt, nd_, nmask,
+                                      dag["local"][idx].float()))
             md = nmask.float()
             if cfg_json.get("j0_weight", 1.0) != 1.0:
                 md = md * (1.0 + (cfg_json["j0_weight"] - 1.0) * (dag["j"][idx] == 0).float()[:, None])
@@ -722,6 +742,7 @@ def refit_realizer(cfg_json: dict, out_dir: Path) -> dict:
         if step % 2000 == 0 or sig.requested:
             save_checkpoint(last, model=R, optimizer=opt, step=step, versions=dict(latent=rep_res["latent_space_version"]),
                             config=cfg_json, extra=dict(sched=sched.state_dict(), rng_py=rng.getstate()))
+    cx.write_stamp(out_dir)
     name = cfg_json.get("name", out_dir.name)
     res = dict(rep_res, steps_refit=step, wall_s=time.time() - t0, interrupted=sig.requested,
                realizer_compat_version=__import__("rrp.policies.system0", fromlist=["x"]).bundle_versions(

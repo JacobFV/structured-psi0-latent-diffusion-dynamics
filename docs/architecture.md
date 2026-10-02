@@ -613,3 +613,23 @@ Red/green test reproduces the ±1 torso-command shift.
 - Procedural strings (seeded generator) and `research/splits/cworld_pointer_v2.json` declared before any demo;
   `cworld_pointer_v1` and its sealed rows are untouched.
 
+### 14.7 compute block: precision, compile, CUDA graphs (D-147 addendum; unit prec)
+
+- One module, `rrp/core/compute.py`, serves every trainer (behavior codec / policy / SFT, latent rep / flow / probe fit / refit, legged
+  latent rep / flow, legged BC, joint adapt, pointer rep / flow / BC / probe, Psi0). A trainer calls `cx = compute.setup(name, dev)` once and
+  uses `cx.autocast()`, `cx.compile(module_or_fn, name, methods=...)` and `cx.write_stamp(out)`. Loss reductions that must stay float32
+  are decorated `@compute.f32` (`gaussian_nll`, `readout_loss`, `masked_mse`) or fed through `compute.upcast` (`estimates_loss`, the
+  representation / flow / realizer losses). The adapt.py likelihood ratios keep their own fp32 code. Nothing else in the repo calls
+  `torch.autocast` or sets `allow_tf32` (tests/unit/test_compute.py enforces it, adapt.py excepted).
+- `RunConfig.compute` (`precision fp32|bf16`, `tf32`, `compile off|reduce-overhead|max-autotune`, `cuda_graphs`, `seeds_per_job`,
+  `eval_backend cpu|warp`). ABSENT (None) is the default and is omitted from the serialised config, so `config_hash`, goldens and every
+  pre-registered run are unchanged. A non-default block hashes into the config, is pinned in `stage_versions` and recorded in the stage
+  manifest, so runs with different compute settings never adopt each other's outputs (`seeds_per_job` and `eval_backend` are read by the
+  seeds and eval units from `compute.current()`).
+- Defaults are today's behaviour per trainer: `precision: null` resolves to fp32 except pointer and Psi0 (bf16 autocast on CUDA, as
+  before) and behavior (TF32 matmul, as before). Under an explicit `precision: bf16` the fp32 islands switch on: loss reductions,
+  probe variance / log-variance terms and the likelihood path run in float32, optimizer state is always fp32.
+- Compile is applied to module METHODS on the instance (`forward`, or `velocity` / `encode` / `decode`), so `state_dict` keys never carry
+  `_orig_mod.`; the first call that raises falls back to eager and the stamp (`compute.json` next to each trainer's result) records
+  `compiled[name].status` and the reason. `reduce-overhead` is the CUDA-graph mode and needs `cuda_graphs: true`.
+- Measured effect: `research/tracks/compute.md`; the tool is `ops/bin/bench_compute.py` (peer, tiny real batches).

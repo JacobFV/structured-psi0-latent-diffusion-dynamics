@@ -23,6 +23,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from rrp.core import compute
 from rrp.core.sealed import SealedSplit
 from rrp.harness.train.legged_latent_train import (LeggedData, _save, cuda_peak_mb,
                                                    legged_relation_batches, restore_rng, rng_state)
@@ -67,7 +68,8 @@ def train(cfg, out: Path):
     dev = _dev()
     out.mkdir(parents=True, exist_ok=True)
     data = LeggedData(Path(cfg["data"]), cfg["bodies"], dev)
-    model = build(cfg).to(dev)
+    cx = compute.setup("legged_bc", dev)
+    model = cx.compile(build(cfg).to(dev), "bc", methods=("velocity",))
     steps, lr = cfg["steps"], cfg.get("lr", 3e-4)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     sch = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=lr, total_steps=steps, pct_start=0.05)
@@ -95,11 +97,12 @@ def train(cfg, out: Path):
             Bm = b_["counts"]["main"]
         i = data.sample(Bm, rng)
         b, a, am = bc_batch(data, i)
-        loss = model.loss(b, a, am)
-        if shard is not None:
-            cache = model.prepare(shard)
-            el, _ = rel.loss(cache[3] if model.extended else None, step - 1)
-            loss = (Bm * loss + (B - Bm) * el) / B
+        with cx.autocast():
+            loss = model.loss(b, a, am)
+            if shard is not None:
+                cache = model.prepare(shard)
+                el, _ = rel.loss(cache[3] if model.extended else None, step - 1)
+                loss = (Bm * loss + (B - Bm) * el) / B
         opt.zero_grad(); loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         opt.step(); sch.step()
@@ -113,6 +116,7 @@ def train(cfg, out: Path):
             ev = eval_bc(model, data)
             log.write(json.dumps(dict(step=step, eval=ev)) + "\n"); log.flush()
             _save(out / f"snap_s{step}.pt", model=model.state_dict(), cfg=cfg, step=step, eval=ev)
+    cx.write_stamp(out)
     res = dict(steps=steps, wall_s=time.time() - t0, bodies=cfg["bodies"], n_rows=data.n,
                n_train_rows=len(data.train_idx), n_heldout_rows=len(data.test_idx), upper_trained=data.upper_trained,
                action_groups=data.action_groups, eval=eval_bc(model, data),

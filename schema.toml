@@ -17,6 +17,7 @@ armdiv = { state = "paused", workstream = "W7/armdiv", decisions = ["D-137"] }
 psi0 = { state = "paused", workstream = "W10", decisions = ["D-141"] }
 pointer = { state = "paused", workstream = "pointer / ComputerWorld", decisions = ["D-142"] }
 relations = { state = "open", workstream = "relation-factor experiments", decisions = ["D-144"] }
+compute = { state = "open", workstream = "compute-aware acceleration (precision / compile / seeds / eval)", decisions = ["D-147"] }
 
 # ------------------------------------------------------------------ allowed paths per area
 [area.src]

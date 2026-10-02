@@ -138,7 +138,7 @@ def heldout_loss(model, held, store, dev, n_visual, image_mode="real", max_batch
 
 def train(cfg: dict, out_dir: Path) -> dict:
     from rrp.harness.train.behavior import device_setup
-    dev, ginfo = device_setup()
+    dev, ginfo, _ = device_setup("behavior.vlm")
     sig = CheckpointSignal()
     torch.manual_seed(cfg["seed"])
     np.random.seed(cfg["seed"])
