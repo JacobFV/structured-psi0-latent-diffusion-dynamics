@@ -111,7 +111,7 @@ def batch_reason(envs, policy, hooks) -> str | None:
 
 def rollout(make_env: Callable[[int], object], policy: Policy, task: TaskSpec, seeds: Sequence[int], *,
             batch: int = 8, max_seconds: float | None = None, max_steps: int | None = None,
-            hooks: Sequence = (), eval_backend: str = "cpu", device: str | None = None) -> list[Episode]:
+            hooks: Sequence = (), eval_backend: str | None = None, device: str | None = None) -> list[Episode]:
     """make_env(seed) returns an env already reset to `seed` (every registered factory does).
 
     Budget: `max_seconds` (default task.max_seconds) of env time; `max_steps` (default task.max_steps) additionally ends
@@ -123,7 +123,11 @@ def rollout(make_env: Callable[[int], object], policy: Policy, task: TaskSpec, s
     `eval_backend="warp"` (docs/architecture.md section 14.8): the physics of every control step of a group runs batched on MuJoCo Warp
     (`rrp.envs.warp.batch_sim.BatchStepper`); everything else (policy, hooks, judge, sensing) is unchanged. A group that cannot be batched
     (a perturbation hook, an actuator model, a dual session, a policy limited to one episode, a model Warp cannot build) runs on CPU and
-    says why in every row of the group (`provenance.eval_backend`). The default `cpu` adds nothing to the rows."""
+    says why in every row of the group (`provenance.eval_backend`). The default `cpu` adds nothing to the rows.
+    `eval_backend=None` takes the ambient `core.compute.current().eval_backend` (the RunConfig `compute:` block; default `cpu`)."""
+    if eval_backend is None:
+        from rrp.core import compute
+        eval_backend = compute.current().eval_backend
     max_s = task.max_seconds if max_seconds is None else max_seconds
     max_steps = task.max_steps if max_steps is None else max_steps
     info = policy.info

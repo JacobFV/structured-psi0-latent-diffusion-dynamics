@@ -98,5 +98,6 @@ Raw output: `artifacts/runs/compute/warpeval/{F1,F2}_warpcpu.json` (untracked; n
   Resume: `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/accel-warpeval RRP_PEER_PYTHONPATH=/home/brandonin/work/ext/pylibs/mjwarp ops/bin/peer_sync.sh push`, then
   `ops/bin/peer_run.sh --cpu 4 --mem 12G ... -- PY -m rrp.cli suite warp-parity --fixture F3w --device cpu --seeds 2`, then one GPU lease (<= 20 min, mem >= 1.35 x peak)
   with `--fixture F1|F2|F3w|F3t --device cuda:0 --bench 8,32,64`. The CUDA-graph capture path has never run on a GPU and is the main untested risk.
-- Not done: batching the tracker MLP across envs (per-env CPU forwards remain); the ambient `compute:` block hook waits for accel-prec to land core/compute.py
-  (`eval_backend` is an explicit `evaluate/rollout` argument and `--eval-backend` flag, stored in provenance and in run_matrix records only when not `cpu`).
+- Not done: batching the tracker MLP across envs (per-env CPU forwards remain).
+- Ambient hook (after rebasing onto accel-prec): `rollout/evaluate(eval_backend=None)` read `core.compute.current().eval_backend`; an explicit argument or `--eval-backend` flag overrides it.
+  `eval_backend` is stored in provenance and in run_matrix records only when not `cpu`.

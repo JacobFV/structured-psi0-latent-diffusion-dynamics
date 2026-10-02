@@ -59,7 +59,7 @@ def env_factory(env_id: str, task: str, body, *, scene=None, env_kw: dict | None
 def evaluate(policy, env_id: str, task: str, body, seeds: Sequence[int], *, scene=None, batch: int = 8,
              max_seconds: float | None = None, max_steps: int | None = None, hooks: Sequence = (),
              out: Path | None = None, env_kw: dict | None = None, row_extra: dict | None = None,
-             eval_backend: str = "cpu", device: str | None = None) -> list[Episode]:
+             eval_backend: str | None = None, device: str | None = None) -> list[Episode]:
     """rollout of `policy` (a Policy, or a registry name for make_policy) on make_env(env_id, task, body, seed). Scene:
     `scene` (a dict, or seed -> dict) else the task's own, passed only when there is one; `env_kw` are extra env
     kwargs (level, split, render profile). `eval_backend` is `cpu` (default) or `warp` (batched physics, see rollout). Rows (Episode.row() + row_extra) are appended to `out` (JSONL)."""

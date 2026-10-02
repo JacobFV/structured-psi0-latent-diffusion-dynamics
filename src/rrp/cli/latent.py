@@ -68,9 +68,9 @@ def _latent_eval(pol, R, P, dev, a, robot, seeds, *, make=None, paired=False):
     extra = dict(method=a.method, checkpoint=a.checkpoint)
     if make is None:
         return evaluate(stack, "mujoco/arm", "pick_place", robot, seeds, scene=arm_scene, batch=a.batch, max_steps=300,
-                        hooks=hooks, out=Path(a.out), row_extra=extra, eval_backend=getattr(a, "eval_backend", "cpu"))
+                        hooks=hooks, out=Path(a.out), row_extra=extra, eval_backend=getattr(a, "eval_backend", None))
     eps = rollout(make, stack, get_task("pick_place"), seeds, batch=a.batch, max_steps=300, hooks=hooks,
-                  eval_backend=getattr(a, "eval_backend", "cpu"))
+                  eval_backend=getattr(a, "eval_backend", None))
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     with open(a.out, "a") as fh:
         for e in eps:
@@ -163,8 +163,8 @@ def register_more(p):
         e.add_argument("--replan", type=int, default=8)
         e.add_argument("--batch", type=int, default=16)
         if name == "evaluate":
-            e.add_argument("--eval-backend", choices=("cpu", "warp"), default="cpu",
-                           help="physics of the episodes: cpu (default) or batched MuJoCo Warp (architecture.md section 14.8)")
+            e.add_argument("--eval-backend", choices=("cpu", "warp"), default=None,
+                           help="physics of the episodes: the ambient compute block (default cpu) or batched MuJoCo Warp (architecture.md section 14.8)")
         e.add_argument("--out", required=True)
         e.set_defaults(fn=fn)
 
