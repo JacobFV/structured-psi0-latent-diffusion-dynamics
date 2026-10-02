@@ -1547,3 +1547,14 @@ D-146 round-3 addendum T5 (transfer recipes, items 5 and 9 of the round-2 integr
 - Disk: peer root is ~98% full; every track archives finished, cited artifacts to the host (~/work/rrp-data/peer-archive, sha256-verified) and removes its own intermediates; never touch other tracks' or other projects' data.
 - Gates that need the lead: armdiv G4 signature (after BC 1702 and kinfeat BC 1701 pins are filled); the written decision before any sealed humanoid cell; any gate failure that would change a pre-registered protocol. Gate failures are recorded (failed_hypothesis / blocked_external), never silently retried with new settings.
 - No self-reproduction (D-140): recorded results are not re-run; resumes adopt completed nodes per D-146 adoption rules.
+
+### D-147 addendum 2026-10-01 (campaign lead, infra + humanoid T0)
+- Thermal rule enforced, not by convention: peer `ops/resources.local.json` `peer.enforced.gpu_slots` 8 -> 2 (live copy edited in place, backup
+  `.bak-20261001-gpu8`; tracked copy 8d01e764); watchdog restarted on main; the stale pre-purge shared peer repo was re-synced.
+- Peer disk: cold `~/rrp-peer-data/runs-archive` (253 pre-D-145 runs, minus the 10 named by live recipes / notes / src) and 94 stale `wt/` code dirs
+  plus shm scratch are archived to `~/work/rrp-data/peer-archive/{runs-archive,wt,shm-scratch}` (sha256 tree equal per directory, then removed on the
+  peer; dangling `artifacts/runs/<name>` symlinks removed; every line in `ARCHIVE_LOG.txt`). Restore = rsync back.
+- Tracker recipes (T1-T3) used 86400 s leases, refused by the broker's 6 h cap: instance-level override to 21600 s with retries 3 (templates and the
+  frozen recipe goldens unchanged; the time-cap test covers `trackers_*`). The humanoid transfer templates still declare 43200 s eval / adapt_ppo nodes
+  and will get the same treatment before T4/T5.
+- T0 verified: `t1:contact_v2` pin and the three warm-start pins match; its D-112 report reproduces D-114 (no new run beyond the pin node).

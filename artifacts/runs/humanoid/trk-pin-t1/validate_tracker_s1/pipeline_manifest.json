@@ -1,0 +1,93 @@
+{
+ "config_hash": "2a17aea7cf8e7eb7",
+ "episodes": [],
+ "finished": 1790906882.0336616,
+ "inputs": {},
+ "manifest_hash": "2321307d3b5032d6",
+ "metrics": {
+  "body": "t1",
+  "contact_gate": true,
+  "gate": {
+   "failed": [
+    "cot_forward=2.1330465076318412 (threshold <= 2.0 (biped))",
+    "joint_limit_margin=-0.05331906867913457 (threshold >= 0.02)"
+   ],
+   "not_evaluated": [],
+   "verdict": "fail"
+  },
+  "tracker_sha": "36e9146792743115",
+  "tracker_version": "learned_tracker:t1:iter799:contact_v2"
+ },
+ "n_episodes": 0,
+ "name": "runs/humanoid/trk-pin-t1/validate_tracker_s1",
+ "native_config": {
+  "name": "humanoid_trk-pin-t1_validate_tracker_s1",
+  "out_dir": "artifacts/runs/humanoid/trk-pin-t1/validate_tracker_s1"
+ },
+ "outputs": {
+  "validation": {
+   "digest": "786470df644f0367",
+   "path": "artifacts/runs/humanoid/trk-pin-t1/validate_tracker_s1/validation.json"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": false,
+   "git_sha": "8d01e76467348acda4d6ff69a35ce9c3d98f8760",
+   "src_tree": "e3def53d3e76bd81689f574db3733aad5047eddb",
+   "tree": "e92c895bcd7f98d0f5f26d0d3f73fbc1de0f7fdd"
+  },
+  "created_at": 1790906882.03297,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v2"
+  },
+  "legacy": false,
+  "notes": "pipeline legged/validate_tracker runs/humanoid/trk-pin-t1/validate_tracker_s1",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned_tracker",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/humanoid/trk-pin-t1/validate_tracker_s1",
+ "runconfig": {
+  "family": "legged",
+  "flags": {
+   "contact_version": "contact_v2",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {},
+  "legacy": null,
+  "lineage": "trk-pin-t1",
+  "note": "",
+  "options": {
+   "body": "t1",
+   "gate": "report",
+   "kind": "learned",
+   "robust": true,
+   "seeds": 5,
+   "tracker_sha256": "36e9146792743115878c34e0bbf7cc46ccb5419417921358da3658c8377fc591"
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 1,
+  "stage": "validate_tracker",
+  "tag": null,
+  "track": "humanoid",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790906834.4617503,
+ "status_counts": {}
+}

@@ -1,6 +1,6 @@
 # track: humanoid (W13, D-138) — humanoid transfer program
 
-State: **implementing** — the trainers, stages and recipes are merged (readiness round 2: HS1, HD1, HD2, HP, HS2, HA, HR, see `STATUS.md`); two code gaps stay open before the gated runs: `LearnedTracker` cannot load a `morph_v2` checkpoint (blocks T3) and the gap trainer writes no `range_ring` actor meta (blocks the T1 `h_gap` run). No campaign run has started (T1 to T5 are `planned`).
+State: **running** — D-147 training campaign (section `D-147 campaign` at the end of this file): T0 verified, T1 running.
 
 Owner request (2026-09-28): "focus more on humanoids. we need to test lots of humanoid transfer" and "the humanoid tasks need
 to be more complex". Worktree `~/work/rrp-wt/humanoid`, branch `track/humanoid`, peer code dir
@@ -653,3 +653,22 @@ Node lists (generated from `rrp run-dag <recipe> --dry-run`; `<slot>` = d0..d2 d
 
 `recipes/humanoid/transfer_h_walk.yaml` -- 209 nodes
   `collect_src` (collect); `collect_tgt` (collect); `collect_sealed` (collect); `pack` (pack); `pack_sealed` (pack); `eval_ref` (eval_transfer); `sealed_ref` (sealed_eval); `rep@<system>.s<seed>` (train_rep) x4; `flow@<system>.s<seed>` (train_flow) x4; `adapt_refit_<slot>_n<N>@<system>.s<seed>` (adapt_refit) x72; `adapt_flow_<slot>_n<N>@<system>.s<seed>` (adapt_flow) x72; `eval@<system>.s<seed>` (eval_transfer) x6; `sealed@<system>.s<seed>` (sealed_eval) x6; `bc@<system>.s<seed>` (train_bc) x2; `adapt_bc_<slot>_n<N>@<system>.s<seed>` (adapt_bc) x36
+
+## D-147 campaign (2026-10-01; campaign lead = humanoid owner; worktree `~/work/rrp-wt/camp-humanoid`, peer code dir `wt/camp-hum-1`)
+Coordinators (host, shell only): `~/work/rrp-data/campaign/bin/hum_dag.sh <tag> <peer_dir> <timeout> <recipe> [run-dag args]` under transient user
+units `camp-hum-*`; logs and exit codes in `~/work/rrp-data/campaign/logs/<tag>.{log,status}`; campaign table `~/work/rrp-data/campaign/STATUS.md`.
+Infra: peer broker `gpu_slots` 8 -> 2 (thermal rule, all tracks); watchdog restarted on main; the tracker recipes declared 86400 s leases, which the
+broker refuses (6 h cap): instance override to 21600 s segments with retries 3 (e1f37bd4; the trainer resumes from `checkpoint.pt`).
+
+### T0 (verified, 2026-10-01 19:08)
+- `rrp run-dag recipes/humanoid/trackers_pins.yaml` (lease 1790906833_b8afc6, peak 0.95 GB of 4 GB declared, 61 s): `t1:contact_v2` actor sha256
+  36e91467...c591 = the pin (`validate_tracker` checks it before validating). The D-112 report (`gate: report`, 5 seeds, robust) is `fail` on CoT 2.13
+  (<= 2.0) and joint margin -0.053 (>= 0.02), identical to the recorded D-114 values; slip 0.137, peak force 2.74 BW, no-fall 1.0, robust ok.
+  Evidence: `artifacts/runs/humanoid/trk-pin-t1/validate_tracker_s1/{gate_report,validation,pipeline_manifest}.json`.
+- Warm starts (sha256sum on the peer store, 2026-10-01): `humanoid_p1b_t1_v2ft4/actor.pt` 69a48359..., `humanoid_p1b_g1_v4ft/actor_v4ftfinal.pt`
+  ad4073fc..., `humanoid_p1b_h1_r6/actor_r6final.pt` 7304ee7d... = `lists.warm_starts` / `INIT_PINS`. The armdiv pins of T0 are AR's.
+
+### T1 (running)
+- `trackers_steps_scan.yaml` (t1, g1, h1; scratch, 2000 it x 4096 worlds x 24 steps) then `trackers_gap_ring.yaml` (t1, h1), coordinator `camp-hum-t1`,
+  one humanoid GPU lease at a time (`--max-parallel-gpu 1`). train@t1 launched 19:08 (lease 1790906909_59a98a): iter 0 7.9 s (incl. compile), host
+  RSS 2.4 GB early.

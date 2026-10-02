@@ -1,0 +1,30 @@
+{
+ "schema_version": "runconfig-1",
+ "family": "legged",
+ "stage": "validate_tracker",
+ "variant": "na",
+ "seed": 1,
+ "lineage": "trk-pin-t1",
+ "track": "humanoid",
+ "tag": null,
+ "inputs": {},
+ "flags": {
+  "zero_prev_action": null,
+  "realizer_anchor": null,
+  "realizer_drop_qd": null,
+  "probe_lv_min": null,
+  "qd_dropout": null,
+  "contact_version": "contact_v2"
+ },
+ "params": {},
+ "options": {
+  "body": "t1",
+  "kind": "learned",
+  "seeds": 5,
+  "robust": true,
+  "gate": "report",
+  "tracker_sha256": "36e9146792743115878c34e0bbf7cc46ccb5419417921358da3658c8377fc591"
+ },
+ "note": "",
+ "legacy": null
+}

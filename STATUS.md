@@ -18,7 +18,7 @@ separate scheduling switch that decides which recipe trees may be tracked; it st
 | track | workstream | state | schema flag | next step | decisions |
 |---|---|---|---|---|---|
 | relations | relation-factor experiments | planned | open | run T9: `recipes/relations/relations_{geo,ix,task}.yaml` against the `base` control on the peer (recipes render and plan dry) | D-144 |
-| humanoid | W13 humanoid transfer | implementing | paused | two code gaps (below), then T1 to T5 from the RESUME section of the note | D-138, D-139, D-146 |
+| humanoid | W13 humanoid transfer | running | paused | D-147 campaign: T0 verified (pins); T1 terrain trackers training (`~/work/rrp-data/campaign/STATUS.md`) | D-138, D-139, D-146, D-147 |
 | armdiv | W7 training-arm diversity | planned | paused | T6: fill pins, v6 reference evals, lead signs G4, then v8div lineages (`recipes/armdiv/`) | D-137, D-146 |
 | psi0 | W10 Psi0 / SIMPLE | planned | paused | T7: label recording, stage A with the D-141 fix, packet-use gate (structured arm was 0/20 vs direct 19/20) | D-141, D-146 |
 | pointer | ComputerWorld pointer policy | planned | paused | T8: v2 re-collect, rep, flow / bc x 3 seeds, dev tables (`recipes/pointer/`) | D-142, D-146 |
