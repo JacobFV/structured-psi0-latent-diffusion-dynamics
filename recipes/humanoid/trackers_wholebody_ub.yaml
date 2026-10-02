@@ -36,7 +36,8 @@ lists:
 # D-147: the broker caps a lease at 6 h (21600 s); the trainer resumes from checkpoint.pt, so a long run is 6 h segments
 # (retries 3 = the template's former 24 h budget).
 # D-117: T2 gait t1 trainer on the host measured 2.25 GB + 3.8 GB GPU (lease 1790969068_718744) -> 5G + 8G GPU (>= 1.35 x)
-defaults: {retries: 3, resources: {mem: 5G, gpu_mem: 8G, max_seconds: 21600}}
+# unit envs (research/tracks/compute.md): peer bench at 4096 worlds peaked at 3.9 GiB (t1, h1) and 7.1 GiB (g1) -> 1.35 x = 9.6 GiB -> 10G GPU
+defaults: {retries: 3, resources: {mem: 5G, gpu_mem: 10G, max_seconds: 21600}}
 nodes:
   validate:
     stage: validate_tracker

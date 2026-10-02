@@ -130,3 +130,22 @@ def test_install_command_line(tmp_path, capsys):
     assert json.loads(capsys.readouterr().out)["spec"] == "tiny:ub_v1" and (tmp_path / "s/tiny/ub_v1/actor.pt").exists()
     with pytest.raises(SystemExit, match="already exists"):
         install_main([str(run), "--validation", str(v), "--body", "tiny", "--version", "ub_v1", "--label", "cli", "--root", str(tmp_path / "s")])
+
+
+def test_steps_ub_declared_gpu_memory_covers_the_measured_peak():
+    """D-117 / research/tracks/compute.md (unit envs): the nodes of `trackers_wholebody_ub` declare >= 1.35 x the peak GPU memory measured for the
+    recipe's own nworld (g1 steps_ub: 7.1 GiB at 4096, above the 8G declared before the measurement); and the recipe's num_envs stays at the
+    measured knee (4096 worlds, 4 minibatches = 24576 samples per minibatch)."""
+    from pathlib import Path
+    from rrp.harness import dag
+    from rrp.harness.pipelines.base import _load_families
+    root = Path(__file__).resolve().parents[2]
+    rows = json.loads((root / "artifacts/runs/humanoid/accel-envs/bench-sweep_s1/summary.json").read_text())
+    _load_families()
+    plan = dag.plan_dag(dag.load_dag(root / "recipes/humanoid/trackers_wholebody_ub.yaml"))
+    for body in ("t1", "g1", "h1"):
+        o, _ = R.recipe_record(f"{body}_steps_ub")
+        assert (o["nworld"], o.get("minibatches", 4), o["horizon"]) == (4096, 4, 24), body
+        peak_mib = next(r["gpu_mem_mib_peak"] for r in rows if r["body"] == body and r["nworld"] == o["nworld"])
+        declared = plan.nodes[f"train@{body}.steps"].resources.gpu_mem
+        assert declared.endswith("G") and float(declared[:-1]) * 1024 >= 1.35 * peak_mib, (body, declared, peak_mib)

@@ -1,0 +1,24 @@
+1790984228 START t1 4096 minibatches 4 (24576 samples per minibatch = the recipe's 24 x 4096 / 4)
+1790984247 END t1 4096 rc=0 maxrss_kb=2534148
+1790984247 START t1 8192 minibatches 8 (24576 samples per minibatch = the recipe's 24 x 4096 / 4)
+1790984300 END t1 8192 rc=0 maxrss_kb=2546452
+1790984300 START h1 4096 minibatches 4 (24576 samples per minibatch = the recipe's 24 x 4096 / 4)
+1790984314 END h1 4096 rc=0 maxrss_kb=2663364
+1790984314 START h1 8192 minibatches 8 (24576 samples per minibatch = the recipe's 24 x 4096 / 4)
+1790984356 END h1 8192 rc=0 maxrss_kb=2650772
+1790984356 START t1 2048 minibatches 2 (24576 samples per minibatch = the recipe's 24 x 4096 / 4)
+1790984384 END t1 2048 rc=0 maxrss_kb=2528312
+1790984384 START h1 2048 minibatches 2 (24576 samples per minibatch = the recipe's 24 x 4096 / 4)
+1790984407 END h1 2048 rc=0 maxrss_kb=2658668
+1790984407 START t1 16384 minibatches 16 (24576 samples per minibatch = the recipe's 24 x 4096 / 4)
+1790984539 END t1 16384 rc=0 maxrss_kb=3084732
+1790984539 START h1 16384 minibatches 16 (24576 samples per minibatch = the recipe's 24 x 4096 / 4)
+1790984617 END h1 16384 rc=0 maxrss_kb=2614324
+1790984617 START g1 4096 minibatches 4 (24576 samples per minibatch = the recipe's 24 x 4096 / 4)
+1790984667 END g1 4096 rc=0 maxrss_kb=2785416
+1790984667 START g1 8192 minibatches 8 (24576 samples per minibatch = the recipe's 24 x 4096 / 4)
+1790984745 END g1 8192 rc=0 maxrss_kb=2856364
+1790984745 START g1 16384 minibatches 16 (24576 samples per minibatch = the recipe's 24 x 4096 / 4)
+1790984887 END g1 16384 rc=0 maxrss_kb=2782052
+1790984887 START t1 1024 minibatches 1 (24576 samples per minibatch = the recipe's 24 x 4096 / 4)
+1790984909 END t1 1024 rc=0 maxrss_kb=2512296

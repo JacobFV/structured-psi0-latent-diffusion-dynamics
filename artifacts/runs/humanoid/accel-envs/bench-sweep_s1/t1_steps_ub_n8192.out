@@ -1,0 +1,5 @@
+/dev/shm/rrp-brandonin/wt/accel-envs/src/rrp/harness/train/warp_tracker_ppo.py:399: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:820.)
+  fall_rate=rec_env["falls"] / eps if eps else None, std=float(ac.log_std.exp().mean()), lr=lr, kl=kl_mean,
+{"iter": 0, "reward_per_step": -8.966388702392578, "episodes": 0, "ep_ret": null, "ep_len": null, "fall_rate": null, "std": 0.594173014163971, "lr": 0.003, "kl": 0.008624463342130184, "value_loss": 7886.138671875, "rollout_s": 9.651174306869507, "iter_s": 11.134475708007812, "samples": 196608, "wall_s": 11.134483814239502, "alpha": 0.5, "upper_amp": 0.1, "payload_frac": 0.0, "successes": 0, "level": 0.0}
+done

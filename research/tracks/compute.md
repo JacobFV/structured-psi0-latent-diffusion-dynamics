@@ -101,3 +101,40 @@ Raw output: `artifacts/runs/compute/warpeval/{F1,F2}_warpcpu.json` (untracked; n
 - Not done: batching the tracker MLP across envs (per-env CPU forwards remain).
 - Ambient hook (after rebasing onto accel-prec): `rollout/evaluate(eval_backend=None)` read `core.compute.current().eval_backend`; an explicit argument or `--eval-backend` flag overrides it.
   `eval_backend` is stored in provenance and in run_matrix records only when not `cpu`.
+
+## unit envs: tracker PPO throughput vs num_envs (peer GB10, one lease)
+
+Question: does raising `nworld` (num_envs) of the not-yet-started tracker recipes (`*_steps_ub`, T3 shared morph, later trackers) raise samples/s?
+Placed/running nodes, armdiv T6 phase B, T7 phase 2 and the goldens were not touched.
+
+Method: the real trainer (`warp_tracker_ppo.py`, recipe `{t1,g1,h1}_steps_ub`) via `ops/bin/peer_run.sh`, one lease of about 11.4 min, `--iters 5`, iteration 0 dropped
+(JIT/warmup), `--minibatches` scaled with `--nworld` so the minibatch stays 24576 samples (the per-sample PPO update is unchanged), nvidia-smi sampled every 2 s.
+Raw output: `artifacts/runs/humanoid/accel-envs/bench-sweep_s1/` (`summary.json`, per-point `train_log.jsonl`, `.out`, `.time.txt`, `gpu_samples.log`).
+
+| body | nworld | samples/s | competitor on GPU | GPU util % | peak GPU MiB | max temp C |
+|---|---|---|---|---|---|---|
+| t1 | 1024 | 12.6k | yes | 94 | 1623 | 78 |
+| t1 | 2048 | 15.8k | yes | 94 | 2423 | 75 |
+| t1 | 4096 | 39.4k | 20% of the time | 59 | 3921 | 68 |
+| t1 | 8192 | 21.8k | yes | 96 | 7099 | 79 |
+| t1 | 16384 | 17.1k | yes | 95 | 13211 | 77 |
+| h1 | 2048 | 26.1k | yes | 94 | 2459 | 74 |
+| h1 | 4096 | 73.9k | 75% of the time | 59 | 3983 | 77 |
+| h1 | 8192 | 32.0k | yes | 87 | 7021 | 78 |
+| h1 | 16384 | 32.0k | yes | 95 | 13131 | 73 |
+| g1 | 4096 | 15.0k | yes | 95 | 7303 | 76 |
+| g1 | 8192 | 15.7k | yes | 95 | 13839 | 78 |
+| g1 | 16384 | 16.0k | yes | 95 | 26699 | 80 |
+
+(Peak GPU MiB is the whole device incl. any competitor; per-world cost is about 0.8 MiB t1/h1 and 1.6 MiB g1, see `gpu_mib_per_world` in `summary.json`.)
+
+Findings:
+- Rollout (physics) is about 85-90% of an iteration; the update is small. Growing N only helps if the GPU has idle capacity.
+- With another job on the GPU (the campaign's normal state: 2 slots) samples/s is flat from 4096 to 16384 (g1 15.0 / 15.7 / 16.0k; h1 32.0k at 8192 and 16384). More worlds only add memory.
+- Thermals did not bite: max 80 C, no SM clock drop. Host RSS 2.5-3.1 GB per trainer.
+- Decision: no num_envs change. `*_steps_ub` stay at 4096 worlds (4 minibatches), `shared_morph_ub` at 10240 (16 minibatches). Raising N is at best +10-20% in the contended regime, doubles GPU memory, changes the sample budget per iteration, and the peer just had a memory-PSI shed.
+- Resource finding: g1 at 4096 peaks at 7303 MiB, so the old `gpu_mem: 8G` of `recipes/humanoid/trackers_wholebody_ub.yaml` was below D-117 (>= 1.35 x = 9.6 GiB). Now 10G; guarded by `test_steps_ub_declared_gpu_memory_covers_the_measured_peak`. Resources are outside the DAG `config_hash`, so already-placed nodes are not invalidated.
+
+Caveats / not resolved:
+- Only the t1 and h1 4096 points were mostly solo (2.3-2.5x faster than the contended ones; the GPU is already ~94-96% busy with one job at 4096). There is no solo 8192/16384 point, so the exact solo knee is unmeasured: one lease at a time, and the competitor reappeared. Resume: one lease, `peer_run.sh` with a waiter that starts only when `nvidia-smi` shows no other process, t1 and h1 at 4096/8192/16384.
+- T3 shared morph (8 groups, 10240 worlds) was not benchmarked; extrapolating 0.8-1.8 MiB/world gives 8-18 GiB, which the declared 24G covers, but this is not verified.

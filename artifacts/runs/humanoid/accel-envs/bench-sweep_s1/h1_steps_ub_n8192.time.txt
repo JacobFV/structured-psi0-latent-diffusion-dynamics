@@ -1,0 +1,23 @@
+	Command being timed: "/dev/shm/rrp-brandonin/venv/bin/python -m rrp.cli train tracker-warp --recipe h1_steps_ub --nworld 8192 --minibatches 8 --iters 5 --out artifacts/runs/humanoid/accel-envs/bench/h1_steps_ub_n8192"
+	User time (seconds): 25.34
+	System time (seconds): 17.68
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:42.72
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 2650772
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 650557
+	Voluntary context switches: 1425
+	Involuntary context switches: 635
+	Swaps: 0
+	File system inputs: 8
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,7 @@
+/home/brandonin/work/ext/pylibs/mjwarp/mujoco_warp/_src/io.py:663: UserWarning: MULTICCD is enabled, but the scene contains CCD pairs without multicontact support: [('CAPSULE', 'CYLINDER')]. At most 1 contact will be generated for these pairs.
+  warnings.warn(
+/dev/shm/rrp-brandonin/wt/accel-envs/src/rrp/harness/train/warp_tracker_ppo.py:399: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:820.)
+  fall_rate=rec_env["falls"] / eps if eps else None, std=float(ac.log_std.exp().mean()), lr=lr, kl=kl_mean,
+{"iter": 0, "reward_per_step": -5.227240085601807, "episodes": 0, "ep_ret": null, "ep_len": null, "fall_rate": null, "std": 0.5913564562797546, "lr": 0.003, "kl": 0.011788836680352688, "value_loss": 3206.85693359375, "rollout_s": 6.164444923400879, "iter_s": 7.865524053573608, "samples": 196608, "wall_s": 7.8655290603637695, "alpha": 0.5, "upper_amp": 0.1, "payload_frac": 0.0, "successes": 0, "level": 0.0}
+done
