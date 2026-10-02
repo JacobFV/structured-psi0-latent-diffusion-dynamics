@@ -677,3 +677,14 @@ broker refuses (6 h cap): instance override to 21600 s segments with retries 3 (
   (20 s episodes too short for the course; that run's fix, recorded before running, was 30 s episodes + level-up 0.6). `{t1,g1,h1}_steps_gpu` still use
   20 s / 0.7. t1 runs to its pre-registered end + gate; g1 / h1 steps are HELD (coordinator relaunched with `--point body=t1`, the gap ring follows) pending
   the lead's decision on applying that fix as the one bounded recipe-level attempt.
+- 2026-10-01 22:14-22:40 t1 steps_scan (pre-registered `t1_steps_gpu`, 20 s / level-up 0.7), recorded as is:
+  - train 2000 it, 3.08 h, 1.97e8 samples; curriculum peaked at level 0.3 (steps <= 0.09 L) around it 1600 and ended at 0.0 (window success 0.29).
+  - validate (D-112, 10 seeds + robust; after the bench sensor fix d5e9721c, infrastructure rerun, train adopted stale: trainer code unchanged):
+    FAIL peak foot force 3.71 BW (<= 3.0) and joint margin 0.0117 (>= 0.02); PASS slip 0.056, CoT 0.54, no-fall 1.0, robust in range, lab gate
+    (fwd 0.87, turn 0.81, stand ok). Under the D-147 exception rule this alone would be installable (margin >= -0.06, force <= 4.2 BW).
+  - eval (C-MuJoCo h_steps, 20 seeds per height, run as the eval node's exact stage config because the DAG blocked it behind the failed
+    validate): h 0.10 L 2/20 (16 fell), 0.15 / 0.20 / 0.25 / 0.30 L 0/20 (all fell). FAILS the T1 accept line (>= 0.9 per height); falls are not
+    exempt -> **failed_hypothesis** for the pre-registered recipe, cause = the curriculum stall. Per the lead's rule: ONE retrain with the P2 fix
+    (lineage `trk-steps_scan-t1-p2fix`, after g1 / h1). Evidence: `artifacts/runs/humanoid/trk-steps_scan-t1/{train,validate,eval}_tracker_s1/`.
+- Host: the T1 gap ring runs on the host GPU (`trackers_gap_ring_host.yaml`); the first smoke attempts failed because the host coordinator hid
+  the GPU (CUDA_VISIBLE_DEVICES= in its env; fixed, smoke nodes reset). t1 gap smoke (warm start): level 0 806/825, level 1 506/591; 2.5 GB peak.

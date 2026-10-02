@@ -1,0 +1,95 @@
+{
+ "config_hash": "50ddff59b3fe316a",
+ "episodes": [],
+ "finished": 1790918019.819753,
+ "inputs": {},
+ "manifest_hash": "2c3f7f3f808c9512",
+ "metrics": {
+  "actor_sha256": "7a6597a696051d6f677483ad2f2468567d14156c48503446b11365242e7c48ee",
+  "actuator": null,
+  "body": "t1",
+  "contact_model": "contact_v2",
+  "recipe": "t1_steps_gpu",
+  "reward_options": {
+   "limit_margin_agg": "max",
+   "ref_contact": 0.5,
+   "ref_gait": "clock",
+   "ref_lift": 1.0
+  },
+  "terrain_curriculum": false
+ },
+ "n_episodes": 0,
+ "name": "runs/humanoid/trk-steps_scan-t1/train_tracker_s1",
+ "native_config": {
+  "name": "humanoid_trk-steps_scan-t1_train_tracker_s1",
+  "out_dir": "artifacts/runs/humanoid/trk-steps_scan-t1/train_tracker_s1"
+ },
+ "outputs": {
+  "actor": {
+   "digest": "7a6597a696051d6f",
+   "path": "artifacts/runs/humanoid/trk-steps_scan-t1/train_tracker_s1/actor.pt"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": false,
+   "git_sha": "8d01e76467348acda4d6ff69a35ce9c3d98f8760",
+   "src_tree": "e3def53d3e76bd81689f574db3733aad5047eddb",
+   "tree": "e92c895bcd7f98d0f5f26d0d3f73fbc1de0f7fdd"
+  },
+  "created_at": 1790918019.8168995,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v2"
+  },
+  "legacy": false,
+  "notes": "pipeline legged/train_tracker runs/humanoid/trk-steps_scan-t1/train_tracker_s1",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned_tracker",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/humanoid/trk-steps_scan-t1/train_tracker_s1",
+ "runconfig": {
+  "family": "legged",
+  "flags": {
+   "contact_version": "contact_v2",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {},
+  "legacy": null,
+  "lineage": "trk-steps_scan-t1",
+  "note": "",
+  "options": {
+   "body": "t1",
+   "engine": "warp",
+   "gpu": true,
+   "pythonpath": [
+    "~/work/ext/pylibs/mjwarp"
+   ],
+   "recipe": "t1_steps_gpu",
+   "resume": true
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 1,
+  "stage": "train_tracker",
+  "tag": null,
+  "track": "humanoid",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790906909.5971713,
+ "status_counts": {}
+}

@@ -17,7 +17,7 @@ env: mujoco/legged
 task: h_steps
 bodies: humanoid_pool_v1
 factors: []
-lineage: 'trk-steps_scan-{body}'
+lineage: 'trk-steps_scan-{body}{run_sfx}'
 global_lineage: 'trk-steps_scan'
 label_prefix: 'hss_{body}'
 global_label_prefix: 'hss'
@@ -25,10 +25,10 @@ matrix:
   body: [t1, g1, h1]
 axis_vars:
   body:
-    t1: {recipe: t1_steps_gpu}
-    g1: {recipe: g1_steps_gpu}
-    h1: {recipe: h1_steps_gpu}
-vars: {task: steps, body: null, recipe: null}     # body and recipe come from the matrix point
+    t1: {recipe: t1_steps_gpu, run_sfx: '-p2fix'}      # D-147: the t1 retrain (P2 fix) gets its own lineage
+    g1: {recipe: g1_steps_gpu, run_sfx: ''}
+    h1: {recipe: h1_steps_gpu, run_sfx: ''}
+vars: {task: steps, body: null, recipe: null, run_sfx: null}     # body and recipe come from the matrix point
 lists:
   installs: {t1: steps_scan_v1, g1: steps_scan_v1, h1: steps_scan_v1}
 # D-147: the broker caps a lease at 6 h (21600 s); the trainer resumes from checkpoint.pt, so a long run is 6 h segments
@@ -39,9 +39,11 @@ defaults: {retries: 3, resources: {mem: 5G, gpu_mem: 8G, max_seconds: 21600}}
 nodes:
   train:
     # D-147 addendum (lead, 2026-10-01): the one bounded fix attempt of the T1 steps gate = the recorded P2 fix (30 s episodes, level-up 0.6) for
-    # g1 / h1; t1 (already running) keeps the pre-registered recipe; a t1 retrain, if its eval fails for the stall, adds `t1` here.
+    # g1 / h1. t1's pre-registered run (train_tracker_s1 / validate_tracker_s1 / eval_tracker_s1) FAILED the T1 eval for the stall
+    # (2/20 at 0.10 L, 0/20 above, falls); its ONE retrain uses the same fix in lineage `trk-steps_scan-t1-p2fix` (axis_vars run_sfx; the first run is kept).
     per:
       body:
+        t1: {options: {args: {episode_s: 30, level_up: 0.6}}}
         g1: {options: {args: {episode_s: 30, level_up: 0.6}}}
         h1: {options: {args: {episode_s: 30, level_up: 0.6}}}
   validate:
