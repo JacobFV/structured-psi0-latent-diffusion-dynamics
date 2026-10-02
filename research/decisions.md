@@ -1558,3 +1558,23 @@ D-146 round-3 addendum T5 (transfer recipes, items 5 and 9 of the round-2 integr
   frozen recipe goldens unchanged; the time-cap test covers `trackers_*`). The humanoid transfer templates still declare 43200 s eval / adapt_ppo nodes
   and will get the same treatment before T4/T5.
 - T0 verified: `t1:contact_v2` pin and the three warm-start pins match; its D-112 report reproduces D-114 (no new run beyond the pin node).
+
+### D-147 addendum 2026-10-01 (lead, 2026-10-01): labelled D-112 exception for campaign trackers T1-T3 (written before any T1 gate result)
+D-139 precedent. A campaign tracker (T1 `steps_scan_v1` / `gap_ring_v1`, T2 `ub_v1` / `steps_ub_v1`, T3 `morph_v2_ub`) whose `validate_tracker` verdict is
+`fail` may still be installed under a LABELLED exception iff (a) it passes the lab gate: no falls on the validation trials and in the in-range
+robustness conditions (`no_fall_rate` / `robust_in_training_range` pass) and command / waypoint tracking within tolerance (`gate.passed`: forward,
+turn, stand, arc), and (b) its ONLY failing D-112 criteria are among joint-limit margin, peak foot force, CoT, with margin >= -0.06, peak force
+<= 4.2 BW, CoT <= 2.5. Every downstream result carries the tracker label with the failing criteria and values; force failures of the h1 kind are
+reported separately as well as pooled. NOT exempt: falls, tracking, slip, task / teacher success (T1 eval accept line, T2 teacher check): those are
+recorded (failed_hypothesis) and that tracker stops there (one bounded recipe-level fix attempt per failed gate at most). The rule is applied
+mechanically to the gate JSON; the exception label is passed to `tracker-install --label`.
+
+### D-147 addendum 2026-10-01 (lead, 2026-10-01): leases, schema flag, memory declarations
+- Humanoid transfer templates (`humanoid_transfer{,_steps,_gap}.yaml`): every 43200 s node is now a 21600 s lease (broker cap). `eval_transfer` and
+  `adapt_ppo` get retries 3 (dev cells already in `results.jsonl` are skipped; `adapt_ppo` resumes); `sealed_eval` gets retries 0 (a sealed cell
+  cut mid-run stays open in the run-once log: the infrastructure failure is recorded first, then a manual retry). The recipe time-cap test covers
+  every humanoid recipe except the frozen pre-campaign golden ones (d126_*, h1_steps_v2, h1/t1_gap_v1, shared_morph_v2, tracker_gate_pool).
+- `schema.toml`: humanoid `paused` -> `open` (D-147).
+- D-117 declarations from the measured t1 steps_scan trainer (4096 worlds; host RSS peak 2.5 GB, GPU 3.9 GB): T1 train nodes declare 5G + 8G GPU
+  (>= 1.35 x, headroom for g1 / h1); the running t1 lease keeps its 24G + 12G (no live modification).
+- Peer disk: the ~24 GB drop at 19:00 was the relations T9 copy of `latent_pp_v3dart_s1_H16` host -> peer (legitimate).

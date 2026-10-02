@@ -786,7 +786,8 @@ nodes:
       params: {name: 'htr_bc_{task}_{rel_preset}_{seal2}_n100_s{seed}_sft', steps: 600, seed: '{seed}'}
   eval:
     stage: eval_transfer
-    resources: {cpu: 4, mem: 8G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {cpu: 4, mem: 8G, max_seconds: 21600}
     per:
       system:
         semfix:
@@ -849,7 +850,8 @@ nodes:
   sealed:
     stage: sealed_eval
     deps: [eval]
-    resources: {cpu: 4, mem: 8G, max_seconds: 43200}
+    retries: 0    # D-147: 6 h lease cap; a sealed cell cut mid-run stays OPEN in the run-once log (record the infrastructure failure, then a manual retry)
+    resources: {cpu: 4, mem: 8G, max_seconds: 21600}
     per:
       system:
         semfix:
@@ -913,7 +915,8 @@ nodes:
     stage: eval_transfer
     tag: ref
     scope: global
-    resources: {cpu: 4, mem: 8G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {cpu: 4, mem: 8G, max_seconds: 21600}
     config:
       inputs: {pack: '@pack:pack.json'}
       options: {transfer: $transfer, variant: '-'}
@@ -922,7 +925,8 @@ nodes:
     tag: ref
     scope: global
     deps: [eval_ref]
-    resources: {cpu: 4, mem: 8G, max_seconds: 43200}
+    retries: 0    # D-147: 6 h lease cap; a sealed cell cut mid-run stays OPEN in the run-once log (record the infrastructure failure, then a manual retry)
+    resources: {cpu: 4, mem: 8G, max_seconds: 21600}
     config:
       inputs: {pack: '@pack_sealed:pack.json'}
       options: {transfer: $transfer, variant: '-', sealed: '{sealed}'}

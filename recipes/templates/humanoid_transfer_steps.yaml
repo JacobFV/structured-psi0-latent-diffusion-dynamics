@@ -66,7 +66,8 @@ nodes:
     stage: adapt_ppo
     tag: 'ft-t1-n1000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
       options:
@@ -77,7 +78,8 @@ nodes:
     stage: adapt_ppo
     tag: 'scratch-t1-n1000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       options:
         adapt: {task: h_steps, body: t1, budget: 1000000, mode: scratch}
@@ -87,7 +89,8 @@ nodes:
     stage: adapt_ppo
     tag: 'ft-t1-n10000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
       options:
@@ -98,7 +101,8 @@ nodes:
     stage: adapt_ppo
     tag: 'scratch-t1-n10000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       options:
         adapt: {task: h_steps, body: t1, budget: 10000000, mode: scratch}
@@ -108,7 +112,8 @@ nodes:
     stage: adapt_ppo
     tag: 'ft-g1-n1000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
       options:
@@ -119,7 +124,8 @@ nodes:
     stage: adapt_ppo
     tag: 'scratch-g1-n1000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       options:
         adapt: {task: h_steps, body: g1, budget: 1000000, mode: scratch}
@@ -129,7 +135,8 @@ nodes:
     stage: adapt_ppo
     tag: 'ft-g1-n10000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
       options:
@@ -140,7 +147,8 @@ nodes:
     stage: adapt_ppo
     tag: 'scratch-g1-n10000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       options:
         adapt: {task: h_steps, body: g1, budget: 10000000, mode: scratch}
@@ -150,7 +158,8 @@ nodes:
     stage: adapt_ppo
     tag: 'ft-h1-n1000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
       options:
@@ -161,7 +170,8 @@ nodes:
     stage: adapt_ppo
     tag: 'scratch-h1-n1000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       options:
         adapt: {task: h_steps, body: h1, budget: 1000000, mode: scratch}
@@ -171,7 +181,8 @@ nodes:
     stage: adapt_ppo
     tag: 'ft-h1-n10000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
       options:
@@ -182,7 +193,8 @@ nodes:
     stage: adapt_ppo
     tag: 'scratch-h1-n10000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       options:
         adapt: {task: h_steps, body: h1, budget: 10000000, mode: scratch}
@@ -192,7 +204,8 @@ nodes:
     stage: adapt_ppo
     tag: 'ft-n1-n1000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
       options:
@@ -203,7 +216,8 @@ nodes:
     stage: adapt_ppo
     tag: 'scratch-n1-n1000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       options:
         adapt: {task: h_steps, body: n1, budget: 1000000, mode: scratch}
@@ -213,7 +227,8 @@ nodes:
     stage: adapt_ppo
     tag: 'ft-n1-n10000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
       options:
@@ -224,7 +239,8 @@ nodes:
     stage: adapt_ppo
     tag: 'scratch-n1-n10000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       options:
         adapt: {task: h_steps, body: n1, budget: 10000000, mode: scratch}
@@ -234,7 +250,8 @@ nodes:
     stage: adapt_ppo
     tag: 'ft-berkeley-n1000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
       options:
@@ -245,7 +262,8 @@ nodes:
     stage: adapt_ppo
     tag: 'scratch-berkeley-n1000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       options:
         adapt: {task: h_steps, body: berkeley, budget: 1000000, mode: scratch}
@@ -255,7 +273,8 @@ nodes:
     stage: adapt_ppo
     tag: 'ft-berkeley-n10000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
       options:
@@ -266,7 +285,8 @@ nodes:
     stage: adapt_ppo
     tag: 'scratch-berkeley-n10000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       options:
         adapt: {task: h_steps, body: berkeley, budget: 10000000, mode: scratch}
@@ -276,7 +296,8 @@ nodes:
     stage: adapt_ppo
     tag: 'ft-toddlerbot_2xc-n1000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
       options:
@@ -287,7 +308,8 @@ nodes:
     stage: adapt_ppo
     tag: 'scratch-toddlerbot_2xc-n1000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       options:
         adapt: {task: h_steps, body: toddlerbot_2xc, budget: 1000000, mode: scratch}
@@ -297,7 +319,8 @@ nodes:
     stage: adapt_ppo
     tag: 'ft-toddlerbot_2xc-n10000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       inputs: {init: 'artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt'}
       options:
@@ -308,7 +331,8 @@ nodes:
     stage: adapt_ppo
     tag: 'scratch-toddlerbot_2xc-n10000000'
     scope: global
-    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 43200}
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
+    resources: {gpu: true, gpu_mem: 12G, cpu: 4, mem: 16G, max_seconds: 21600}
     config:
       options:
         adapt: {task: h_steps, body: toddlerbot_2xc, budget: 10000000, mode: scratch}

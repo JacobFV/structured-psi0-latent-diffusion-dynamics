@@ -45,7 +45,7 @@ def test_every_recipe_plans(path):
     assert _plan(path).order or not spec["nodes"]       # an overlay fragment (D-126: `extends: [base, fragment]`, `nodes: {}`) plans as an empty DAG
 
 
-@pytest.mark.parametrize("path", [p for p in RECIPES if p.parent.name == "armdiv" or p.stem.startswith("trackers_")], ids=lambda p: p.stem)
+@pytest.mark.parametrize("path", [p for p in RECIPES if p.parent.name in ("armdiv", "humanoid") and not p.stem.startswith("d126_") and p.stem not in ("h1_steps_v2", "h1_gap_v1", "t1_gap_v1", "shared_morph_v2", "tracker_gate_pool")], ids=lambda p: p.stem)
 def test_armdiv_recipes_respect_the_time_cap(path):
     assert all((n.resources.max_seconds or 0) <= TIME_CAP_S for n in _plan(path).nodes.values())
 

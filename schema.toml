@@ -12,7 +12,7 @@ dirs = ["src", "tests", "recipes", "docs", "research", "artifacts", "ops", "viz"
 # state: open (running / resumable now) | paused (owner wants it; resume recipe in recipes/<track>/) .
 # A track that closes moves its note and recipes to .old/ and leaves this table.
 [tracks]
-humanoid = { state = "paused", workstream = "W13", decisions = ["D-138", "D-139"] }
+humanoid = { state = "open", workstream = "W13", decisions = ["D-138", "D-139", "D-147"] }
 armdiv = { state = "paused", workstream = "W7/armdiv", decisions = ["D-137"] }
 psi0 = { state = "paused", workstream = "W10", decisions = ["D-141"] }
 pointer = { state = "paused", workstream = "pointer / ComputerWorld", decisions = ["D-142"] }

@@ -33,7 +33,9 @@ lists:
   installs: {t1: steps_scan_v1, g1: steps_scan_v1, h1: steps_scan_v1}
 # D-147: the broker caps a lease at 6 h (21600 s); the trainer resumes from checkpoint.pt, so a long run is 6 h segments
 # (retries 3 = the template's former 24 h budget).
-defaults: {retries: 3, resources: {max_seconds: 21600}}
+# D-147 (D-117): measured t1 steps_scan trainer (lease 1790906909_59a98a, iters 0-60, 4096 worlds): host RSS peak 2.5 GB, GPU 3.9 GB;
+# declared mem 5G + gpu_mem 8G (>= 1.35 x, extra headroom for the larger g1 / h1 models; the t1 lease kept its 24G + 12G).
+defaults: {retries: 3, resources: {mem: 5G, gpu_mem: 8G, max_seconds: 21600}}
 nodes:
   validate:
     stage: validate_tracker
