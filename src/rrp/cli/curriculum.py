@@ -151,10 +151,10 @@ def _final_metrics(runs: dict[tuple[str, int], Path]) -> list[dict]:
 
 
 def _eval_rows(root: Path, lineage: str, seed: int) -> dict[tuple, bool]:
-    """(stage, body, env seed) -> privileged-evaluator success of one run's deployable-route eval rows: `eval_r2_s<seed>`
-    (dev bodies) and `heldout_s<seed>` (held-out bodies), one `<body>/generated_<tag>.jsonl` each (arm._ladder_eval)."""
+    """(stage, body, env seed) -> privileged-evaluator success of one run's deployable-route eval rows: `eval_r2-dev_s<seed>`
+    (dev bodies) and `heldout-dev_s<seed>` (held-out bodies), one `<body>/generated_<tag>.jsonl` each (arm._ladder_eval)."""
     out = {}
-    for stage, d in (("dev", f"eval_r2_s{seed}"), ("heldout", f"heldout_s{seed}")):
+    for stage, d in (("dev", f"eval_r2-dev_s{seed}"), ("heldout", f"heldout-dev_s{seed}")):
         for f in sorted((root / lineage / d).glob("*/generated_*.jsonl")):
             for r in _read_jsonl(f):
                 if "privileged_success" in r and "seed" in r:

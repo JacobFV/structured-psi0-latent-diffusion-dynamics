@@ -392,7 +392,7 @@ def test_suite_relations_compare_tables_depth_and_paired_interference(tmp_path, 
             jl(run / "schedule.jsonl", [{"step": 0, "level": {"geo.depth3d": 1}, "signals": {"geo.depth3d": {"competence": 0.2}}},
                                         {"step": 1000, "level": {"geo.depth3d": 2}, "signals": {"geo.depth3d": {"competence": 0.9}}}])
         ok = {"base": [1, 1, 0, 0], "geo": [1, 1, 1, 0]}[s]
-        jl(root / f"relations-{s}" / "eval_r2_s1" / "bodyA" / "generated_dev_s1.jsonl",
+        jl(root / f"relations-{s}" / "eval_r2-dev_s1" / "bodyA" / "generated_dev_s1.jsonl",
            [{"seed": 10 + i, "privileged_success": bool(v)} for i, v in enumerate(ok)])
     curriculum_cli.compare_main(["--root", str(root), "--sets", "geo", "--seeds", "1"])
     t = json.loads((root / "tables" / "tables.json").read_text())
