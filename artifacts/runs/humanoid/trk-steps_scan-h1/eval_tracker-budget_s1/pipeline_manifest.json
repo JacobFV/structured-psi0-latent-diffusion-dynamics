@@ -1,0 +1,142 @@
+{
+ "config_hash": "73793e5ef68d9b9e",
+ "episodes": [],
+ "finished": 1790970662.951811,
+ "inputs": {
+  "actor": [
+   {
+    "digest": "a103fefbf617d1a1",
+    "path": "artifacts/runs/humanoid/trk-steps_scan-h1/train_tracker_s1/actor.pt"
+   }
+  ]
+ },
+ "manifest_hash": "10f5d64b8f312982",
+ "metrics": {
+  "steps_h0.10": {
+   "fell": 0,
+   "n": 20,
+   "source": "learned:rl_expert + scripted_teacher command",
+   "success": 9
+  },
+  "steps_h0.15": {
+   "fell": 0,
+   "n": 20,
+   "source": "learned:rl_expert + scripted_teacher command",
+   "success": 9
+  },
+  "steps_h0.20": {
+   "fell": 1,
+   "n": 20,
+   "source": "learned:rl_expert + scripted_teacher command",
+   "success": 0
+  },
+  "steps_h0.25": {
+   "fell": 0,
+   "n": 20,
+   "source": "learned:rl_expert + scripted_teacher command",
+   "success": 0
+  },
+  "steps_h0.30": {
+   "fell": 0,
+   "n": 20,
+   "source": "learned:rl_expert + scripted_teacher command",
+   "success": 0
+  }
+ },
+ "n_episodes": 0,
+ "name": "runs/humanoid/trk-steps_scan-h1/eval_tracker-budget_s1",
+ "native_config": {
+  "actor": "artifacts/runs/humanoid/trk-steps_scan-h1/train_tracker_s1/actor.pt",
+  "name": "humanoid_trk-steps_scan-h1_eval_tracker-budget_s1",
+  "out_dir": "artifacts/runs/humanoid/trk-steps_scan-h1/eval_tracker-budget_s1"
+ },
+ "outputs": {
+  "steps_h0.10": {
+   "digest": "bcf48086bc9d8a7f",
+   "path": "artifacts/runs/humanoid/trk-steps_scan-h1/eval_tracker-budget_s1/steps_h0.10.json"
+  },
+  "steps_h0.15": {
+   "digest": "e227d6cb6ed0f14a",
+   "path": "artifacts/runs/humanoid/trk-steps_scan-h1/eval_tracker-budget_s1/steps_h0.15.json"
+  },
+  "steps_h0.20": {
+   "digest": "f6336e0abc66d5a7",
+   "path": "artifacts/runs/humanoid/trk-steps_scan-h1/eval_tracker-budget_s1/steps_h0.20.json"
+  },
+  "steps_h0.25": {
+   "digest": "f636a25b74cdf518",
+   "path": "artifacts/runs/humanoid/trk-steps_scan-h1/eval_tracker-budget_s1/steps_h0.25.json"
+  },
+  "steps_h0.30": {
+   "digest": "022b1003c7233512",
+   "path": "artifacts/runs/humanoid/trk-steps_scan-h1/eval_tracker-budget_s1/steps_h0.30.json"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": false,
+   "git_sha": "e2431fc5c086dca71544275bba3bbcc4782483cc",
+   "src_tree": "e6badc56984f4c99fc824bc87ad7e2ee4f9a2426",
+   "tree": "6a19245d7cb35983f2c31080b62ae666801f01cb"
+  },
+  "created_at": 1790970662.9510953,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v2"
+  },
+  "legacy": false,
+  "notes": "pipeline legged/eval_tracker runs/humanoid/trk-steps_scan-h1/eval_tracker-budget_s1",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned_tracker",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/humanoid/trk-steps_scan-h1/eval_tracker-budget_s1",
+ "runconfig": {
+  "family": "legged",
+  "flags": {
+   "contact_version": "contact_v2",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {
+   "actor": "runs/humanoid/trk-steps_scan-h1/train_tracker_s1:actor.pt"
+  },
+  "legacy": null,
+  "lineage": "trk-steps_scan-h1",
+  "note": "",
+  "options": {
+   "body": "h1",
+   "h_fracs": [
+    0.1,
+    0.15,
+    0.2,
+    0.25,
+    0.3
+   ],
+   "n": 20,
+   "seed0": 7200,
+   "task": "steps"
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 1,
+  "stage": "eval_tracker",
+  "tag": "budget",
+  "track": "humanoid",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790970558.7208872,
+ "status_counts": {}
+}

@@ -1,0 +1,97 @@
+{
+ "config_hash": "8b3c131380a611fa",
+ "episodes": [],
+ "finished": 1790970673.5700536,
+ "inputs": {
+  "actor": [
+   {
+    "digest": "f7839243a2fa12ec",
+    "path": "artifacts/runs/humanoid/trk-gap_ring-t1/train_tracker_s1/actor.pt"
+   }
+  ]
+ },
+ "manifest_hash": "d300242967e60b4d",
+ "metrics": {
+  "gap": {
+   "n": 20,
+   "source": "learned:rl_expert + scripted_teacher command",
+   "status": {
+    "fell": 20
+   },
+   "success": 0
+  }
+ },
+ "n_episodes": 0,
+ "name": "runs/humanoid/trk-gap_ring-t1/eval_tracker-budget_s1",
+ "native_config": {
+  "actor": "artifacts/runs/humanoid/trk-gap_ring-t1/train_tracker_s1/actor.pt",
+  "name": "humanoid_trk-gap_ring-t1_eval_tracker-budget_s1",
+  "out_dir": "artifacts/runs/humanoid/trk-gap_ring-t1/eval_tracker-budget_s1"
+ },
+ "outputs": {
+  "gap": {
+   "digest": "f0f4d52ea35ac53d",
+   "path": "artifacts/runs/humanoid/trk-gap_ring-t1/eval_tracker-budget_s1/gap.json"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": false,
+   "git_sha": "e2431fc5c086dca71544275bba3bbcc4782483cc",
+   "src_tree": "e6badc56984f4c99fc824bc87ad7e2ee4f9a2426",
+   "tree": "6a19245d7cb35983f2c31080b62ae666801f01cb"
+  },
+  "created_at": 1790970673.569306,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v2"
+  },
+  "legacy": false,
+  "notes": "pipeline legged/eval_tracker runs/humanoid/trk-gap_ring-t1/eval_tracker-budget_s1",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned_tracker",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/humanoid/trk-gap_ring-t1/eval_tracker-budget_s1",
+ "runconfig": {
+  "family": "legged",
+  "flags": {
+   "contact_version": "contact_v2",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {
+   "actor": "runs/humanoid/trk-gap_ring-t1/train_tracker_s1:actor.pt"
+  },
+  "legacy": null,
+  "lineage": "trk-gap_ring-t1",
+  "note": "",
+  "options": {
+   "body": "t1",
+   "n": 20,
+   "seed0": 7200,
+   "task": "gap"
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 1,
+  "stage": "eval_tracker",
+  "tag": "budget",
+  "track": "humanoid",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790970667.273994,
+ "status_counts": {}
+}

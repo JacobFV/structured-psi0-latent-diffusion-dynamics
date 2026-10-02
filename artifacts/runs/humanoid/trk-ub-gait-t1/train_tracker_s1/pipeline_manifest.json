@@ -1,0 +1,98 @@
+{
+ "config_hash": "a3c3d221d2391d82",
+ "episodes": [],
+ "finished": 1790970353.0275438,
+ "inputs": {},
+ "manifest_hash": "7e9d1900ccd4a19c",
+ "metrics": {
+  "actor_sha256": "52c32349003e30d7709c870d6e1b65da1b006d0505a831acee45fc8ad448934f",
+  "actuator": null,
+  "body": "t1",
+  "contact_model": "contact_v2",
+  "recipe": "t1_clock_gpu_ub",
+  "reward_options": {
+   "limit_margin_agg": "max",
+   "ref_contact": 0.5,
+   "ref_gait": "clock",
+   "ref_lift": 1.0,
+   "yaw_lin_all_max": 0.5,
+   "yaw_overshoot": -2.0,
+   "yaw_progress_cap": 1.0
+  },
+  "terrain_curriculum": false
+ },
+ "n_episodes": 0,
+ "name": "runs/humanoid/trk-ub-gait-t1/train_tracker_s1",
+ "native_config": {
+  "name": "humanoid_trk-ub-gait-t1_train_tracker_s1",
+  "out_dir": "artifacts/runs/humanoid/trk-ub-gait-t1/train_tracker_s1"
+ },
+ "outputs": {
+  "actor": {
+   "digest": "52c32349003e30d7",
+   "path": "artifacts/runs/humanoid/trk-ub-gait-t1/train_tracker_s1/actor.pt"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": true,
+   "git_sha": "a1030566a9f11dd2a13a1737685255d0d5295f2e",
+   "src_tree": "3655149c3765095c658826c5a466274200662ab0",
+   "tree": "53abb156fa9ca0aaba24afb6db1415c0e151f71c"
+  },
+  "created_at": 1790970353.0267932,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v2"
+  },
+  "legacy": false,
+  "notes": "pipeline legged/train_tracker runs/humanoid/trk-ub-gait-t1/train_tracker_s1",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned_tracker",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/humanoid/trk-ub-gait-t1/train_tracker_s1",
+ "runconfig": {
+  "family": "legged",
+  "flags": {
+   "contact_version": "contact_v2",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {},
+  "legacy": null,
+  "lineage": "trk-ub-gait-t1",
+  "note": "",
+  "options": {
+   "body": "t1",
+   "engine": "warp",
+   "gpu": true,
+   "pythonpath": [
+    "~/work/ext/pylibs/mjwarp"
+   ],
+   "recipe": "t1_clock_gpu_ub",
+   "resume": true
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 1,
+  "stage": "train_tracker",
+  "tag": null,
+  "track": "humanoid",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790969069.032979,
+ "status_counts": {}
+}

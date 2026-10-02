@@ -709,3 +709,15 @@ broker refuses (6 h cap): instance override to 21600 s segments with retries 3 (
   (2) The h1 steps eval failures are timeouts with 1 fall in 100 episodes: the course-time budget may still bind in the C-MuJoCo eval.
   Host incident 12:23: the g1 eval (declared 6G) peaked >= 5.17 GB under memory.high throttling; host memory PSI rose to ~30 and the host watchdog shed it
   and the running T2 train (resumes from its checkpoint); steps evals now declare 9G. Evidence: `artifacts/runs/humanoid/trk-{steps_scan,gap_ring}-*/`.
+- 2026-10-02 D-147 round-2 pre-registration 0c269011; code a1030566 / e2431fc5 / 86dd229c (task gating trials + `gates.tracker_verdict`, course budgets
+  `humanoid_scenes.course_budget_s` -> scene `budget_s` -> judge, round-2 recipes, `tracker-install --task` exception path; install had refused every
+  new validation because it compared the full sha256 with the recorded 16-hex prefix: fixed).
+  - Re-gate from the recorded validations (gating trials): steps t1 v1 `exception` (force 3.71, margin 0.012); steps g1 `fail` (falls in arc, gating
+    no-fall 0.67); steps h1 `fail` (force 4.44 > 4.2, margin -0.058); gap t1 `fail` (falls); gap h1 `fail` (stand falls; force 4.43).
+  - Re-eval ONCE under the course-derived budgets (`eval_tracker-budget_s1`; t1 13.1 s, g1 15.6 s, h1 20.4 s steps; gap per episode): steps t1 0.10 L
+    2/20 (16 fell, 2 timeouts), >= 0.15 L 0/20 (fell); g1 0/20 everywhere (fell); h1 0.10 / 0.15 L 9/20 (timeouts), >= 0.20 L 0/20; gap t1 0/20 (fell);
+    gap h1 20/20 (max 6.5 s). The warm-start choices of round 2 are unchanged (g1 / h1 steps P2-fix actors, h1 gap v1, t1 gap -> t1 v2ft4).
+  - T2 gait `t1:ub_v1` INSTALLED under the D-147 exception (gait task trials = all six; lab gate pass, no falls; only joint margin 0.0183 < 0.02):
+    sha 52c32349003e30d7, decision `accepted_d147_exception`, on host and peer stores.
+  - Queue (dispatcher v2 `~/work/rrp-data/campaign/hum_jobs.txt`, first free GPU peer or host): t1 steps P2-fix retrain, round 2 (steps g1 / h1,
+    gap t1 / h1), T3 shared morph_v2_ub (peer only), T2 steps_ub t1 / g1 / h1 (round-2 changes). Watcher `camp-hum-watch` -> `logs/hum_events.log`.
