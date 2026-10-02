@@ -119,3 +119,106 @@ def suite_main(argv: list[str]) -> int:
     for f, g, v in pairs:
         print(f"  {f} vs {g}: {v:+.3f}")
     return 0
+
+
+# ------------------------------------------------------------------ rrp suite relations-compare (T9 tables)
+def _depth_table(runs: dict[tuple[str, int], Path]) -> list[dict]:
+    """Per factor set x factor x composition depth k: mean EMA competence over the scheduler decisions at that depth (all
+    seeds pooled), the number of decisions and the first step the depth was reached, from each run's `schedule.jsonl`."""
+    cells: dict[tuple[str, str, int], dict] = {}
+    for (fset, seed), run in sorted(runs.items()):
+        for h in _read_jsonl(run / "schedule.jsonl"):
+            for f, k in (h.get("level") or {}).items():
+                c = cells.setdefault((fset, f, int(k)), {"vals": [], "n": 0, "first": {}})
+                c["n"] += 1
+                c["first"].setdefault(seed, h.get("step"))
+                comp = ((h.get("signals") or {}).get(f) or {}).get("competence")
+                if comp is not None:
+                    c["vals"].append(comp)
+    return [{"set": s, "factor": f, "depth": k, "competence": (sum(c["vals"]) / len(c["vals"]) if c["vals"] else None),
+             "decisions": c["n"], "first_step_by_seed": c["first"]} for (s, f, k), c in sorted(cells.items())]
+
+
+def _final_metrics(runs: dict[tuple[str, int], Path]) -> list[dict]:
+    """Last train-log record of each run: the flow loss / probe terms (a factor set's cost to the action loss)."""
+    out = []
+    for (fset, seed), run in sorted(runs.items()):
+        log = _read_jsonl(run / "train_log.jsonl")
+        rec = log[-1] if log else {}
+        out.append({"set": fset, "seed": seed, "step": rec.get("step"),
+                    **{k: v for k, v in rec.items() if k in ("flow", "loss", "relgen", "relgen_raw", "n_relgen") or k.startswith("probe_")}})
+    return out
+
+
+def _eval_rows(root: Path, lineage: str, seed: int) -> dict[tuple, bool]:
+    """(stage, body, env seed) -> privileged-evaluator success of one run's deployable-route eval rows: `eval_r2_s<seed>`
+    (dev bodies) and `heldout_s<seed>` (held-out bodies), one `<body>/generated_<tag>.jsonl` each (arm._ladder_eval)."""
+    out = {}
+    for stage, d in (("dev", f"eval_r2_s{seed}"), ("heldout", f"heldout_s{seed}")):
+        for f in sorted((root / lineage / d).glob("*/generated_*.jsonl")):
+            for r in _read_jsonl(f):
+                if "privileged_success" in r and "seed" in r:
+                    out[(stage, f.parent.name, int(r["seed"]))] = bool(r["privileged_success"])
+    return out
+
+
+def _interference_table(root: Path, sets: list[str], seeds: list[int], base: str) -> list[dict]:
+    """Each factor set against `base` at equal steps / data / training seed, per body and pooled: success rates, the paired
+    difference (same training seed, same body, same env seed) with a bootstrap 95% CI and the exact McNemar p."""
+    from rrp.harness.eval.statistics import mcnemar_exact, paired_bootstrap_ci, wilson
+    ev = {(s, seed): _eval_rows(root, f"relations-{s}", seed) for s in [base, *sets] for seed in seeds}
+    rows = []
+    for s in sets:
+        for body in [None] + sorted({k[:2] for r in ev.values() for k in r}):
+            keys = [(seed, k) for seed in seeds for k in ev[(base, seed)] if k in ev[(s, seed)]
+                    and (body is None or k[:2] == body)]
+            if not keys:
+                continue
+            a = [float(ev[(s, seed)][k]) for seed, k in keys]
+            b = [float(ev[(base, seed)][k]) for seed, k in keys]
+            n10 = sum(1 for x, y in zip(a, b) if x and not y)
+            n01 = sum(1 for x, y in zip(a, b) if y and not x)
+            lo, hi = wilson(int(sum(a)), len(a))
+            rows.append({"set": s, "stage": "all" if body is None else body[0], "body": "pooled" if body is None else body[1],
+                         "n_pairs": len(keys), "rate_set": sum(a) / len(a), "rate_set_wilson95": [lo, hi],
+                         "rate_base": sum(b) / len(b), "delta": paired_bootstrap_ci(a, b), "set_only": n10, "base_only": n01,
+                         "mcnemar_p": mcnemar_exact(n10, n01)})
+    return rows
+
+
+def _md(title: str, rows: list[dict], cols: list[str]) -> str:
+    fmt = lambda v: "" if v is None else (f"{v:.3f}" if isinstance(v, float) else str(v))        # noqa: E731
+    return "\n".join([f"### {title}", "", "| " + " | ".join(cols) + " |", "|" + "---|" * len(cols),
+                      *("| " + " | ".join(fmt(r.get(c)) for c in cols) + " |" for r in rows), ""])
+
+
+def compare_main(argv: list[str]) -> int:
+    p = argparse.ArgumentParser(prog="rrp suite relations-compare",
+                                description="T9 tables: competence by composition depth (schedule.jsonl), the factor-set-vs-base "
+                                            "interference table (paired dev + held-out eval rows) and the final training metrics")
+    p.add_argument("--root", default="artifacts/runs/relations")
+    p.add_argument("--sets", default="geo,ix,task")
+    p.add_argument("--base", default="base")
+    p.add_argument("--seeds", default="1,2")
+    p.add_argument("--out", help="directory for tables.json / tables.md (default <root>/tables)")
+    a = p.parse_args(argv)
+    root, sets, seeds = Path(a.root), a.sets.split(","), [int(s) for s in a.seeds.split(",")]
+    runs = {(s, seed): root / f"relations-{s}" / f"train_flow_s{seed}" for s in [a.base, *sets] for seed in seeds
+            if (root / f"relations-{s}" / f"train_flow_s{seed}").is_dir()}
+    depth = _depth_table(runs)
+    train = _final_metrics(runs)
+    interf = _interference_table(root, sets, seeds, a.base)
+    out = Path(a.out) if a.out else root / "tables"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "tables.json").write_text(json.dumps({"competence_by_depth": depth, "training_final": train,
+                                                 "vs_base": interf}, indent=1, default=str))
+    flat = [{**r, "delta_mean": r["delta"]["mean"], "delta_lo": r["delta"]["lo"], "delta_hi": r["delta"]["hi"]} for r in interf]
+    md = "\n".join([_md("competence by factor x composition depth (scheduler EMA competence)", depth,
+                        ["set", "factor", "depth", "competence", "decisions"]),
+                    _md("factor set vs base (paired: training seed x body x env seed)", flat,
+                        ["set", "stage", "body", "n_pairs", "rate_set", "rate_base", "delta_mean", "delta_lo", "delta_hi",
+                         "set_only", "base_only", "mcnemar_p"]),
+                    _md("final training record", train, ["set", "seed", "step", "flow", "relgen", "relgen_raw", "n_relgen"])])
+    (out / "tables.md").write_text(md)
+    print(md)
+    return 0

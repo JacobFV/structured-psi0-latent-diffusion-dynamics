@@ -377,3 +377,27 @@ def test_suite_relations_curriculum_is_a_tool_entry():
     assert ("suite", "relations-curriculum") in TOOLS
     mod, fn = TOOLS[("suite", "relations-curriculum")][0].split(":")
     assert mod == "rrp.cli.curriculum" and fn == "suite_main"
+
+
+def test_suite_relations_compare_tables_depth_and_paired_interference(tmp_path, capsys):
+    root = tmp_path / "runs"
+
+    def jl(path, rows):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    for s, seed in (("base", 1), ("geo", 1)):
+        run = root / f"relations-{s}" / f"train_flow_s{seed}"
+        jl(run / "train_log.jsonl", [{"step": 20000, "flow": 0.5, "relgen": 0.1}])
+        if s == "geo":
+            jl(run / "schedule.jsonl", [{"step": 0, "level": {"geo.depth3d": 1}, "signals": {"geo.depth3d": {"competence": 0.2}}},
+                                        {"step": 1000, "level": {"geo.depth3d": 2}, "signals": {"geo.depth3d": {"competence": 0.9}}}])
+        ok = {"base": [1, 1, 0, 0], "geo": [1, 1, 1, 0]}[s]
+        jl(root / f"relations-{s}" / "eval_r2_s1" / "bodyA" / "generated_dev_s1.jsonl",
+           [{"seed": 10 + i, "privileged_success": bool(v)} for i, v in enumerate(ok)])
+    curriculum_cli.compare_main(["--root", str(root), "--sets", "geo", "--seeds", "1"])
+    t = json.loads((root / "tables" / "tables.json").read_text())
+    assert {(r["factor"], r["depth"]) for r in t["competence_by_depth"]} == {("geo.depth3d", 1), ("geo.depth3d", 2)}
+    pooled = [r for r in t["vs_base"] if r["body"] == "pooled"][0]
+    assert pooled["n_pairs"] == 4 and pooled["set_only"] == 1 and pooled["base_only"] == 0
+    assert pooled["rate_set"] == 0.75 and pooled["rate_base"] == 0.5 and pooled["delta"]["mean"] == 0.25
+    assert "competence by factor" in capsys.readouterr().out

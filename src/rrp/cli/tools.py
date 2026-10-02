@@ -57,6 +57,8 @@ TOOLS: dict[tuple[str, str], tuple[str, str]] = {
     ("suite", "grasp-rig"): ("rrp.harness.eval.grasp_rig:main", "grasp contact rig [VERSION [GRIPPER [FRICTION]]]"),
     ("suite", "relations-curriculum"): ("rrp.cli.curriculum:suite_main",
                                         "curriculum schedule / competence-by-depth / interfering-pairs report (R11)"),
+    ("suite", "relations-compare"): ("rrp.cli.curriculum:compare_main",
+                                     "T9 tables: competence by composition depth, factor set vs base (paired dev + held-out), final losses"),
     # pipelines, visualization, ops internals
     ("stage", "run"): ("rrp.harness.pipelines.base:stage_main", "run one pipeline stage of a RunConfig (leased job)"),
     ("stage", "list"): ("rrp.harness.pipelines.base:stage_main", "list the registered stages per family"),
