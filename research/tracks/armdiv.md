@@ -219,7 +219,7 @@ signature on), split `research/splits/armdiv_v1.json` (sha256 26448f52...ef414),
   The BC seed 1702 pin (`arm_targets_v8div_bc.yaml`, `axis_vars.seed.1702.bc_pin`) is recorded: `f4abaec350b760838e816134b65cbf029f8978483866134d75c3f8999d04706e`.
 - **Signature precondition.** All pins of the three recipes are real sha256 values (or the corresponding contrast is dropped by a recorded note; `rrp run-dag <recipe> --dry-run` prints `PENDING pins:` for every
   placeholder). State 2026-10-02: `arm_targets_v6ref` (8 pins), `arm_lineage_v8div`, `arm_targets_v8div_bc` (1701 and 1702) and `arm_lineage_v8div_kinfeat` are all complete: `rrp run-dag <recipe> --dry-run` prints no `PENDING pins:` block for any of the five armdiv G3/G4 recipes (T6 phase A, 2026-10-02). Recipe goldens re-recorded: `recipe.arm_targets_v8div_bc` ff59096b... -> 230c58ae..., `recipe.arm_lineage_v8div_kinfeat` 044eb980... -> 971df72a..., `recipe.armdiv_bc_v7div_kinfeat` 2049af40... -> d2c70957... (the 12G `ev_newarms` resource of the operational note above). The v8div lineages start after the signature; the v6-reference cells (SEALED-protocol cells of G4) run only after the signature; the sealed run starts only after the G3 in-distribution gate passes.
-Signed: ____________ (lead)  date: __________
+Signed: lead (Claude Opus 5.5, under the owner's D-147 mandate "full campaign")  date: 2026-10-02 — pins verified on main 0ad9e9a1: BC 1702 f4abaec3…04706e, kinfeat BC 1701 a5ffdeeb…a2a6f1; protocol eval-armdiv_v1.json byte-frozen from here.
 
 ## Pin procedure (readiness AR; T6 of research/readiness.md)
 Every frozen input consumed by run id carries `options.pin_sha256: {input_key: sha256}` (arm.py `_verify_pins`: file sha256, or the `meta.json` sha256 of a pack directory; a placeholder
