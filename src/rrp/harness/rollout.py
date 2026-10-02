@@ -61,7 +61,8 @@ class UndeclaredFailureReason(AssertionError):
 
 def declared_reasons(task: TaskSpec, hooks: Sequence = ()) -> frozenset[str]:
     """Every failure reason an episode of `task` may carry: `TaskSpec.failure_reasons`, rollout's own reasons (budget spent, crash) and the
-    `failure_reasons` tuple of each hook that can end an episode. A reason `code:detail` is declared by its `code`."""
+    `failure_reasons` tuple of each hook that can end an episode. A reason `code:detail` is declared by its `code`, or by the full string
+    (cw/fill_form declares `wrong_value:name`)."""
     out = set(task.failure_reasons) | set(ROLLOUT_REASONS)
     for h in hooks:
         out.update(getattr(h, "failure_reasons", ()))
@@ -69,10 +70,11 @@ def declared_reasons(task: TaskSpec, hooks: Sequence = ()) -> frozenset[str]:
 
 
 def check_failure_reason(reason: str | None, task: TaskSpec, hooks: Sequence = ()) -> None:
-    if reason is not None and reason.split(":", 1)[0] not in declared_reasons(task, hooks):
+    declared = declared_reasons(task, hooks)
+    if reason is not None and reason not in declared and reason.split(":", 1)[0] not in declared:
         raise UndeclaredFailureReason(
             f"task {task.name!r}: failure reason {reason!r} is not in its declared vocabulary "
-            f"{sorted(declared_reasons(task, hooks))} (TaskSpec.failure_reasons)")
+            f"{sorted(declared)} (TaskSpec.failure_reasons)")
 
 
 class Incompatible(RuntimeError):

@@ -54,3 +54,15 @@ def test_failure_reason_outside_the_declared_vocabulary_is_refused():
         check_failure_reason("hook_end", task)
     check_failure_reason("hook_end", task, [EndWhen(lambda i, e: True)])                  # a hook declares its own reason
     check_failure_reason("tripped", task, [EndWhen(lambda i, e: True, reason="tripped")])
+
+
+def test_a_full_coded_failure_reason_declared_in_the_task_is_accepted():
+    # D-147 T8: cw/fill_form declares "wrong_value:name" / "wrong_value:email" (the full string); a learned policy that types the wrong
+    # name produced "wrong_value:name" and the check, which only compared the part before ':', crashed the whole eval.
+    from rrp.harness.rollout import UndeclaredFailureReason, check_failure_reason
+    from rrp.tasks.spec import get_task
+    task = get_task("cw/fill_form")
+    for ok in ("wrong_value:name", "wrong_value:email", "not_submitted"):
+        check_failure_reason(ok, task)
+    with pytest.raises(UndeclaredFailureReason):
+        check_failure_reason("wrong_value:phone", task)       # not declared: neither the full string nor a bare 'wrong_value'
