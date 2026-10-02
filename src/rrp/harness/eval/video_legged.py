@@ -1,5 +1,6 @@
 """`rrp video legged`: render short labelled clips of the SCRIPTED TEACHER (privileged) driving the frozen body tracker on legged /
-humanoid bodies (waypoint_contact task). Same scene builder, teacher and tracker as the teacher route of
+humanoid bodies (waypoint_contact task), or (`--task h_steps|h_gap --actor <spec|actor.pt>`) a terrain tracker under the task's
+scripted command layer (`rl_expert`, the same policy, env and judge as `rrp suite humanoid-steps / humanoid-gap`). Same scene builder, teacher and tracker as the teacher route of
 rrp.harness.eval.legged_latent_eval (run_episode with ctl=None). No learned high-level policy is involved.
 
 usage (GPU lease for EGL on the peer):
@@ -67,10 +68,15 @@ def main(argv=None):
     ap.add_argument("--cam-scale", default="*=0.8,t1=0.6,g1=0.6,h1=0.55",
                     help="camera distance multipliers, body=x comma list ('*' = default)")
     ap.add_argument("--frame-every", type=int, default=1, help="record one frame every N native steps (memory)")
+    ap.add_argument("--task", default="waypoint_contact", help="waypoint_contact (scripted teacher) | h_steps | h_gap (rl_expert)")
+    ap.add_argument("--actor", default=None, help="h_steps / h_gap: tracker spec <body>:<version> or an actor.pt file")
+    ap.add_argument("--scene", default=None, help="h_steps / h_gap: scene JSON, e.g. '{\"h_frac\": 0.2}' or '{\"level\": 1.0}'")
     a = ap.parse_args(argv)
     a.cam_scale = {k: float(v) for k, v in (kv.split("=") for kv in a.cam_scale.split(","))}
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
+    if a.task != "waypoint_contact":
+        return task_clips(a, out)
     for body in a.bodies.split(","):
         arc = a.arc_only == "all" or body in a.arc_only.split(",")
         for sd in parse_seed_spec(a.seeds):
@@ -110,3 +116,59 @@ def main(argv=None):
             print(json.dumps(dict(body=body, seed=sd, outcome=tag, sim_time=round(sim_t, 1), frames=len(imgs),
                                   speed=round(speed, 2), mb=round(mb, 2), video=name)), flush=True)
 
+
+
+def task_clips(a, out: Path) -> int:
+    """h_steps / h_gap clips of a terrain tracker (`rl_expert`) under the task's scripted command layer; outcome = the task judge
+    (privileged evaluator). One clip per (body, seed)."""
+    import mujoco
+    from rrp.harness.eval.evaluate import evaluate, task_hooks
+    from rrp.harness.eval.humanoid_eval import _expert_source, _status, resolve_actor
+    from rrp.harness.hooks import FrameCallback
+    from rrp.policies.teachers.humanoid import make_rl_expert
+    if not a.actor:
+        raise SystemExit("--task h_steps / h_gap needs --actor")
+    scene = json.loads(a.scene) if a.scene else None
+    for body in a.bodies.split(","):
+        spec = resolve_actor(body, a.actor)
+        pol = make_rl_expert(arg=spec)
+        for sd in parse_seed_spec(a.seeds):
+            frames, rend = [], {}
+
+            def cb(i, env, k, phase):
+                if k % a.frame_every:
+                    return
+                if "r" not in rend:
+                    rend["r"] = mujoco.Renderer(env.model, a.height, a.width)
+                    cam = rend["cam"] = mujoco.MjvCamera()
+                    cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING
+                    cam.trackbodyid = env.binding.root_bid
+                    cs = a.cam_scale.get(body, a.cam_scale.get("*", 1.0))
+                    cam.distance, cam.elevation, cam.azimuth = cs * 3.0 * max(0.5, env.binding.nominal_height() / 0.35) ** 0.5, -20, 120
+                rend["r"].update_scene(env.data, camera=rend["cam"])
+                frames.append((rend["r"].render().copy(), f"t={env.data.time:.1f}s"))
+
+            ep = evaluate(pol, "mujoco/legged", a.task, body, [sd], scene=scene, batch=1, max_seconds=a.max_s,
+                          hooks=[*task_hooks(a.task, "mujoco/legged"), FrameCallback(cb)], env_kw=dict(tracker=spec))[0]
+            st = _status(ep)
+            tag = "success" if st == "success" else ("fell" if st == "fell" else "failure")
+            oc = {"success": (120, 255, 120), "fell": (255, 110, 110), "failure": (255, 200, 80)}[tag]
+            n_max = int(a.max_clip_s * a.fps) - a.fps
+            stride = max(1, int(np.ceil(len(frames) / max(1, n_max))))
+            fr = frames[::stride] + ([frames[-1]] if frames and len(frames) % stride != 1 and stride > 1 else [])
+            speed = ep.time / max(1e-6, len(fr) / a.fps)
+            src = f"{_expert_source(pol)} | tracker {spec}"
+            l2 = f"{body} | {a.task} {json.dumps(scene) if scene else ''} | seed {sd}"
+            l_out = f"outcome: {st.upper()} (task judge, privileged evaluator), {ep.time:.1f}s sim"
+            imgs = [caption(f, [src, l2, f"{t} | playback {speed:.1f}x", l_out], outcome_color=oc) for f, t in fr]
+            imgs += [imgs[-1]] * a.fps
+            src0 = _expert_source(pol)
+            label = ("privileged_rl_expert" if src0.startswith("privileged") else
+                     "learned_tracker_blind" if "(blind)" in src0 else "learned_rl_expert")
+            name = f"{dt.date.today()}_{label}{('_' + a.tag) if a.tag else ''}_{body}_{a.task}_s{sd}_{tag}.mp4"
+            imageio.mimsave(out / name, imgs, fps=a.fps, quality=a.quality, macro_block_size=8)
+            with open(out / "INDEX.md", "a") as f:
+                f.write(f"- `{name}` — source={_expert_source(pol)} tracker={spec} actor={a.actor} robot={body} task={a.task} "
+                        f"scene={json.dumps(scene) if scene else 'default'} seed={sd} outcome={st} (task judge); playback {speed:.1f}x\n")
+            print(json.dumps(dict(body=body, seed=sd, outcome=st, sim_time=round(ep.time, 1), frames=len(imgs), video=name)), flush=True)
+    return 0
