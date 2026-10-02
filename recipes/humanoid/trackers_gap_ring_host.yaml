@@ -1,0 +1,9 @@
+# T1 h_gap trackers (trackers_gap_ring.yaml) placed on the HOST GPU (D-147 addendum, owner 2026-10-01: "you can also use this machine for
+# training. just be careful to not crash it"). Same nodes, options and outputs as the peer instance; own DAG name, so its own ledger.
+# Host broker caps: 8 CPU, 32 GiB declared memory INCLUDING GPU memory (unified), 1 GPU slot, 24 GiB free-RAM watchdog reserve.
+# Declarations (D-117): the peer steps_scan trainer measured 2.5 GB RSS + 3.9 GB GPU; train 5G + 8G GPU (>= 1.35 x).
+# Host prerequisites: ~/work/ext/pylibs/mjwarp (sha256-equal copy of the peer install), the Menagerie assets, the pinned warm-start actors
+# under artifacts/runs/ (INIT_PINS). The installed actor is copied to the peer store after the gate.
+extends: trackers_gap_ring.yaml
+name: humanoid_trackers_gap_ring_host
+defaults: {placement: host}

@@ -61,18 +61,18 @@
    }
   },
   "enforced": {
-   "cpu_cores": 2.0,
-   "memory_bytes": 8589934592,
-   "gpu_slots": 0,
+   "cpu_cores": 8.0,
+   "memory_bytes": 34359738368,
+   "gpu_slots": 1,
    "disk_bytes": 168020324352,
    "host_gpu": "authorized_by_user_D027_in_process_cap_plus_watchdog"
   },
   "lease_expiry_s": 120,
-  "gpu_authorized": false,
-  "memory_reserve_bytes": 13059607756,
+  "gpu_authorized": true,
+  "memory_reserve_bytes": 25769803776,
   "disk_reserve_bytes": 107374182400,
   "startup_new_disk_bytes": 168020324352,
-  "admission_note": "D-115 (user 2026-09-27): no training or heavy compute on the host; peer only. Host broker limited to 2 CPU / 8 GiB / 0 GPU for light tasks."
+  "admission_note": "D-147 addendum (owner 2026-10-01: 'you can also use this machine for training. just be careful to not crash it (mem+gpu mem+cpu usage safety)'; supersedes D-115/D-127): host broker capped at 8 CPU, 32 GiB total declared memory INCLUDING GPU memory (unified), 1 GPU slot; watchdog free-RAM reserve 24 GiB; PSI/OOM watchdog active."
  },
  "peer": {
   "measurement": {

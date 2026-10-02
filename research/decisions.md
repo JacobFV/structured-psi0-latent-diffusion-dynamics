@@ -1588,3 +1588,15 @@ mechanically to the gate JSON; the exception label is passed to `tracker-install
   `recipes/humanoid/trackers_steps_scan.yaml`; the recipe table is unchanged) BEFORE they start; this is the ONE allowed fix attempt of the T1 steps gate.
   t1 finishes unchanged and is validated / evaluated and recorded as is; if its eval fails for the stall reason, t1 is retrained ONCE with the same fix
   (same attempt, same rule, no further tuning). Humanoid GPU order: gap-ring trackers (t1, h1), then g1 / h1 steps with the fix, then the t1 retrain if needed.
+
+### D-147 addendum 2026-10-01 (owner, via lead): the host may train, under broker-enforced caps (supersedes D-115 / D-127)
+- Owner (2026-10-01, verbatim): "you can also use this machine for training. just be careful to not crash it (mem+gpu mem+cpu usage safety)".
+- Enforced in the host broker, not by convention (`ops/resources.local.json` `host`; live copy in the main checkout, backup
+  `~/work/rrp-data/campaign/host-resources.local.json.bak-20261001`): `enforced` cpu_cores 2 -> 8, memory_bytes 8 GiB -> 32 GiB (the broker
+  sums memory + GPU memory per lease, so the cap includes GPU memory on the unified-memory GB10), gpu_slots 0 -> 1, `gpu_authorized` true,
+  `memory_reserve_bytes` 12.2 -> 24 GiB (watchdog free-RAM reserve). `rrp-watchdog-host.service` restarted on it (D-133 command); broker
+  status: limits 8 CPU / 32 GiB / 1 GPU, admission open, watchdog fresh. Host at the change: 121 GB total, 83-90 GB available, GPU 51 C, PSI 0.
+- Placement: a run-dag node runs on the host with `placement: host` (thin instance recipe; first: `trackers_gap_ring_host.yaml`, the T1 gap
+  ring moved off the full peer GPU queue). Declarations >= 1.35 x measured peak including GPU memory. Back off (stop at a checkpoint, owned
+  lease only) if available RAM drops below the reserve or the GPU passes ~85 C. AGENTS.md host rules rewritten accordingly.
+- Host prerequisites copied, sha256 tree equal: `~/work/ext/pylibs/mjwarp` (473 MB, same Python 3.12 / MuJoCo 3.14.0 as the peer venv).
