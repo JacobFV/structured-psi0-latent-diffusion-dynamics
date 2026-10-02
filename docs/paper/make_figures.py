@@ -1355,8 +1355,8 @@ def build_ui_panel():
             P.marks.append(dict(kind="rect", x0=a, y0=b, x1=c, y1=d2, color="#6B7078", lw=1.2, z=2))
         else:
             P.marks.append(dict(kind="rect", x0=a, y0=b, x1=c, y1=d2, color="#6B7078", lw=1.0, z=2))
-        if (c - a) * (d2 - b) <= 0.5 * F2_W * F2_H:
-            text(P, (c - 34, b + 16), f"above {ab[qi, j]:+.0f}", size=0.9, ha="center")
+        if (c - a) * (d2 - b) <= 0.5 * F2_W * F2_H and c - a >= 70 and d2 - b >= 24:   # label only boxes it fits inside
+            text(P, (min(max(c - 34, 40), F2_W - 40), b + 16), f"above {ab[qi, j]:+.0f}", size=0.9, ha="center")
         shown.append((j, float(ab[qi, j])))
     sel = [(j, float(ab[qi, j])) for j in range(n) if ab[qi, j] != 0]
     P.meta = dict(

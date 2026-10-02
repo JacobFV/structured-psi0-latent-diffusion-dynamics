@@ -1,7 +1,7 @@
 {
  "figure": "fig2",
  "seed": 3000001,
- "runtime_s": 4.4,
+ "runtime_s": 4.0,
  "honesty": "values are computed by rrp factor operators (FactorSite.contributions / OPS value) or are relgen simulator-truth labels, on real simulator states; NOT trained attention",
  "omitted_planned_factors": [
   "time.same_track"
