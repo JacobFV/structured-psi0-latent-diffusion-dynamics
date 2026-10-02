@@ -632,4 +632,4 @@ Red/green test reproduces the ±1 torso-command shift.
 - Compile is applied to module METHODS on the instance (`forward`, or `velocity` / `encode` / `decode`), so `state_dict` keys never carry
   `_orig_mod.`; the first call that raises falls back to eager and the stamp (`compute.json` next to each trainer's result) records
   `compiled[name].status` and the reason. `reduce-overhead` is the CUDA-graph mode and needs `cuda_graphs: true`.
-- Measured effect: `research/tracks/compute.md`; the tool is `ops/bin/bench_compute.py` (peer, tiny real batches).
+- Measured effect: `research/tracks/compute.md`; the tool is `rrp train bench-compute` (peer, tiny real batches).

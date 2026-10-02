@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Per-trainer step-time benchmark of the `compute` block (unit prec, research/tracks/compute.md).
 
 Runs each REAL trainer on REAL data from the shared store for a handful of optimizer steps under each compute setting and reports
@@ -7,7 +6,7 @@ reported separately), peak CUDA memory and the stamp's compile status. A global 
 the trainer after N, so the trainers themselves are untouched and write nothing outside the scratch dir.
 
   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/accel-prec ops/bin/peer_run.sh --gpu --gpu-mem 12G --cpu 4 --mem 24G \
-      --label prec_bench --max-seconds 1200 -- PY ops/bin/bench_compute.py --out /dev/shm/rrp-brandonin/bench_prec.json
+      --label prec_bench --max-seconds 1200 -- PY -m rrp.cli train bench-compute --out /dev/shm/rrp-brandonin/bench_prec.json
 Settings are interleaved per trainer (default, fp32, bf16, bf16+compile) so that drift of a shared GPU hits all of them alike.
 The configs of in-flight runs are READ (copied with out_dir redirected); nothing under the store is written.
 """
@@ -179,8 +178,8 @@ def run_case(name, setting, n, warm, scratch):
     return rec
 
 
-def main():
-    ap = argparse.ArgumentParser()
+def main(argv=None):
+    ap = argparse.ArgumentParser(prog="rrp train bench-compute")
     ap.add_argument("--out", required=True)
     ap.add_argument("--cases", default=",".join(c for c in CASES if not c.startswith("legged")),
                     help="legged_* need a pack in the CURRENT legged format (the v1/v2 packs on the peer predate it: goal_columns fails)")
@@ -188,7 +187,7 @@ def main():
     ap.add_argument("--steps", type=int, default=60)
     ap.add_argument("--warm", type=int, default=20)
     ap.add_argument("--budget-s", type=float, default=1000, help="stop starting new runs after this many seconds")
-    a = ap.parse_args()
+    a = ap.parse_args(argv)
     scratch = Path(tempfile.mkdtemp(prefix="bench_prec_", dir=os.environ.get("BENCH_SCRATCH", "/dev/shm/rrp-brandonin")))
     results, t_start = [], time.time()
     for name in a.cases.split(","):
@@ -205,6 +204,3 @@ def main():
     sys.stdout.flush()
     os._exit(0)          # prefetch worker threads of the trainers may still be parked
 
-
-if __name__ == "__main__":
-    main()

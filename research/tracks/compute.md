@@ -5,7 +5,7 @@ this track. The `seeds` and `eval` units add `seeds_per_job` / `eval_backend` be
 
 Design: `docs/architecture.md` 14.7. Code: `src/rrp/core/compute.py`, `RunConfig.compute` (`core/runconfig.py`), pipeline channel in
 `harness/pipelines/base.py` (`apply_run_context`, `stage_versions`, manifest flags), trainers (every `harness/train/*`, `policies/psi0/train.py`),
-tests `tests/unit/test_compute.py`, benchmark `ops/bin/bench_compute.py`.
+tests `tests/unit/test_compute.py`, benchmark `rrp train bench-compute` (`harness/train/bench_compute.py`).
 
 ## use
 ```yaml
@@ -27,5 +27,5 @@ compute: {precision: bf16, tf32: true, compile: reduce-overhead, cuda_graphs: tr
 - Legacy Psi0 gated autocast on `dev == "cuda"` exactly; the helper uses `startswith("cuda")` (the pipeline passes "cuda").
 
 ## measurements (peer, tiny real batches)
-See below; produced by `ops/bin/bench_compute.py` (median wall time of one optimizer step, cuda-synchronised, first 20 steps excluded as
+See below; produced by `rrp train bench-compute` (median wall time of one optimizer step, cuda-synchronised, first 20 steps excluded as
 warm-up / compile; settings interleaved per trainer; the peer GPU is SHARED with other tracks, so absolute numbers are noisy).

@@ -34,6 +34,12 @@ def cmd_train_psi0(a):
     return main(a.args[1:] if a.args[:1] == ["--"] else a.args)
 
 
+def cmd_bench_compute(a):
+    """Per-trainer step-time benchmark of the `compute` block on real data (research/tracks/compute.md)."""
+    from rrp.harness.train.bench_compute import main
+    return main(a.args[1:] if a.args[:1] == ["--"] else a.args)
+
+
 def register(sub):
     import argparse
     t = sub.add_parser("train", help="training").add_subparsers(dest="train_cmd", required=True)
@@ -41,6 +47,10 @@ def register(sub):
                      add_help=False)
     q.add_argument("args", nargs=argparse.REMAINDER)
     q.set_defaults(fn=cmd_train_psi0, passthrough=True)
+    b = t.add_parser("bench-compute", help="step-time benchmark of the compute block per trainer (args passed through)",
+                     add_help=False)
+    b.add_argument("args", nargs=argparse.REMAINDER)
+    b.set_defaults(fn=cmd_bench_compute, passthrough=True)
     c = t.add_parser("codec")
     c.add_argument("--config", required=True)
     c.set_defaults(fn=cmd_train_codec)

@@ -173,6 +173,6 @@ def test_no_trainer_keeps_its_own_autocast():
     import pathlib
     root = pathlib.Path(__file__).resolve().parents[2] / "src" / "rrp"
     files = list((root / "harness" / "train").rglob("*.py")) + [root / "policies" / "psi0" / "train.py"]
-    bad = [str(f.relative_to(root)) for f in files if f.name != "adapt.py"       # adapt.py forces TF32 OFF for the likelihood ratios
+    bad = [str(f.relative_to(root)) for f in files if f.name not in ("adapt.py", "bench_compute.py")       # adapt.py forces TF32 OFF (likelihood ratios); the benchmark resets flags between runs
            and ("torch.autocast" in f.read_text() or "allow_tf32" in f.read_text())]
     assert not bad, bad
