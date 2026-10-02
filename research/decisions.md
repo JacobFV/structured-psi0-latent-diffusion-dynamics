@@ -1604,3 +1604,46 @@ mechanically to the gate JSON; the exception label is passed to `tracker-install
 
 ### D-147 addendum 2026-10-02: armdiv G4 pre-registration SIGNED (lead)
 Signed after T6 phase A filled both pins (BC 1702 f4abaec3…04706e; kinfeat BC 1701 a5ffdeeb…a2a6f1; both BC experts pass the G3 BC gate). From this point recipes/presets/eval-armdiv_v1.json and the G4 text in research/tracks/armdiv.md are frozen. Phase B may run: v8div lineages → G3 lineage gate → sealed G4 cells (incl. the v6 reference cells) once each.
+
+### D-147 addendum 2026-10-02 (lead, 2026-10-02): T1 round 2 — PRE-REGISTERED before any new run (cites the T1 table in research/tracks/humanoid.md, "2026-10-02 T1 results")
+T1 state: steps t1 v1 (eval 2/20 at 0.10 L, 0 above; D-112 force 3.71, margin 0.012), steps g1 P2-fix (eval 0/20 every height, falls in stand/turn
+trials, force 4.55, margin -0.151), steps h1 P2-fix (eval 10/20 at 0.10 and 0.15 L, 0/20 above, timeouts; force 4.44, margin -0.058), gap t1 (eval 0/20,
+falls everywhere), gap h1 (eval 20/20; stand-trial falls, force 4.43, margin -0.007). None installable under the D-147 exception rule.
+1. **Task-relevant gate trials** (read from the code, `policies/teachers/humanoid.py`; command ranges of t1 / g1 / h1: vx <= 0.8, vy +-0.2, wz +-0.6;
+   D-112 scripts `tracker_validation.scripts`: stand 0; forward vx 0.48; turn wz 0.36; turn_fast wz 0.48; arc vx 0.4 + wz 0.24; push_fwd forward + kick):
+   - `h_steps` (StepsHeadingTeacher): constant vx = 0.6 vx_max with heading correction |wz| <= 0.5 while walking; it never commands stand-still or a
+     pure turn (zero command only after the episode ended). GATING trials: forward, arc, push_fwd (+ the in-range robustness of the forward trial).
+     REPORTED, not gating: stand, turn, turn_fast.
+   - `h_gap` (GapTeacher): vx = 0.5 vx_max with sidestep vy and heading hold (|wz| <= 0.5), then past the wall a PURE turn (|wz| <= 0.5) to psi_f
+     and a zero command once aligned (final halt). GATING: stand, forward, turn, turn_fast (0.48 <= the teacher's 0.5), arc, push_fwd (all six).
+   - Unchanged and computed exactly as written over ALL trials run (no relaxation): peak foot force (cap 3.0 BW; exception <= 4.2), joint-limit margin
+     (>= 0.02; exception >= -0.06), slip, CoT. Only the fall / tracking criteria (no_fall_rate, stand_ok, turn ratio) are restricted to the gating
+     trials. The re-gate is a recomputation from the recorded `validation.json` (per-trial summaries), not a new simulation.
+2. **Task time budgets from the course** (TaskSpec / judge; identical for teacher eval, collection and every policy eval; the TaskSpec
+   `max_seconds` / `max_steps` stay as the hard upper bound):
+   - h_steps: course = x_end + 0.3 L = 6.3 L (x0 1.2 L + 3 x 0.6 L + platform 1.2 L + 3 x 0.6 L), commanded speed 0.6 vx_max:
+     budget = 1.5 x 6.3 L / (0.6 vx_max) -> t1 13.1 s, g1 15.6 s, h1 20.4 s (was 40 s for all).
+   - h_gap: course = (GAP_X + 0.5) L at 0.5 vx_max, then |psi_f| at 0.5 rad/s and the 0.5 s heading hold (the sidestep runs concurrently):
+     budget = 1.5 x (2.5 L / (0.5 vx_max) + |psi_f| / 0.5 + 0.5) per episode -> worst case (|psi_f| = pi/2) t1 11.7 s, g1 12.9 s, h1 15.2 s (was 30 s).
+   - The budget is written into the scene meta by the scene builder (`budget_s`) and the humanoid judge times out at min(spec, budget_s). Every
+     existing T1 tracker is re-evaluated ONCE under it (eval only, no retrain). The other h_* tasks get their course-derived budgets before T4
+     collection (same rule; their teachers set the commanded speeds), recorded then.
+3. **T1 round 2** (one bounded engineering round per body and terrain task; same gate, same exception rule, caps unchanged). Recipes
+   `{body}_steps_r2` (t1, g1, h1) and `{body}_gap_r2` (t1, h1) in `tracker_recipes.WARP_RECIPES`:
+   - reward set `_R6` (impact -4.0, limit_margin -8.0 with agg max, stand_vel -3.0, stand_contact 2.0, stand_still -1.0, yaw_progress_cap 1.0,
+     yaw_overshoot -2.0, + the clock / turn / clearance terms) PLUS per-tick foot-force cap `force_cap -2.0` at `force_cap_bw 2.5`, joint-target band
+     `target_margin 0.05`, touchdown velocity `land_vel -2.0` (the t1 v2ft3 / v2ft4 terms that brought peak force to 2.35-2.72 BW, D-139);
+   - curriculum P2 fix: `episode_s 30`, `level_up 0.6`; clock gate on; alpha fixed 0.5; init_std 0.3; lr 5e-4, max_lr 1e-3; 2000 iterations x
+     4096 worlds x 24 steps (the T1 budget);
+   - warm start = the body's best T1 actor for that task by this rule: highest task-eval success summed over the eval grid; tie -> more D-112
+     criteria passed; if every T1 actor of that (body, task) has 0 eval successes, the T1 recipe's own init (gap: the body's pool gait actor,
+     t1 v2ft4 / h1 r6; steps: the T1 actor with the higher training curriculum level). Pinned by sha256 in `INIT_PINS` when chosen.
+   Bodies (per task) that still fail after round 2 are recorded `blocked_external` and their tasks are excluded from T4 with a note. The pending t1
+   P2-fix retrain (round 1) runs first; t1's round-2 warm start is then chosen by the same rule over {t1 v1, t1 P2-fix}.
+4. **T2 steps `*_ub`**: `{t1,g1,h1}_steps_ub` get the same round-2 changes (force cap, target_margin, land_vel, episode_s 30, level_up 0.6;
+   reward `_R6` already) before any GPU is spent; from scratch (no steps actor has the upper input block). T2 gait `*_ub` continue as running.
+5. **T3 shared morph_v2_ub**: needs a peer slot (declares 40G + 24G GPU > the host cap); queued in the humanoid dispatcher right after the t1
+   retrain / round-2 nodes, first free peer slot.
+6. **Monitoring**: a watcher unit (shell loop, heartbeat file) records host safety and every humanoid node event to an event log; the dispatcher
+   restarts it when the heartbeat is older than 10 min; the lead model re-checks at least every 2 h. Host evals declare >= 1.35 x measured peak
+   (steps eval: 5.39 GB peak at 9G; gap eval 3.77 GB -> 6G).
