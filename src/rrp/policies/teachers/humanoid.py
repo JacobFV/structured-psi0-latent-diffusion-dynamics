@@ -822,9 +822,10 @@ class RLExpertPolicy:
 
     def __init__(self, entry, sha: str):
         self.entry, self.sha = entry, sha
-        public = entry.extra_obs in ("none", "terrain_scan")
+        from rrp.envs.mujoco.legged_tracker import PUBLIC_EXTRA
+        public = entry.extra_obs in PUBLIC_EXTRA          # none | terrain_scan | terrain_scan+range_ring (all public sensors, D-146)
         self.label = source_label("learned" if public else "privileged_teacher", f"rl_expert:{sha[:12]}")
-        caps = frozenset({"terrain_scan"} if entry.extra_obs == "terrain_scan" else ())
+        caps = frozenset(PUBLIC_EXTRA.get(entry.extra_obs, ()))
         self.info = PolicyInfo("rl_expert", "learned" if public else "privileged_teacher", sha,
                                Requirements(frozenset({"base_velocity"}), tasks=frozenset(COMMAND_LAYERS), privileged=True,
                                             env_capabilities=caps))

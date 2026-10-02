@@ -82,6 +82,11 @@ def test_gap_ring_actor_gets_scan_and_ring_under_wholebody_on_h_gap_cart(tmp_pat
     x = bt.extra_fn(s.data)
     assert x.shape == (LC.EXTRA_DIM_RING,)
     assert np.array_equal(x[:LC.SCAN_DIM], s.terrain.values) and np.array_equal(x[LC.SCAN_DIM:], s.ring.values)   # scan first
+    # D-147: both sensors are public, so the rl_expert over a scan + ring actor is `learned` and needs both capabilities
+    from rrp.policies.teachers.humanoid import make_rl_expert
+    pol = make_rl_expert(arg=f"{BODY}:stub")
+    assert pol.label.startswith("learned:rl_expert:") and pol.info.source == "learned"
+    assert {"terrain_scan", "range_ring"} <= set(pol.info.requires.env_capabilities)
 
 
 @pytest.mark.menagerie
