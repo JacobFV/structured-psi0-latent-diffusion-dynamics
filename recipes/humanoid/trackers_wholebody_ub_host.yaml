@@ -1,0 +1,13 @@
+# T2 wholebody `*_ub` trackers (trackers_wholebody_ub.yaml) placed on the HOST GPU (D-147 addendum, owner 2026-10-01; lead 2026-10-02: idle
+# GPUs take any ready humanoid node). Same nodes / options / outputs; own DAG name and ledger. Host caps 8 CPU, 32 GiB incl. GPU memory,
+# 1 GPU slot. Warm starts (gait) are the INIT_PINS actors under artifacts/runs/ (sha256 checked by the trainer).
+extends: trackers_wholebody_ub.yaml
+name: humanoid_trackers_wholebody_ub_host
+schema: dag-1
+track: humanoid
+policy: tracker
+env: warp/legged
+task: locomotion
+bodies: humanoid_pool_v1
+factors: []
+defaults: {placement: host, resources: {mem: 5G, gpu_mem: 8G}}
