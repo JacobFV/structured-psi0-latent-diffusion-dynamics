@@ -1,0 +1,30 @@
+{
+ "schema_version": "runconfig-1",
+ "family": "legged",
+ "stage": "eval_tracker",
+ "variant": "na",
+ "seed": 1,
+ "lineage": "trk-gap_ring-h1",
+ "track": "humanoid",
+ "tag": null,
+ "inputs": {
+  "actor": "runs/humanoid/trk-gap_ring-h1/train_tracker_s1:actor.pt"
+ },
+ "flags": {
+  "zero_prev_action": null,
+  "realizer_anchor": null,
+  "realizer_drop_qd": null,
+  "probe_lv_min": null,
+  "qd_dropout": null,
+  "contact_version": "contact_v2"
+ },
+ "params": {},
+ "options": {
+  "task": "gap",
+  "body": "h1",
+  "seed0": 7200,
+  "n": 20
+ },
+ "note": "",
+ "legacy": null
+}

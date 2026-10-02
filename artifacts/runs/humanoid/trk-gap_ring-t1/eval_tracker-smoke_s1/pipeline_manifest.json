@@ -1,0 +1,99 @@
+{
+ "config_hash": "8ab859b619d8dcc0",
+ "episodes": [],
+ "finished": 1790919169.849695,
+ "inputs": {},
+ "manifest_hash": "fd2ba6da188527c1",
+ "metrics": {
+  "gap_smoke": {
+   "level0.0": {
+    "episodes": 825,
+    "falls": 8,
+    "finite": true,
+    "gap_w_over_bw": 1.600000023841858,
+    "obs_dim": 140,
+    "successes": 806
+   },
+   "level1.0": {
+    "episodes": 591,
+    "falls": 23,
+    "finite": true,
+    "gap_w_over_bw": 1.3877215385437012,
+    "obs_dim": 140,
+    "successes": 506
+   }
+  }
+ },
+ "n_episodes": 0,
+ "name": "runs/humanoid/trk-gap_ring-t1/eval_tracker-smoke_s1",
+ "native_config": {
+  "name": "humanoid_trk-gap_ring-t1_eval_tracker-smoke_s1",
+  "out_dir": "artifacts/runs/humanoid/trk-gap_ring-t1/eval_tracker-smoke_s1"
+ },
+ "outputs": {
+  "gap_smoke": {
+   "digest": "7082412f7e1733a7",
+   "path": "artifacts/runs/humanoid/trk-gap_ring-t1/eval_tracker-smoke_s1/gap_smoke.json"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": true,
+   "git_sha": "d75e37772128036eedda908bcecaf4f78c600a4b",
+   "src_tree": "627fde08535ae756f4e973eb2e97c0126074ace9",
+   "tree": "1ec1cad8f66993fb1f04d5edb568e744e71cf1d4"
+  },
+  "created_at": 1790919169.8494895,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v2"
+  },
+  "legacy": false,
+  "notes": "pipeline legged/eval_tracker runs/humanoid/trk-gap_ring-t1/eval_tracker-smoke_s1",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned_tracker",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/humanoid/trk-gap_ring-t1/eval_tracker-smoke_s1",
+ "runconfig": {
+  "family": "legged",
+  "flags": {
+   "contact_version": "contact_v2",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {},
+  "legacy": null,
+  "lineage": "trk-gap_ring-t1",
+  "note": "",
+  "options": {
+   "actor": "artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt",
+   "body": "t1",
+   "pythonpath": [
+    "~/work/ext/pylibs/mjwarp"
+   ],
+   "task": "gap_smoke"
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 1,
+  "stage": "eval_tracker",
+  "tag": "smoke",
+  "track": "humanoid",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790919073.3331776,
+ "status_counts": {}
+}

@@ -1,0 +1,30 @@
+{
+ "schema_version": "runconfig-1",
+ "family": "legged",
+ "stage": "eval_tracker",
+ "variant": "na",
+ "seed": 1,
+ "lineage": "trk-gap_ring-t1",
+ "track": "humanoid",
+ "tag": "smoke",
+ "inputs": {},
+ "flags": {
+  "zero_prev_action": null,
+  "realizer_anchor": null,
+  "realizer_drop_qd": null,
+  "probe_lv_min": null,
+  "qd_dropout": null,
+  "contact_version": "contact_v2"
+ },
+ "params": {},
+ "options": {
+  "task": "gap_smoke",
+  "body": "t1",
+  "actor": "artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt",
+  "pythonpath": [
+   "~/work/ext/pylibs/mjwarp"
+  ]
+ },
+ "note": "",
+ "legacy": null
+}

@@ -693,3 +693,19 @@ broker refuses (6 h cap): instance override to 21600 s segments with retries 3 (
   a free slot and no humanoid GPU lease, host when its single slot is free and the host gap-ring coordinator is done; one humanoid GPU job per
   machine; each body runs train -> validate -> eval on one machine under its own ledger file (`--ledger .../ledger_<body>[_host].json`), host via
   `recipes/humanoid/trackers_steps_scan_host.yaml`. The earlier peer-only queue units were stopped before they launched anything.
+- 2026-10-02 T1 results (host runs: train / validate overnight, evals 12:13-12:23 as the eval nodes' exact stage configs on host leases, because
+  the DAGs block eval behind a failed validate). D-112 = validate_tracker (10 seeds + robust); accept = C-MuJoCo task eval (>= 0.9 per height / level).
+  | tracker | training curriculum | D-112 failing criteria | lab gate | task eval | verdict (D-147 rule) |
+  |---|---|---|---|---|---|
+  | steps t1 v1 (pre-registered) | max 0.3, end 0.0 | force 3.71, margin 0.012 | pass | 0.10 L 2/20, >= 0.15 L 0/20 (falls) | failed_hypothesis; P2-fix retrain queued |
+  | steps g1 (P2 fix) | max 0.2, end 0.0 | falls (stand 0.6, turns 1.0), force 4.55, margin -0.151 | fail | (rerun after a host shed, see below) | not installable (falls) |
+  | steps h1 (P2 fix) | reached 1.0 | force 4.44, margin -0.058 | pass | 0.10 / 0.15 L 10/20, 0.20-0.30 L 0/20; 1 fall in 100, rest timeouts | not installable (force > 4.2 cap; eval < 0.9) |
+  | gap t1 | max 0.4, end 0.0, 0 successes | falls in every script (no-fall 0.0), force 3.96, margin -0.040 | fail | 0/20 (all fell) | failed_hypothesis |
+  | gap h1 | max 0.3, end 0.0 | falls in the stand script only (no-fall 0.83), force 4.43, margin -0.007 | fail (stand) | **20/20** at level 1.0 | not installable (stand falls; force > 4.2) |
+  Source labels: the gap evals ran before the rl_expert label fix (baaf6848) and their manifests say `privileged_teacher:rl_expert`; the actors take only the
+  public terrain_scan + range_ring, so the correct label is `learned:rl_expert` (numbers unaffected).
+  Observations for the lead (protocol questions, nothing changed): (1) the steps / gap expert recipes train with turn_frac 0 and a command layer that never
+  stops, while the D-112 scripts include stand / turn trials; the stand / turn falls of g1 steps and h1 gap are outside what those experts were trained for.
+  (2) The h1 steps eval failures are timeouts with 1 fall in 100 episodes: the course-time budget may still bind in the C-MuJoCo eval.
+  Host incident 12:23: the g1 eval (declared 6G) peaked >= 5.17 GB under memory.high throttling; host memory PSI rose to ~30 and the host watchdog shed it
+  and the running T2 train (resumes from its checkpoint); steps evals now declare 9G. Evidence: `artifacts/runs/humanoid/trk-{steps_scan,gap_ring}-*/`.

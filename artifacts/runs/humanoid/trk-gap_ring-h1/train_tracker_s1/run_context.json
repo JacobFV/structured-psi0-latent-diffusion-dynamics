@@ -1,0 +1,32 @@
+{
+ "schema_version": "runconfig-1",
+ "family": "legged",
+ "stage": "train_tracker",
+ "variant": "na",
+ "seed": 1,
+ "lineage": "trk-gap_ring-h1",
+ "track": "humanoid",
+ "tag": null,
+ "inputs": {},
+ "flags": {
+  "zero_prev_action": null,
+  "realizer_anchor": null,
+  "realizer_drop_qd": null,
+  "probe_lv_min": null,
+  "qd_dropout": null,
+  "contact_version": "contact_v2"
+ },
+ "params": {},
+ "options": {
+  "engine": "warp",
+  "gpu": true,
+  "body": "h1",
+  "recipe": "h1_gap_gpu_v1",
+  "pythonpath": [
+   "~/work/ext/pylibs/mjwarp"
+  ],
+  "resume": true
+ },
+ "note": "",
+ "legacy": null
+}

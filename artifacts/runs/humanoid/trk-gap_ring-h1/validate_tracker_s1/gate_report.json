@@ -1,0 +1,62 @@
+{
+ "gate": "tracker",
+ "version": "rrp.evaluation.gates/v1 (D-112)",
+ "subject": {
+  "body": "h1",
+  "tracker_version": "learned_tracker:h1:iter1999:contact_v2",
+  "tracker_sha": "dd0a11d01cbd4731",
+  "contact_model": "contact_v2",
+  "family": "humanoid"
+ },
+ "verdict": "fail",
+ "criteria": [
+  {
+   "name": "slip_ratio_forward",
+   "status": "pass",
+   "value": 0.058464186601535795,
+   "threshold": "< 0.15",
+   "note": ""
+  },
+  {
+   "name": "cot_forward",
+   "status": "pass",
+   "value": 0.9754731909627701,
+   "threshold": "<= 2.0 (biped)",
+   "note": ""
+  },
+  {
+   "name": "peak_foot_force_bw",
+   "status": "fail",
+   "value": 4.428106334689297,
+   "threshold": "<= 3.0 (biped; 20 ms moving average)",
+   "note": "max over trials of the peak 20 ms moving-average contact normal force per foot / body weight; unfiltered per-step peak 9.95"
+  },
+  {
+   "name": "joint_limit_margin",
+   "status": "fail",
+   "value": -0.007162583125355459,
+   "threshold": ">= 0.02",
+   "note": "min over trials, ticks and joints"
+  },
+  {
+   "name": "no_fall_rate",
+   "status": "fail",
+   "value": 0.8333333333333334,
+   "threshold": ">= 0.9",
+   "note": ""
+  },
+  {
+   "name": "robust_in_training_range",
+   "status": "pass",
+   "value": "all conditions ok",
+   "threshold": "no-fall >= 0.9 and forward ratio >= nominal (1.06) - 0.2 at ['latency', 'mass_hi', 'mass_lo', 'mu_hi', 'mu_lo', 'push']",
+   "note": "training range: {'contact': 'v2', 'mu': [0.45, 1.2], 'root_mass_scale': [0.9, 1.1], 'latency_ms': 8.0, 'train_actuator': 'v1', 'push_mps': 0.2}"
+  }
+ ],
+ "failed": [
+  "peak_foot_force_bw=4.428106334689297 (threshold <= 3.0 (biped; 20 ms moving average))",
+  "joint_limit_margin=-0.007162583125355459 (threshold >= 0.02)",
+  "no_fall_rate=0.8333333333333334 (threshold >= 0.9)"
+ ],
+ "not_evaluated": []
+}

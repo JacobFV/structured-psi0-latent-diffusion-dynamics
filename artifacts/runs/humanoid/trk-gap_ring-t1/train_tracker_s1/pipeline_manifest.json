@@ -1,0 +1,98 @@
+{
+ "config_hash": "2f39e93ed08b260c",
+ "episodes": [],
+ "finished": 1790923863.1263978,
+ "inputs": {},
+ "manifest_hash": "e0b3d67c20dd26b8",
+ "metrics": {
+  "actor_sha256": "f7839243a2fa12ec884c8e49e5edbbf2ccb2681cf457a1a0da5555e98f5f3f74",
+  "actuator": null,
+  "body": "t1",
+  "contact_model": "contact_v2",
+  "recipe": "t1_gap_gpu_v1",
+  "reward_options": {
+   "limit_margin_agg": "max",
+   "ref_contact": 0.5,
+   "ref_gait": "clock",
+   "ref_lift": 1.0,
+   "yaw_lin_all_max": 0.5,
+   "yaw_overshoot": -2.0,
+   "yaw_progress_cap": 1.0
+  },
+  "terrain_curriculum": false
+ },
+ "n_episodes": 0,
+ "name": "runs/humanoid/trk-gap_ring-t1/train_tracker_s1",
+ "native_config": {
+  "name": "humanoid_trk-gap_ring-t1_train_tracker_s1",
+  "out_dir": "artifacts/runs/humanoid/trk-gap_ring-t1/train_tracker_s1"
+ },
+ "outputs": {
+  "actor": {
+   "digest": "f7839243a2fa12ec",
+   "path": "artifacts/runs/humanoid/trk-gap_ring-t1/train_tracker_s1/actor.pt"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": true,
+   "git_sha": "f99ed8a640b56961171d784dafaf35c35faff511",
+   "src_tree": "627fde08535ae756f4e973eb2e97c0126074ace9",
+   "tree": "bb07dd1af30a2e49576a3a07298a015c74d0810c"
+  },
+  "created_at": 1790923863.125316,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v2"
+  },
+  "legacy": false,
+  "notes": "pipeline legged/train_tracker runs/humanoid/trk-gap_ring-t1/train_tracker_s1",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned_tracker",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/humanoid/trk-gap_ring-t1/train_tracker_s1",
+ "runconfig": {
+  "family": "legged",
+  "flags": {
+   "contact_version": "contact_v2",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {},
+  "legacy": null,
+  "lineage": "trk-gap_ring-t1",
+  "note": "",
+  "options": {
+   "body": "t1",
+   "engine": "warp",
+   "gpu": true,
+   "pythonpath": [
+    "~/work/ext/pylibs/mjwarp"
+   ],
+   "recipe": "t1_gap_gpu_v1",
+   "resume": true
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 1,
+  "stage": "train_tracker",
+  "tag": null,
+  "track": "humanoid",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790919489.6813586,
+ "status_counts": {}
+}

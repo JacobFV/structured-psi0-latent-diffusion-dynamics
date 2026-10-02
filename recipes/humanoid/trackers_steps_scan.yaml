@@ -55,5 +55,7 @@ nodes:
       options: {body: '{body}', kind: learned, seeds: 10, robust: true}
   eval:
     deps: [validate]
+    # D-117: g1 steps eval peaked >= 5.17 GB while throttled at 0.8 x 6G (host shed 2026-10-02 12:23); declare 9G
+    resources: {cpu: 2, mem: 9G, gpu: false, max_seconds: 14400}
     config:
       options: {task: steps, body: '{body}', seed0: 7200, n: 20, h_fracs: [0.10, 0.15, 0.20, 0.25, 0.30]}

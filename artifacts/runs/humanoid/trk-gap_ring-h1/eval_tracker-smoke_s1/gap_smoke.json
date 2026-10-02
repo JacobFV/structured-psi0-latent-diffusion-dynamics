@@ -1,0 +1,18 @@
+{
+ "level0.0": {
+  "episodes": 514,
+  "falls": 1,
+  "successes": 510,
+  "obs_dim": 134,
+  "gap_w_over_bw": 1.600000023841858,
+  "finite": true
+ },
+ "level1.0": {
+  "episodes": 468,
+  "falls": 1,
+  "successes": 438,
+  "obs_dim": 134,
+  "gap_w_over_bw": 1.3980730772018433,
+  "finite": true
+ }
+}
