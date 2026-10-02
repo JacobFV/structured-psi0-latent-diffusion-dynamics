@@ -698,7 +698,7 @@ broker refuses (6 h cap): instance override to 21600 s segments with retries 3 (
   | tracker | training curriculum | D-112 failing criteria | lab gate | task eval | verdict (D-147 rule) |
   |---|---|---|---|---|---|
   | steps t1 v1 (pre-registered) | max 0.3, end 0.0 | force 3.71, margin 0.012 | pass | 0.10 L 2/20, >= 0.15 L 0/20 (falls) | failed_hypothesis; P2-fix retrain queued |
-  | steps g1 (P2 fix) | max 0.2, end 0.0 | falls (stand 0.6, turns 1.0), force 4.55, margin -0.151 | fail | (rerun after a host shed, see below) | not installable (falls) |
+  | steps g1 (P2 fix) | max 0.2, end 0.0 | falls (stand 0.6, turns 1.0), force 4.55, margin -0.151 | fail | 0/20 at every height (all fell; rerun 9G, peak 5.39 GB) | failed_hypothesis |
   | steps h1 (P2 fix) | reached 1.0 | force 4.44, margin -0.058 | pass | 0.10 / 0.15 L 10/20, 0.20-0.30 L 0/20; 1 fall in 100, rest timeouts | not installable (force > 4.2 cap; eval < 0.9) |
   | gap t1 | max 0.4, end 0.0, 0 successes | falls in every script (no-fall 0.0), force 3.96, margin -0.040 | fail | 0/20 (all fell) | failed_hypothesis |
   | gap h1 | max 0.3, end 0.0 | falls in the stand script only (no-fall 0.83), force 4.43, margin -0.007 | fail (stand) | **20/20** at level 1.0 | not installable (stand falls; force > 4.2) |
