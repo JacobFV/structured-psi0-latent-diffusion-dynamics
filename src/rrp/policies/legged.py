@@ -8,6 +8,7 @@ ticks, fallback hold, OOD / safety hooks) and are now driven by the policy inste
 """
 from __future__ import annotations
 
+import copy
 import math
 import time
 from pathlib import Path
@@ -572,14 +573,23 @@ class _LeggedPolicy:
 
     def __init__(self, ctl, info):
         self.ctl, self.info = ctl, info
-        self.env = self.ad = None
+        self.env = self.ad = self.subs = None
 
     def _bind(self, s, morph):
         self.ctl.bind(s, morph)
 
     def reset(self, spec, task, seeds, *, envs=None):
+        self.subs = None
         if len(envs) != 1:
-            raise ValueError("legged policies run one episode at a time (rollout batch=1)")
+            self.subs = []
+            for s, sd in zip(envs, seeds):
+                sub = copy.copy(self)
+                sub.ctl = copy.copy(self.ctl)
+                sub.ctl.gen = torch.Generator(device=self.ctl.dev).manual_seed(
+                    (int(self.ctl.gen.initial_seed()) * 1000003 + int(sd)) % (2 ** 63))
+                sub.reset(spec, task, [sd], envs=[s])
+                self.subs.append(sub)
+            return
         s = envs[0]
         if getattr(s, "control", None) not in self.controls:
             raise ValueError(f"this legged policy needs a mujoco/legged env built with control in {self.controls}")
@@ -590,6 +600,8 @@ class _LeggedPolicy:
         self.ad.armed = True
 
     def act(self, obs):
+        if self.subs is not None:
+            return {i: self.subs[i].act({i: o})[i] for i, o in obs.items()}
         from rrp.core.action import NativeCommand
         from rrp.policies.base import Act
         s, ad = self.env, self.ad

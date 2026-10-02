@@ -474,12 +474,12 @@ def build_policy(cfg: dict, cell: dict, root: Path):
     return pol, env_kw
 
 
-def run_cell(cfg: dict, cell: dict, state: dict, scenes, root: Path, out: Path, batch: int = 4) -> dict:
+def run_cell(cfg: dict, cell: dict, state: dict, scenes, root: Path, out: Path, batch: int = 4, eval_backend: str = "cpu") -> dict:
     from rrp.harness.eval.evaluate import evaluate, task_hooks
     pol, env_kw = build_policy(cfg, cell, root)
     key = cell_key(cell)
     eps = evaluate(pol, cfg["env"], cell["task"], cell["body"], scenes, scene=cfg.get("scene"), batch=batch,
-                   hooks=task_hooks(cell["task"], cfg["env"]), env_kw=env_kw,
+                   hooks=task_hooks(cell["task"], cfg["env"]), env_kw=env_kw, eval_backend=eval_backend,
                    out=out / "episodes" / (key.replace("|", "__").replace("/", "_") + ".jsonl"),
                    row_extra=dict(cell=key, method=cell["method"], budget=cell["budget"], train_seed=cell["train_seed"]))
     k = sum(bool(e.success_privileged) for e in eps)
@@ -507,10 +507,11 @@ def merged_results(cfg: dict, root: Path, out: Path) -> list[dict]:
 
 
 def run_matrix(cfg: dict, *, root: Path, out: Path, scope: str, sealed_flag: bool, run: bool, pack: dict, split=None,
-               log=print, variant: str | None = None, train_seed: int | None = None) -> dict:
+               log=print, variant: str | None = None, train_seed: int | None = None, eval_backend: str = "cpu", batch: int = 4) -> dict:
     """Plan or run the cells of `scope` (dev: non-sealed bodies on development scenes; sealed: sealed bodies on evaluation scenes,
     once each, `--sealed` required). Returns {cells: [...states], deferred_bodies}. Cells already done in results.jsonl are not
-    rerun (dev); a sealed cell that is not ready never enters `sealed_eval` (the run-once budget is not spent on a missing run)."""
+    rerun (dev); a sealed cell that is not ready never enters `sealed_eval` (the run-once budget is not spent on a missing run).
+    `eval_backend` (cpu | warp) is part of a result's identity: a cell done on one backend is not adopted by a run on the other."""
     from rrp.core.sealed import SealedSplit
     split = split or SealedSplit.load()
     want_sealed = scope == "sealed"
@@ -519,12 +520,14 @@ def run_matrix(cfg: dict, *, root: Path, out: Path, scope: str, sealed_flag: boo
     bodies = [b for b in cfg["bodies"] if split.is_sealed_body(b) == want_sealed]
     deferred = [b for b in cfg["bodies"] if b not in bodies]
     scenes = scenes_for(split, want_sealed, int(cfg["scenes"]))
-    done = {r["key"] for r in read_results(out) if r.get("status") == "done" and r.get("scope") == scope}
+    done = {r["key"] for r in read_results(out) if r.get("status") == "done" and r.get("scope") == scope
+            and r.get("eval_backend", "cpu") == eval_backend}
     planned = []
     for cell in select_cells(cfg, expand_cells(cfg, bodies), variant, train_seed):
         st = cell_state(cfg, cell, root, pack)
         key = cell_key(cell)
-        rec = dict(cell, key=key, scope=scope, **{k: st[k] for k in ("status", "reason", "acquisition")})
+        rec = dict(cell, key=key, scope=scope, **{k: st[k] for k in ("status", "reason", "acquisition")},
+                   **({} if eval_backend == "cpu" else dict(eval_backend=eval_backend)))
         planned.append(rec)
         if not run:
             continue
@@ -538,9 +541,9 @@ def run_matrix(cfg: dict, *, root: Path, out: Path, scope: str, sealed_flag: boo
         try:
             if want_sealed:
                 with split.sealed_eval(sealed_cell(cfg, cell, scenes)):
-                    res = run_cell(cfg, cell, st, scenes, root, out)
+                    res = run_cell(cfg, cell, st, scenes, root, out, batch, eval_backend)
             else:
-                res = run_cell(cfg, cell, st, scenes, root, out)
+                res = run_cell(cfg, cell, st, scenes, root, out, batch, eval_backend)
             rec.update(res, status="done")
             log(f"[transfer] {key}: {res['k']}/{res['n']} ({res['source']})")
         except Exception as ex:  # noqa: BLE001  (recorded; a sealed cell stays OPEN in the run-once log by design)
@@ -653,6 +656,10 @@ def transfer_main(argv=None) -> int:
     ap.add_argument("--tables-only", action="store_true", help="only merge results (this dir + the config's results_glob) into tables")
     ap.add_argument("--variant", default=None, help="only methods with this `variant` ('-' = methods without one)")
     ap.add_argument("--train-seed", type=int, default=None, help="only this training seed of the trained methods")
+    ap.add_argument("--eval-backend", choices=("cpu", "warp"), default="cpu",
+                    help="physics of the evaluation episodes: cpu (default) or batched MuJoCo Warp (docs/architecture.md section 14.8); "
+                         "results of the two are never adopted by one another")
+    ap.add_argument("--batch", type=int, default=4, help="episodes stepped together per group (warp: raise it, e.g. 32)")
     a = ap.parse_args(argv)
     cfg = load_config(a.config)
     root = Path(a.root).resolve()
@@ -660,7 +667,7 @@ def transfer_main(argv=None) -> int:
     if not a.tables_only:
         pack = load_packs(cfg, root)
         plan = run_matrix(cfg, root=root, out=out, scope=a.scope, sealed_flag=a.sealed, run=a.run, pack=pack,
-                          variant=a.variant, train_seed=a.train_seed)
+                          variant=a.variant, train_seed=a.train_seed, eval_backend=a.eval_backend, batch=a.batch)
         c = Counter(x["status"] for x in plan["cells"])
         print(json.dumps(dict(scope=a.scope, cells=len(plan["cells"]), status=dict(c), deferred_bodies=plan["deferred_bodies"],
                               scenes=plan["scenes"], run=a.run)))

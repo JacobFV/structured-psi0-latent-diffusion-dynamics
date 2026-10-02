@@ -181,6 +181,8 @@ class _Group:
                     h["act"][j] = dj.act
                 if h["mpos"].shape[1]:
                     h["mpos"][j], h["mquat"][j] = dj.mocap_pos, dj.mocap_quat
+            if any(np.any(dj.xfrc_applied) or np.any(dj.qfrc_applied) for dj in datas):
+                raise BatchUnsupported("externally applied forces (xfrc_applied / qfrc_applied) are not uploaded to Warp")
             self._prepare(n - 1, neidx)
             sched = np.empty((self.nw, n - 1, max(nu, 1)), np.float32)
             for j, dj in enumerate(datas):
@@ -235,14 +237,15 @@ class WarpPool:
             for j, i in enumerate(idx):
                 self.where[i] = (gi, j)
 
-    def integrate(self, reqs: dict[int, Integrate]) -> None:
+    def integrate(self, reqs: dict[int, Integrate], datas: dict | None = None) -> None:
+        """`datas` (env index -> MjData) replaces an env's own data (the parity runner integrates a copy, leaving the env alone)."""
         by: dict[int, dict[int, Integrate]] = {}
         for i, r in reqs.items():
             gi, j = self.where[i]
             by.setdefault(gi, {})[j] = r
         for gi, rs in by.items():
             g, idx = self.groups[gi]
-            g.integrate(rs, [self.envs[i].data for i in idx])
+            g.integrate(rs, [(datas or {}).get(i, self.envs[i].data) for i in idx])
 
     def describe(self) -> dict:
         return dict(device=self.device, groups=[dict(worlds=g.nw, batched_fields=g.batched_fields, peak_contacts=g.peak_contacts)
