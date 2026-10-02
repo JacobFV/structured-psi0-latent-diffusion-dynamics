@@ -182,7 +182,7 @@ def test_install_takes_a_d147_exception_only_through_the_task_verdict(tmp_path):
     def write(force, falls):
         summ = {k: dict(fall_rate=falls.get(k, 0.0), peak_force_bw=force, joint_limit_margin_min=0.01, cot=0.5, slip_ratio=0.05)
                 for k in ("stand", "forward", "turn", "turn_fast", "arc", "push_fwd")}
-        v = dict(tracker_sha=sha, family="humanoid", summary=summ, w6_gate=dict(verdict="fail"),
+        v = dict(tracker_sha=sha[:16], family="humanoid", summary=summ, w6_gate=dict(verdict="fail"),
                  gate=dict(no_fall_rate=1.0, forward_ratio=0.9, turn_ratio=1.0, contact_gate=dict(slip_ratio=0.05)),
                  robustness=dict(nominal_forward_ratio=0.9, conditions={"push": dict(no_fall_rate=1.0, forward_ratio=0.9)}))
         p = tmp_path / f"v_{force}_{len(falls)}.json"

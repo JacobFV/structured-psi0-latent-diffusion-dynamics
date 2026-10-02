@@ -481,7 +481,8 @@ def install(run: str | Path, validations: list, body: str, version: str, *, labe
         if not vp.exists():
             raise ValueError(f"install: validation {vp} not found")
         rec = json.loads(vp.read_text())
-        if rec.get("tracker_sha") != sha:
+        vs = str(rec.get("tracker_sha") or "")          # tracker_validation records file_digest's 16-hex prefix
+        if len(vs) < 16 or not sha.startswith(vs):
             raise ValueError(f"install: {vp} validates sha {str(rec.get('tracker_sha'))[:12]}, not this actor {sha[:12]}")
         if task is not None:
             from rrp.harness.eval.gates import tracker_verdict
