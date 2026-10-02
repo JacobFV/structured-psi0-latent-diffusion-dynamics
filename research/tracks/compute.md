@@ -29,3 +29,21 @@ compute: {precision: bf16, tf32: true, compile: reduce-overhead, cuda_graphs: tr
 ## measurements (peer, tiny real batches)
 See below; produced by `rrp train bench-compute` (median wall time of one optimizer step, cuda-synchronised, first 20 steps excluded as
 warm-up / compile; settings interleaved per trainer; the peer GPU is SHARED with other tracks, so absolute numbers are noisy).
+
+**State of the measurement: blocked_external (2026-10-02 16:30).** Both peer GPU slots were held for hours by other tracks (pointer
+`ptrcp_nosem3_bc`, relations `rfgeo2_F0`) and a humanoid GPU node was queued (`t1_steps_p2fix`), so the humanoid-first handoff rule forbids
+a third lease; the host GPU is paused. No GPU speedup number exists yet. Verified without a GPU (peer CPU lease, `CUDA_VISIBLE_DEVICES=`,
+4 steps each, bench plumbing only, NOT a speed result): `arm_rep`, `arm_flow`, `arm_bc` (latent rep / latent flow / behavior BC) and
+`pointer_rep` run to completion under `default` and `bf16`, and the stamp reports the effective settings (CPU: bf16 autocast is slower,
+as expected). `legged_*` cases cannot run: the peer's legged packs (`datasets/legged_latent_v1/v2`) predate the current format
+(`goal_columns` IndexError on `ctx`), and fresh humanoid shards are on the host. `psi0` needs the VLM / cached features and `joint_adapt`
+a trained adapt pack, so neither was benchmarked; `target_adapt` does not exist; tracker PPO is deliberately not wired.
+
+Resume (one GPU lease, <= 20 min, only when a slot is free and no humanoid GPU node is queued; declare >= 1.35x measured peak):
+```sh
+export RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/accel-prec RRP_PEER_PYTHONPATH=/home/brandonin/work/ext/cw-site
+ops/bin/peer_sync.sh push
+ops/bin/peer_run.sh --gpu --gpu-mem 12G --cpu 4 --mem 24G --label prec_bench --max-seconds 1200 -- \
+    PY -m rrp.cli train bench-compute --out /dev/shm/rrp-brandonin/bench_prec.json     # default,fp32,bf16,bf16+compile x 6 trainers
+```
+Then fill the table here (median ms / step per trainer and setting, peak GB, compile status) and decide the Enable phase.
