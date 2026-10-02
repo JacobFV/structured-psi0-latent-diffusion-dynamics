@@ -35,6 +35,7 @@ from rrp.policies.nets.batch import Batch
 from rrp.policies.nets.flow import FlowPolicy, PolicyConfig, interpolate_target, masked_mse
 from rrp.policies.nets.latent_batch import augment
 from rrp.harness.eval.latent_eval import readout_loss, readout_metrics
+from rrp.harness.train.lockstep import drain, run_members
 from rrp.policies.nets.probes import ReadoutProbe
 from rrp.policies.nets.semantic_latent import (LatentConfig, TargetEncoder, assembly_tokens,
                                                packet_semantic_weight as _packet_semantic_weight)
@@ -64,6 +65,13 @@ def _dev():
 _PF_DATA = None
 
 
+def _pf_init(data):
+    # forked-worker initializer: each executor binds ITS OWN data (several members of a seed group each run a prefetch pool;
+    # a module global set at generator start would be whichever member started last when a worker is forked on demand)
+    global _PF_DATA
+    _PF_DATA = data
+
+
 def _pf_fetch(sel, tgt):
     # forked worker: torch intra-op thread pools inherited from the parent can deadlock after fork (seen on the host
     # once fetch() gained torch ops: goal_effect_from_batch); run single-threaded in the worker.
@@ -77,9 +85,7 @@ def _prefetch(data, B, rng, max_j, dev, depth: int = 6, workers: int = 3, idx_po
     import collections
     import multiprocessing as mp
     from concurrent.futures import ProcessPoolExecutor
-    global _PF_DATA
-    _PF_DATA = data
-    ex = ProcessPoolExecutor(max_workers=workers, mp_context=mp.get_context("fork"))
+    ex = ProcessPoolExecutor(max_workers=workers, mp_context=mp.get_context("fork"), initializer=_pf_init, initargs=(data,))
     pend = collections.deque()
     mv = lambda x: x.to(dev, non_blocking=True)
     try:
@@ -165,9 +171,20 @@ def _explicit_zpa(cfg_json: dict, out_dir: Path, last_name: str, where: str) -> 
 
 
 def train_representation(cfg_json: dict, out_dir: Path) -> dict:
+    return drain(_representation_steps(cfg_json, out_dir, CheckpointSignal()))
+
+
+def train_representation_group(cfgs: list[dict], out_dirs: list[Path], mode: str = "lockstep"):
+    """`compute.seeds_per_job`: n Stage-A runs in one process (harness/train/lockstep.py). Returns (outcomes, info)."""
+    sig = CheckpointSignal()
+    return run_members([_representation_steps(c, d, sig) for c, d in zip(cfgs, out_dirs)], mode=mode)
+
+
+def _representation_steps(cfg_json: dict, out_dir: Path, sig):
+    """The Stage-A loop as a generator: yields once after setup and after every optimizer step, returns the result dict
+    (so `drain` is the single-run trainer and `run_members` interleaves several of them)."""
     cfg_json = _explicit_zpa(cfg_json, out_dir, "rep_last.pt", f"train_representation({out_dir})")
     dev = _dev()
-    sig = CheckpointSignal()
     cfg = LatentConfig(**cfg_json["latent"])
     seed = cfg_json.get("seed", 0)
     torch.manual_seed(seed)
@@ -200,6 +217,7 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
     # relgen shards (docs/relations.md 5.5): params.curriculum shares of the batch are shard rows, forwarded through E's
     # context with the readout/estimate losses on and no action target; the rest is the pack batch
     rel = relation_batches(cfg_json, out_dir, E.factor_specs(), batch_size=B, family=E.policy_cfg.family, start_step=step)
+    yield
     while step < steps and not sig.requested:
         shard, Bm = None, B
         if rel is not None:
@@ -226,6 +244,7 @@ def train_representation(cfg_json: dict, out_dir: Path) -> dict:
         if step % 2000 == 0 or sig.requested:
             save_checkpoint(last, model=_bundle(E, R, P), optimizer=opt, step=step, versions=dict(latent=cfg.version()),
                             config=cfg_json, extra=dict(sched=sched.state_dict(), **_rng_state(rng)))
+        yield
     res = dict(steps=step, wall_s=time.time() - t0, interrupted=sig.requested, latent_space_version=cfg.version(),
                realizer_compat_version=f"rz-{cfg.version()}-{REALIZER_RECURRENT_STATE}",
                eval=evaluate_representation(E, R, P, data, cfg, dev) if not sig.requested else None)
@@ -298,10 +317,20 @@ def evaluate_representation(E, R, P, data, cfg, dev, n_batches=30, seed=99) -> d
 
 def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     """Stage B: system-i flow generating z (knots x assemblies) toward the frozen encoder mean."""
+    return drain(_flow_steps(cfg_json, out_dir, CheckpointSignal()))
+
+
+def train_latent_flow_group(cfgs: list[dict], out_dirs: list[Path], mode: str = "lockstep"):
+    """`compute.seeds_per_job`: n Stage-B runs in one process (harness/train/lockstep.py). Returns (outcomes, info)."""
+    sig = CheckpointSignal()
+    return run_members([_flow_steps(c, d, sig) for c, d in zip(cfgs, out_dirs)], mode=mode)
+
+
+def _flow_steps(cfg_json: dict, out_dir: Path, sig):
+    """The Stage-B loop as a generator (see `_representation_steps`)."""
     from rrp.policies.nets.latent_batch import assembly_batch
     cfg_json = _explicit_zpa(cfg_json, out_dir, "policy_last.pt", f"train_latent_flow({out_dir})")
     dev = _dev()
-    sig = CheckpointSignal()
     seed = cfg_json.get("seed", 0)
     torch.manual_seed(seed)
     rng = random.Random(seed)
@@ -363,6 +392,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
     # relgen shards (docs/relations.md 5.5): params.curriculum shares of the pack part of the batch are shard rows, forwarded
     # through the flow's context with `estimates_loss` on and no flow (action) target, so their action loss is zero
     rel = relation_batches(cfg_json, out_dir, pcfg.specs(), batch_size=Bp, family=pcfg.family, start_step=step) if Bp else None
+    yield
     while step < steps and not sig.requested:
         shard, Bm = None, Bp
         if rel is not None:
@@ -412,6 +442,7 @@ def train_latent_flow(cfg_json: dict, out_dir: Path) -> dict:
             log.flush()
         if step % cfg_json.get("snapshot_every", 1000) == 0 or sig.requested:
             snapshot()
+        yield
     res = dict(steps=step, wall_s=time.time() - t0, interrupted=sig.requested,
                latent_space_version=rep_res["latent_space_version"],
                realizer_compat_version=rep_res["realizer_compat_version"],
