@@ -249,3 +249,21 @@ def test_default_resolution_actors_take_no_public_sensor_so_the_static_spec_need
     default = {k: e for k, e in LT.scan_trackers().items() if k[1] in slots}
     assert default, "no committed tracker metas"
     assert {k: e.extra_obs for k, e in default.items() if e.extra_obs != "none"} == {}
+
+
+@pytest.mark.menagerie
+@pytest.mark.parametrize("ring", [False, True])
+def test_validation_bench_feeds_the_public_sensors_of_a_scan_actor(tmp_path, ring):
+    """D-147 (T1 incident): the D-112 validation bench (bare model, no session) must give a scan / ring input actor its public sensors
+    (one wiring with the session, `wire_public_sensors`); before, `validate_tracker` crashed on the obs width (47 vs 124)."""
+    from rrp.bodies.legged import legged_body, standalone_model
+    from rrp.harness.eval import tracker_validation as TV
+    model, _, meta = standalone_model(legged_body(BODY), contact="v2")
+    b = LC.LeggedBinding(model, meta)
+    d = _put_actor(tmp_path, b, scan=True, ring=ring)
+    tr = LT.LearnedTracker(d / "actor.pt", b, BODY)
+    terrain, rr = LT.wire_public_sensors(tr, b)
+    assert terrain is not None and (rr is not None) == ring
+    row = TV.run_episode(model, b, tr, dict(T=0.2, cmd=[0.2, 0.0, 0.0]), seed=3)
+    assert row is not None
+    assert terrain.values is not None and terrain.values.shape == (LC.SCAN_DIM,)

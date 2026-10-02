@@ -40,7 +40,7 @@ import numpy as np
 
 from rrp.core.provenance import file_digest
 from rrp.envs.mujoco.legged_core import LeggedBinding, quat_rotate_inv, yaw_of
-from rrp.envs.mujoco.legged_tracker import CPGTracker, LearnedTracker, TRACKER_DIR
+from rrp.envs.mujoco.legged_tracker import CPGTracker, LearnedTracker, TRACKER_DIR, wire_public_sensors
 from rrp.bodies.legged import legged_body, standalone_model
 from rrp.core.action import NativeCommand
 from rrp.core.provenance import Source
@@ -81,6 +81,8 @@ class _BenchEnv:
         b.set_default(self.d, yaw=rng.uniform(-math.pi, math.pi), noise=0.03, rng=rng)
         mujoco.mj_forward(model, self.d)
         tracker.reset(phase=0.0)
+        for x in getattr(tracker, "public_sensors", ()):     # a scan / ring input actor: its public sensors (flat floor here)
+            x.reset(self.d, seed)
         if act is not None:
             act.reset(0, self.d.ctrl[b.pol_act].copy())
         self.sub = max(1, int(round(_DT / model.opt.timestep)))
@@ -292,6 +294,7 @@ def validate(body: str, kind: str, actor: str | None, seeds: int, contact: str |
     if kind == "learned":
         path = Path(actor) if actor else tracker_path(body, contact)
         tracker = LearnedTracker(path, b, body)
+        wire_public_sensors(tracker, b)
         tsha = file_digest(path)
     else:
         tracker = CPGTracker(b, meta)
@@ -381,6 +384,8 @@ def robust_check(body: str, tracker_path_: str | None, kind: str, seeds: int, co
         b = LeggedBinding(model, meta)
         tracker = LearnedTracker(Path(tracker_path_) if tracker_path_ else tracker_path(body, contact), b, body) \
             if kind == "learned" else CPGTracker(b, meta)
+        if kind == "learned":
+            wire_public_sensors(tracker, b)
         tr = training_range(tracker, contact)
         rng_info = tr
         tr["push_mps"] = 0.2 if b.biped else 0.4

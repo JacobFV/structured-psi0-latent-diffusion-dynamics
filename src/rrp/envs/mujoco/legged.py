@@ -26,7 +26,7 @@ from rrp.core.errors import ControllerRejection, StaleActionError
 from rrp.core.observation import NodeState, PolicyObservation, SensorChannel, PredicateEstimate
 from rrp.core.robot import CommandGroup, ControllerContract
 from rrp.envs.mujoco.joint_targets import ChunkExecutor, JointTargetController
-from rrp.envs.mujoco.legged_core import LeggedBinding, RangeRing, TerrainScan, quat_rotate_inv, yaw_of
+from rrp.envs.mujoco.legged_core import LeggedBinding, quat_rotate_inv, yaw_of
 from rrp.envs.mujoco.legged_tracker import TrackerMismatch, load_tracker
 from rrp.bodies.compiler import compile_robot_spec
 from rrp.bodies.generators import Module
@@ -257,31 +257,8 @@ class LeggedSession(Session):
         tracker tick, just before the tracker acts (any `_tracker_tick`, including perturb.install_legged's, goes through
         tracker.act; under "legs" / "wholebody" the body tracker acts when a teacher drives it); an actor that takes them gets their
         values as its extra block, scan first. The actor's declared inputs decide, whatever the control mode."""
-        from rrp.envs.mujoco.legged_tracker import PUBLIC_EXTRA
-        kind = getattr(self.tracker, "extra_kind", "none")
-        needs = PUBLIC_EXTRA.get(kind, ())
-        sensors = {}
-        for name, req, cls in (("terrain_scan", self._terrain_req, TerrainScan), ("range_ring", self._ring_req, RangeRing)):
-            on = req
-            if on is None:
-                on = name in needs
-            if name in needs and not on:
-                raise TrackerMismatch(f"this tracker takes the {name} as input; {name}=False disables the sensor")
-            sensors[name] = cls(self.binding) if on else None
-        self.terrain, self.ring = sensors["terrain_scan"], sensors["range_ring"]
-        live = [x for x in (self.terrain, self.ring) if x is not None]
-        if not live:
-            return
-        tr, act = self.tracker, self.tracker.act
-
-        def act_with_sensors(data, cmd):
-            for x in live:
-                x.tick(data)
-            return act(data, cmd)
-        tr.act = act_with_sensors
-        feed = [sensors[n] for n in needs]
-        if feed:
-            tr.extra_fn = lambda data: np.concatenate([x.values for x in feed]).astype(np.float32)
+        from rrp.envs.mujoco.legged_tracker import wire_public_sensors
+        self.terrain, self.ring = wire_public_sensors(self.tracker, self.binding, self._terrain_req, self._ring_req)
 
     def _capabilities(self) -> list[str]:
         return super()._capabilities() + (["terrain_scan"] if self.terrain is not None else []) \

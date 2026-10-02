@@ -32,6 +32,36 @@ class TrackerMismatch(ValueError):
 PUBLIC_EXTRA = {"none": (), "terrain_scan": ("terrain_scan",), "terrain_scan+range_ring": ("terrain_scan", "range_ring")}
 
 
+
+def wire_public_sensors(tracker, binding, terrain: bool | None = None, ring: bool | None = None):
+    """D-146 / HS1: build the public terrain-scan and range-ring sensors a tracker's actor takes and wire them to it (sampled once per
+    tracker tick just before it acts; the actor gets their values as its extra block, scan first). `terrain` / `ring`: None = exactly
+    what the actor declares, True = also build it (a declared channel), False = refused if the actor needs it. Returns
+    (terrain_sensor | None, ring_sensor | None) and keeps the live ones on `tracker.public_sensors`; the caller resets them per episode
+    (`sensor.reset(data, seed)`). One wiring for the session and the D-112 validation bench."""
+    from rrp.envs.mujoco.legged_core import RangeRing, TerrainScan
+    needs = PUBLIC_EXTRA.get(getattr(tracker, "extra_kind", "none"), ())
+    sensors = {}
+    for name, req, cls in (("terrain_scan", terrain, TerrainScan), ("range_ring", ring, RangeRing)):
+        on = name in needs if req is None else req
+        if name in needs and not on:
+            raise TrackerMismatch(f"this tracker takes the {name} as input; {name}=False disables the sensor")
+        sensors[name] = cls(binding) if on else None
+    live = [x for x in sensors.values() if x is not None]
+    tracker.public_sensors = live
+    if live:
+        act = tracker.act
+
+        def act_with_sensors(data, cmd):
+            for x in live:
+                x.tick(data)
+            return act(data, cmd)
+        tracker.act = act_with_sensors
+        feed = [sensors[n] for n in needs]
+        if feed:
+            tracker.extra_fn = lambda data: np.concatenate([x.values for x in feed]).astype(np.float32)
+    return sensors["terrain_scan"], sensors["range_ring"]
+
 def extra_kind(meta: dict) -> str:
     """What the actor's extra input block is: none | terrain_scan (the PUBLIC D-146 scan, layout-versioned) | terrain_scan+range_ring
     (the scan, then the PUBLIC HS1 range ring: the gap actors) | privileged (any other extra_obs_dim: a task-specific privileged
