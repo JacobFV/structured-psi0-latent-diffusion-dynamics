@@ -6,4 +6,11 @@
 # under artifacts/runs/ (INIT_PINS). The installed actor is copied to the peer store after the gate.
 extends: trackers_gap_ring.yaml
 name: humanoid_trackers_gap_ring_host
+schema: dag-1
+track: humanoid
+policy: tracker
+env: warp/legged
+task: h_gap_sidestep
+bodies: humanoid_pool_v1
+factors: []
 defaults: {placement: host}
