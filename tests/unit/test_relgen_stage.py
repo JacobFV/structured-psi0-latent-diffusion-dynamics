@@ -136,6 +136,17 @@ def test_relations_data_writes_shard_and_manifest(tmp_path):
         assert r["inputs"]["tokens"]["ctx"] == ["gripper", "cube"]
 
 
+def test_candidate_stream_transforms_without_candidates_leave_the_row_unchanged(tmp_path):
+    """T9 (task.next_contact): `reveal` / `surprise` need `inputs.candidates`; the stage's snapshot rows carry none, so they
+    must be a no-op (the old behaviour wrote a dict-valued `reveal` label that `write_shard` crashed on)."""
+    register_factor(FactorDef("test.t9.revealed", "1", field="pos3d", op="sqdiff+diff", form="aug",
+                              label="test.pos3d", gen=("reveal", "surprise")))
+    result = relations_data(["test.t9.revealed"], _episodes(1), tmp_path / "relgen", seed=3)
+    rows = load_shard_rows("test.t9.revealed", "1", tmp_path / "relgen")
+    assert len(rows) == 1 and set(rows[0]["labels"]) == {"test.pos3d"}
+    assert result["factors"]["test.t9.revealed"]["n_episodes"] == 1
+
+
 def test_write_shard_refuses_a_row_without_a_collate_input_and_load_refuses_an_old_shard(tmp_path):
     ep = _episodes(1)[0]
     row = label_episode(ep, [spec("test.r10.pos3d")], rng=np.random.default_rng(0))["test.r10.pos3d"][0]

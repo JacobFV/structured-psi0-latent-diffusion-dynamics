@@ -88,6 +88,8 @@ def reveal(sample: Sample, rng: np.random.Generator, params: dict) -> list[Sampl
     del rng
     inputs = sample.get("inputs", {})
     candidates = list(inputs.get("candidates", ()))
+    if not candidates:                                  # nothing to reveal (a plain snapshot row): no label, not a crash
+        return [_append_provenance(sample, {"transform": "reveal", "version": TRANSFORMS_VERSION, "skipped": "no candidates"})]
     prior = inputs.get("prior")
     evidence = sorted(inputs.get("evidence", ()), key=lambda e: int(e.get("t", 0)))
     schedule = list(params.get("schedule") or sorted({int(e.get("t", 0)) for e in evidence}))
@@ -118,6 +120,8 @@ def surprise(sample: Sample, rng: np.random.Generator, params: dict) -> list[Sam
     survivors. Pure and seed-deterministic given `rng`'s state."""
     inputs = sample.get("inputs", {})
     candidates = list(inputs.get("candidates", ()))
+    if not candidates:                                  # see `reveal`
+        return [_append_provenance(sample, {"transform": "surprise", "version": TRANSFORMS_VERSION, "skipped": "no candidates"})]
     prior = inputs.get("prior")
     evidence = sorted(list(inputs.get("evidence", ())), key=lambda e: int(e.get("t", 0)))
     schedule = list(params.get("schedule") or sorted({int(e.get("t", 0)) for e in evidence}))
