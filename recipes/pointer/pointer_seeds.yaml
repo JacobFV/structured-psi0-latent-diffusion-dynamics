@@ -35,3 +35,6 @@ nodes:
   eval_eng: {scope: point, only: {variant: [nosem]}}
   # D-147 campaign: measured peak of the v1 probes job was 5.09 GiB (peer ledger, pointer_probes_E); declared memory >= 1.35x peak.
   probes: {resources: {mem: 8G}}
+# D-147 campaign: the peer GPU is shared (<= 2 leases across all tracks, pointer has the lowest GPU priority after humanoid / armdiv / psi0),
+# so a node may wait many hours for admission; the template's 3 h bound would fail it. Waiting is not an attempt.
+defaults: {admission_timeout_s: 259200}
