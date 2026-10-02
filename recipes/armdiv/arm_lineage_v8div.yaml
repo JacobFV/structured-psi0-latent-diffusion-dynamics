@@ -71,7 +71,7 @@ nodes:
   newarms:
     stage: eval_r2
     tag: newarms
-    resources: {cpu: 3, mem: '6G', max_seconds: 10800}
+    resources: {cpu: 3, mem: '12G', max_seconds: 10800}      # 12G: the phase-A kinfeat BC ev_newarms stalled on memory.high at 6G (D-147 T6 incident; D-117 declaration)
     config:
       inputs: {flow: '@Fgdag2h:policy.pt', representation: '@rzgendag3:representation.pt'}
       options: {tag: newarms, robots: [pa2s0_pg2, pa2s3_tf3, ur10e_pg2, vx300s_tf3], seed_starts: [3000000], episodes: 30, workers: 1, grasp_contact: v2.1}
