@@ -633,3 +633,22 @@ Red/green test reproduces the ±1 torso-command shift.
   `_orig_mod.`; the first call that raises falls back to eager and the stamp (`compute.json` next to each trainer's result) records
   `compiled[name].status` and the reason. `reduce-overhead` is the CUDA-graph mode and needs `cuda_graphs: true`.
 - Measured effect: `research/tracks/compute.md`; the tool is `rrp train bench-compute` (peer, tiny real batches).
+
+
+### 14.8 batched evaluation backend (unit warpeval; `research/tracks/compute.md`)
+
+- `rollout(..., eval_backend="cpu"|"warp", device=None)` and `evaluate(...)`/`rrp eval ... --eval-backend` (default `cpu`: byte-identical rows, no
+  new keys). With `warp`, the episodes stay CPU `Session`s (tasks, judges, hooks, sensing, controllers, trackers, policies are the CPU code); only
+  the integration of a control step is batched: `Session.step` is a generator (`_step_gen`) yielding an `Integrate(n, ctrl schedule, energy
+  actuators)` request where it used to loop `mj_step`; `run_cpu` drives it with CPU `mj_step` (the default path), `BatchStepper`
+  (`envs/warp/batch_sim.py`) collects the requests of all running episodes, uploads state, advances substeps 0..n-2 on MuJoCo Warp (one CUDA graph
+  launch per substep), downloads, and runs the LAST substep on CPU `mj_step` so xpos / contacts / sensors / actuator forces keep CPU semantics.
+- Episodes are grouped by model (identical except per-world batchable fields such as `body_pos / body_quat / qpos0`); a different distractor count
+  is another group. Unsupported combinations run on CPU and say why in every row of the group (`provenance.eval_backend = {requested, effective,
+  fallback}`): perturbation hooks / instance-replaced `apply_substep` or `_tracker_tick`, actuator-model modes, dual sessions, envs that are not
+  MuJoCo Sessions, a hook or policy declaring `batch_unsafe`, applied external forces, models `mujoco_warp` cannot build.
+- Legged latent / BC policies run at batch > 1 with one shallow controller copy and one torch generator per episode (seeded from the controller's
+  seed and the episode seed); at batch = 1 the controller is used as before (its generator continues across episodes).
+- Cached results of one backend are never adopted by a run on the other (`humanoid-transfer` keys on `eval_backend`).
+- Parity (`python -m rrp.envs.warp.parity`): single-step, closed-loop outcome gate and divergence statistics under the tolerances pre-registered in
+  `research/tracks/compute.md`; Warp is fp32, so trajectories are not bit-identical to the fp64 CPU.
