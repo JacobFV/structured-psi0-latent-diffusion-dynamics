@@ -1647,3 +1647,12 @@ falls everywhere), gap h1 (eval 20/20; stand-trial falls, force 4.43, margin -0.
 6. **Monitoring**: a watcher unit (shell loop, heartbeat file) records host safety and every humanoid node event to an event log; the dispatcher
    restarts it when the heartbeat is older than 10 min; the lead model re-checks at least every 2 h. Host evals declare >= 1.35 x measured peak
    (steps eval: 5.39 GB peak at 9G; gap eval 3.77 GB -> 6G).
+
+### D-147 addendum 2026-10-02 (owner, via lead): host raised to 2 concurrent GPU jobs
+- Owner decision: the host may run 2 GPU jobs at once. Host broker (`ops/resources.local.json` `host.enforced`): gpu_slots 1 -> 2, memory_bytes
+  32 -> 48 GiB (total declared, INCLUDING GPU memory); cpu_cores 8 and the 24 GiB free-RAM watchdog reserve unchanged; watchdog restarted (D-133)
+  so its live limit follows the new cap (backup `~/work/rrp-data/campaign/host-resources.local.json.bak-20261002-gpu1`). Back-off rule: one host GPU
+  job again if the GPU passes ~85 C, memory pressure rises (sustained PSI) or free RAM nears the reserve; first 30 min with 2 jobs watched by the lead.
+- The humanoid dispatcher places on the host while it holds fewer GPU leases than its slots (humanoid first, handoff rule).
+- T2 gait `*_ub` complete: `g1:ub_v1` (sha 3b325887d9a0d58d; only joint margin 0.0191 fails) and `h1:ub_v1` (sha 296be6e14ba53e1f; only margin 0.0160)
+  installed under the D-147 exception (gait trials, lab gate pass, no falls in any trial), like `t1:ub_v1` (margin 0.0183).
