@@ -1,0 +1,50 @@
+# T1 ROUND 2 (D-147 addendum 2026-10-02, pre-registered): one bounded engineering round per body and terrain task. Recipes
+# `{body}_{task}_r2` (rrp.harness.train.tracker_recipes: reward _R6 + per-tick force cap 2.5 BW + target band 0.05 + land_vel -2.0 + the P2
+# curriculum fix, warm start = the body's best T1 actor, R2_INIT_PINS). Same gate, same exception rule: `validate` reports the D-112 gate
+# (gate: report, so the task eval always runs) and the install verdict is `rrp.harness.eval.gates.tracker_verdict(validation, task)` on the
+# task's gating trials (TASK_GATE_TRIALS); the eval uses the course-derived task budget (scene `budget_s`). A body / task that still fails is
+# recorded blocked_external and its tasks are excluded from T4. t1 steps joins after its P2-fix retrain (warm start chosen by the same rule).
+# Declarations (D-117, >= 1.35 x measured peak): train 2.5 GB + 3.9 GB GPU -> 5G + 8G; validate 1.82 GB -> 3G; steps eval 5.39 GB -> 8G;
+# gap eval 3.77 GB -> 6G.
+extends: ../templates/humanoid_task.yaml
+name: humanoid_trackers_terrain_r2
+schema: dag-1
+track: humanoid
+policy: tracker
+env: mujoco/legged
+task: h_steps
+bodies: humanoid_pool_v1
+factors: []
+lineage: 'trk-r2-{pt}'
+global_lineage: 'trk-r2'
+label_prefix: 'hr2_{pt}'
+global_label_prefix: 'hr2'
+matrix:
+  pt: [steps_g1, steps_h1, gap_t1, gap_h1]
+axis_vars:
+  pt:
+    steps_g1: {body: g1, recipe: g1_steps_r2, task: steps}
+    steps_h1: {body: h1, recipe: h1_steps_r2, task: steps}
+    gap_t1: {body: t1, recipe: t1_gap_r2, task: gap}
+    gap_h1: {body: h1, recipe: h1_gap_r2, task: gap}
+vars: {task: null, body: null, recipe: null}
+lists:
+  installs: {steps: steps_scan_v1, gap: gap_ring_v1}
+defaults: {retries: 3, resources: {cpu: 4, mem: 5G, gpu: true, gpu_mem: 8G, max_seconds: 21600}}
+nodes:
+  validate:
+    stage: validate_tracker
+    resources: {cpu: 1, mem: 3G, gpu: false, max_seconds: 7200}
+    retries: 0
+    config:
+      inputs: {actor: '@train:actor.pt'}
+      options: {body: '{body}', kind: learned, seeds: 10, robust: true, gate: report}
+  eval:
+    deps: [validate]
+    resources: {cpu: 2, mem: 8G, gpu: false, max_seconds: 14400}
+    per:
+      pt:
+        steps_g1: {options: {h_fracs: [0.10, 0.15, 0.20, 0.25, 0.30]}}
+        steps_h1: {options: {h_fracs: [0.10, 0.15, 0.20, 0.25, 0.30]}}
+    config:
+      options: {task: '{task}', body: '{body}', seed0: 7200, n: 20}

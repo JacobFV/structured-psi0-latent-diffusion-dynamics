@@ -10,4 +10,4 @@ env: warp/legged
 task: locomotion
 bodies: humanoid_pool_v1
 factors: []
-defaults: {placement: host, resources: {mem: 5G, gpu_mem: 8G}}
+defaults: {placement: host}

@@ -19,7 +19,7 @@ import numpy as np
 from rrp.core.provenance import file_digest
 from rrp.core.action import NativeCommand
 from rrp.core.provenance import source_label
-from rrp.envs.mujoco.humanoid_scenes import waist_joint
+from rrp.envs.mujoco.humanoid_scenes import GAP_SPEED_FRAC, GAP_TURN_RATE, STEPS_SPEED_FRAC, waist_joint
 from rrp.envs.mujoco.legged import TRACKER_HZ
 from rrp.policies.base import Act, PolicyInfo, Requirements
 
@@ -31,7 +31,7 @@ class StepsHeadingTeacher:
     def __init__(self, session):
         self.s = session
         L = session.robots[0].meta["legged"]
-        self.vx = 0.6 * L["command_ranges"]["vx"][1]
+        self.vx = STEPS_SPEED_FRAC * L["command_ranges"]["vx"][1]
         self.L = float(session.scenario.meta["L"])
         self.done = False
 
@@ -43,7 +43,7 @@ class StepsHeadingTeacher:
         x, y, yaw = self.s.base_pose_truth()            # PRIVILEGED
         tgt = 0.5 * math.atan(-y / self.L)
         head = math.atan2(math.sin(tgt - yaw), math.cos(tgt - yaw))
-        return np.array([self.vx, 0.0, float(np.clip(1.5 * head, -0.5, 0.5))])
+        return np.array([self.vx, 0.0, float(np.clip(1.5 * head, -GAP_TURN_RATE, GAP_TURN_RATE))])
 
     def act(self) -> NativeCommand:
         return NativeCommand(controller_version=self.s.controller_version(), groups={"base_velocity": self.command_values().tolist()},
@@ -69,9 +69,9 @@ class GapTeacher:
             self.phase2 = 1.0
         if self.phase2:
             e = wrap(self.m["psi_f"] - yaw)
-            return np.array([0.0, 0.0, 0.0 if abs(e) < 0.1 else float(np.clip(1.5 * e, -0.5, 0.5))])
+            return np.array([0.0, 0.0, 0.0 if abs(e) < 0.1 else float(np.clip(1.5 * e, -GAP_TURN_RATE, GAP_TURN_RATE))])
         vy = float(np.clip(1.5 * math.cos(yaw) * (self.m["y_c"] - y), self.r["vy"][0], self.r["vy"][1]))
-        return np.array([0.5 * self.r["vx"][1], vy, float(np.clip(1.5 * wrap(-yaw), -0.5, 0.5))])
+        return np.array([GAP_SPEED_FRAC * self.r["vx"][1], vy, float(np.clip(1.5 * wrap(-yaw), -GAP_TURN_RATE, GAP_TURN_RATE))])
 
     def act(self) -> NativeCommand:
         return NativeCommand(controller_version=self.s.controller_version(), groups={"base_velocity": self.command_values().tolist()},

@@ -67,6 +67,9 @@ def humanoid_judge(declared: tuple[str, ...]) -> Judge:
             reason = "fell"
         if reason in ENDS_AT_ONCE:
             return Judgement(True, "fell" if reason == "fell" else "failure", reason, pub, False)
+        budget = getattr(getattr(env, "scenario", None), "meta", {}).get("budget_s")   # D-147: course-derived (terrain tasks)
+        if budget is not None:
+            max_seconds = min(max_seconds, float(budget))
         if not pub and t < max_seconds:
             return Judgement(False)
         if env.privileged_success():

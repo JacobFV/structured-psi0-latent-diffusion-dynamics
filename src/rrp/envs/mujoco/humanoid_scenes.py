@@ -38,6 +38,25 @@ STEPS_PLATFORM = 1.2         # x L
 BURY = 0.5                   # x L, step boxes extend this far below the floor
 
 
+# D-147 addendum 2026-10-02 (item 2): the task budget comes from the course and the teacher's commanded speed, x 1.5, and is
+# written into the scenario meta (`budget_s`); humanoid_judge times out at min(TaskSpec max_seconds, budget_s). The commanded speeds
+# are the command layers' own (policies/teachers/humanoid.py StepsHeadingTeacher / GapTeacher read these constants).
+BUDGET_MARGIN = 1.5
+STEPS_SPEED_FRAC = 0.6       # h_steps teacher: vx = 0.6 vx_max
+GAP_SPEED_FRAC = 0.5         # h_gap teacher phase 1: vx = 0.5 vx_max
+GAP_TURN_RATE = 0.5          # rad/s, h_gap teacher phase 2 turn-rate cap (also the heading-correction cap of both teachers)
+GAP_HOLD_S = 0.5             # s of final-heading hold counted in the budget (as pre-registered; the graph's persistence is 0.2 s)
+
+
+def course_budget_s(task: str, L: float, vx_max: float, psi_f: float = 0.0) -> float:
+    """Episode budget (s) of a terrain task from its course geometry: 1.5 x (course length / commanded speed [+ turn + hold])."""
+    if task == "h_steps":
+        return BUDGET_MARGIN * (steps_layout(L, 0.0)[1] + 0.3 * L) / (STEPS_SPEED_FRAC * vx_max)
+    if task == "h_gap_sidestep":
+        return BUDGET_MARGIN * ((GAP_X + 0.5) * L / (GAP_SPEED_FRAC * vx_max) + abs(psi_f) / GAP_TURN_RATE + GAP_HOLD_S)
+    raise KeyError(f"no course budget for task {task!r}")
+
+
 def steps_layout(L: float, h: float, n: int = STEPS_N):
     """[(name, center_x, half_x, top_z)] of the up-steps, the platform and the down-steps (boxes resting on z = 0)."""
     t, x = STEPS_TREAD * L, STEPS_X0 * L
@@ -163,6 +182,7 @@ def build_h_steps(robot, seed: int, h_frac: float | None = None, contact: str | 
     objects = [ObjectDecl("goal", "goal marker beyond the staircase", "feature", radius=0.12, task_entity="goal")]
     return Scenario("h_steps", load_task("h_steps"), scene, model, [mr], objects, seed,
                     meta=dict(body_key=body_key, contact_model=meta["contact_model"], L=L, h_frac=hf, x_end=x_end, goal=goal,
+                              budget_s=course_budget_s("h_steps", L, meta["legged"]["command_ranges"]["vx"][1]),
                               staircase=dict(x0=STEPS_X0 * L, tread=STEPS_TREAD * L, n=STEPS_N, h=hf * L,
                                              platform=STEPS_PLATFORM * L)))
 
@@ -256,7 +276,8 @@ def build_h_gap(robot, seed: int, level: float = 1.0, contact: str | None = "v2"
     objects = [ObjectDecl("goal", "marker just beyond the gap", "feature", radius=0.12, task_entity="goal")]
     return Scenario("h_gap_sidestep", load_task("h_gap_sidestep"), scene, model, [mr], objects, seed,
                     meta=dict(body_key=body_key, contact_model=meta["contact_model"], L=L, level=level, gap_width=f * bw,
-                              gap_ratio=f, body_width=bw, y_c=y_c, psi_f=psi_f, wall_x=GAP_X * L, walls=walls))
+                              gap_ratio=f, body_width=bw, y_c=y_c, psi_f=psi_f, wall_x=GAP_X * L, walls=walls,
+                              budget_s=course_budget_s("h_gap_sidestep", L, meta["legged"]["command_ranges"]["vx"][1], psi_f)))
 
 
 # ------------------------------------------------------------------ U2: L0 h_walk, L3 h_turn, M1 h_reach, M2 h_squat_pick, M3 h_place

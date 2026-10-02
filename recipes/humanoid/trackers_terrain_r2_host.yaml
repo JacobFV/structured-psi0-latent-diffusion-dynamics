@@ -1,0 +1,11 @@
+# T1 round 2 (trackers_terrain_r2.yaml) placed on the HOST GPU (D-147 owner addendum 2026-10-01); same nodes / options / outputs, own ledger.
+extends: trackers_terrain_r2.yaml
+name: humanoid_trackers_terrain_r2_host
+schema: dag-1
+track: humanoid
+policy: tracker
+env: mujoco/legged
+task: h_steps
+bodies: humanoid_pool_v1
+factors: []
+defaults: {placement: host}

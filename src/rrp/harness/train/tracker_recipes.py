@@ -31,6 +31,14 @@ INIT_PINS: dict[str, str] = {
     "artifacts/runs/humanoid_p1b_h1_r6/actor_r6final.pt": "7304ee7d769764d2b9b301b3dd5b6feab9f2ab306d9e0ddb0447960edb0e37f3",
 }
 
+# D-147 T1 round 2 warm starts (addendum 2026-10-02 item 3: the body's best T1 actor per task by the pre-stated rule; sha256 of the
+# host-trained actors, copies on the peer store are sha-checked by the same pin)
+R2_INIT_PINS: dict[str, str] = {
+    "artifacts/runs/humanoid/trk-steps_scan-g1/train_tracker_s1/actor.pt": "9f3bbfcb8508b5fd632c6bf4ad6e9ae22bf3c0816b93c742f770ea4f7c316b40",
+    "artifacts/runs/humanoid/trk-steps_scan-h1/train_tracker_s1/actor.pt": "a103fefbf617d1a18c827604c680234f932f5bd7f58407a7941377d963ac11cc",
+    "artifacts/runs/humanoid/trk-gap_ring-h1/train_tracker_s1/actor.pt": "dd0a11d01cbd47310a194a3b8fde406b0236b550c1162dabca86ed37b10f2eae",
+}
+
 
 def check_init_pin(path, declared: str | None = None) -> str | None:
     """Refuse (SystemExit) a warm-start actor whose sha256 is not the pinned one. The pin is looked up by the path from its `artifacts/`
@@ -38,7 +46,7 @@ def check_init_pin(path, declared: str | None = None) -> str | None:
     file's sha256 when a pin or declaration applied, else None."""
     from rrp.core.provenance import file_digest
     parts = Path(path).parts
-    pinned = INIT_PINS.get("/".join(parts[parts.index("artifacts"):])) if "artifacts" in parts else None
+    pinned = {**INIT_PINS, **R2_INIT_PINS}.get("/".join(parts[parts.index("artifacts"):])) if "artifacts" in parts else None
     if not (pinned or declared):
         return None
     got = file_digest(Path(path), length=None)
@@ -367,8 +375,22 @@ for _b in ("op3", "apollo", "adam_lite"):
 
 # HS2 steps + upper body: the h_steps expert (public terrain scan in the actor) trained with random upper-body targets + payload on
 # the same ramp, from scratch (no `*_steps_gpu` actor has the upper input block). Smoke target of HS2; the real runs are HR's.
+# D-147 T1 round 2 (addendum 2026-10-02 item 3): reward _R6 (impact -4, limit_margin -8 agg max, stand / yaw terms) + per-tick foot-force cap
+# -2.0 at 2.5 BW + joint-target band 0.05 + touchdown velocity -2.0 (the t1 v2ft3 / v2ft4 terms, D-139) + the P2 curriculum fix (30 s episodes,
+# level-up 0.6); fine-tune settings; 2000 it x 4096 worlds x 24 steps. Warm start = the body's best T1 actor (R2_INIT_PINS) or, for a task whose
+# T1 actors never succeeded, the T1 recipe's own init. t1 steps waits for its P2-fix retrain (the rule then picks between t1 v1 and it).
+_FORCE = dict(force_cap=-2.0, force_cap_bw=2.5, target_margin=0.05, land_vel=-2.0)
+_P2 = dict(episode_s=30.0, level_up=0.6)
+_R2 = dict(reward_set=_R6, clock_gate=True, alpha_schedule="fixed:0.5", init_std=0.3, lr=5e-4, max_lr=1e-3, iters=2000, **_FORCE, **_P2)
+WARP_RECIPES["g1_steps_r2"] = _steps("g1", init_shared="artifacts/runs/humanoid/trk-steps_scan-g1/train_tracker_s1/actor.pt", **_R2)
+WARP_RECIPES["h1_steps_r2"] = _steps("h1", init_shared="artifacts/runs/humanoid/trk-steps_scan-h1/train_tracker_s1/actor.pt", **_R2)
+WARP_RECIPES["t1_gap_r2"] = dict(WARP_RECIPES["t1_gap_gpu_v1"], **_R2, init_shared="artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt")
+WARP_RECIPES["h1_gap_r2"] = dict(WARP_RECIPES["h1_gap_gpu_v1"], **_R2,
+                                 init_shared="artifacts/runs/humanoid/trk-gap_ring-h1/train_tracker_s1/actor.pt")
+# T2 steps *_ub get the same round-2 changes (addendum item 4); from scratch (no steps actor has the upper input block)
 for _b in ("t1", "g1", "h1"):
-    WARP_RECIPES[f"{_b}_steps_ub"] = _steps(_b, iters=2000, clock_gate=True, alpha_schedule="fixed:0.5", reward_set=_R6, **_UB)
+    WARP_RECIPES[f"{_b}_steps_ub"] = _steps(_b, iters=2000, clock_gate=True, alpha_schedule="fixed:0.5", reward_set=_R6, **_UB, **_FORCE,
+                                            **_P2)
 
 
 def _shared_ub():

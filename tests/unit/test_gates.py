@@ -149,3 +149,21 @@ def test_run_dag_fails_a_gated_node_without_retry(tmp_path):
     e = ex.ledger.node("b@sem.s1")
     assert e["state"] == "failed" and len(e["attempts"]) == 1 and "gate legged_dataset failed" in e["last_error"]
     assert ex.ledger.node("c@sem.s1")["state"] == "blocked"
+
+
+def test_task_gate_trials_and_the_d147_exception_verdict():
+    """D-147: only the task's gating trials enter no-fall / stand / turn; force / margin / CoT stay over all trials and are exempt only
+    within the caps (margin >= -0.06, force <= 4.2 BW, CoT <= 2.5) when the lab gate passes on the gating trials."""
+    from rrp.harness.eval.gates import tracker_verdict
+
+    def val(falls, force=2.0, margin=0.03):
+        summ = {k: dict(fall_rate=falls.get(k, 0.0), peak_force_bw=force, joint_limit_margin_min=margin, cot=0.5, slip_ratio=0.05)
+                for k in ("stand", "forward", "turn", "turn_fast", "arc", "push_fwd")}
+        return dict(family="humanoid", summary=summ, gate=dict(no_fall_rate=1.0 - sum(falls.values()) / 6, forward_ratio=0.9, turn_ratio=1.0,
+                                                               contact_gate=dict(slip_ratio=0.05)),
+                    robustness=dict(nominal_forward_ratio=0.9, conditions={"mu_lo": dict(no_fall_rate=1.0, forward_ratio=0.9)}))
+    assert tracker_verdict(val({"stand": 1.0}), "steps")["verdict"] == "pass"           # stand does not gate h_steps
+    assert tracker_verdict(val({"stand": 1.0}), "gap")["verdict"] == "fail"             # it gates h_gap (final halt)
+    assert tracker_verdict(val({}, force=4.1, margin=-0.05), "steps")["verdict"] == "exception"
+    assert tracker_verdict(val({}, force=4.3), "steps")["verdict"] == "fail"            # above the 4.2 BW cap
+    assert tracker_verdict(val({"arc": 1.0}, force=3.5), "steps")["verdict"] == "fail"  # falls are never exempt

@@ -102,3 +102,23 @@ def test_judge_never_emits_an_undeclared_reason():
                 assert not declared and code in str(ex), (n, code, ex)
                 continue
             assert r.failure_reason is None or r.failure_reason in t.failure_reasons, (n, code, r.failure_reason)
+
+
+def test_terrain_task_budget_is_course_derived_and_the_judge_times_out_at_it():
+    """D-147 addendum 2026-10-02 item 2: budget = 1.5 x course / commanded speed (h_gap: + turn + hold); the judge uses min(spec, budget)."""
+    import math
+    from rrp.envs.mujoco.humanoid_scenes import course_budget_s
+    assert course_budget_s("h_steps", 1.0, 0.8) == pytest.approx(1.5 * 6.3 / 0.48)
+    assert course_budget_s("h_gap_sidestep", 1.0, 0.8, math.pi / 2) == pytest.approx(1.5 * (2.5 / 0.4 + math.pi + 0.5))
+
+    class Env:
+        boundary, fell = True, False
+        runtime = NS(succeeded=lambda: False, instances={})
+        privileged_success = staticmethod(lambda: False)
+        scenario = NS(meta={"budget_s": 13.0})
+        failure_reason = staticmethod(lambda: None)
+
+    j = humanoid_judge(get_task("h_steps").failure_reasons)
+    assert not j(Env(), 12.9, 40.0).done
+    r = j(Env(), 13.0, 40.0)
+    assert r.done and r.failure_reason == "timeout"

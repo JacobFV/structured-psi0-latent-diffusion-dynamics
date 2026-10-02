@@ -95,8 +95,19 @@ def write_report(report: dict, out_dir: Path) -> Path:
 
 
 # ------------------------------------------------------------------ trackers
-def check_tracker(v: dict) -> dict:
+# D-147 addendum 2026-10-02 item 1: the validation trials that GATE a terrain expert are those whose commands the task's own command
+# layer issues (policies/teachers/humanoid.py); the others are reported. Force / margin / slip / CoT stay over every trial run.
+TASK_GATE_TRIALS = {
+    "steps": ("forward", "arc", "push_fwd"),                               # constant forward + heading correction, never halts / pure-turns
+    "gap": ("stand", "forward", "turn", "turn_fast", "arc", "push_fwd"),   # forward + sidestep, then a pure turn and a final halt
+}
+EXCEPTION = dict(joint_limit_margin_min=-0.06, peak_force_bw_max=4.2, cot_max=2.5)   # D-147 addendum (lead, 2026-10-01)
+EXEMPT = ("joint_limit_margin", "peak_foot_force_bw", "cot_forward")
+
+
+def check_tracker(v: dict, trials: tuple[str, ...] | None = None) -> dict:
     """v: the JSON written by rrp.harness.eval.tracker_validation (protocol v2; `robustness` from --robust).
+    `trials` (TASK_GATE_TRIALS[task]): no_fall_rate is computed over these trials only (equal seeds per trial); None = all trials.
     Criteria (forward trial unless stated): slip ratio < 0.15; CoT <= 1.0 quadruped / 2.0 biped; peak foot force
     <= 3.5 body weights (max over all trials); joint-limit margin >= 0.02 (min over all trials); no-fall >= 0.9 (all
     trials); robustness INSIDE the tracker's own training randomization (`robustness` block): at every condition
@@ -123,8 +134,11 @@ def check_tracker(v: dict) -> dict:
     mg = [x.get("joint_limit_margin_min") for x in s.values() if x.get("joint_limit_margin_min") is not None]
     crits.append(_crit("joint_limit_margin", min(mg) if mg else None, f">= {G['joint_limit_margin_min']}",
                        (min(mg) >= G["joint_limit_margin_min"]) if mg else None, "min over trials, ticks and joints"))
-    nf = g.get("no_fall_rate")
-    crits.append(_crit("no_fall_rate", nf, f">= {G['no_fall_min']}", None if nf is None else nf >= G["no_fall_min"]))
+    nf, note = g.get("no_fall_rate"), ""
+    if trials is not None:
+        nf = float(sum(1.0 - s[k]["fall_rate"] for k in trials) / len(trials))
+        note = f"gating trials {list(trials)} (D-147); all trials {g.get('no_fall_rate')}"
+    crits.append(_crit("no_fall_rate", nf, f">= {G['no_fall_min']}", None if nf is None else nf >= G["no_fall_min"], note))
     rb = v.get("robustness")
     if not rb:
         crits.append(_crit("robust_in_training_range", None, "no break inside training randomization", None,
@@ -140,6 +154,38 @@ def check_tracker(v: dict) -> dict:
     return _report("tracker", dict(body=v.get("body"), tracker_version=v.get("tracker_version"),
                                    tracker_sha=v.get("tracker_sha"), contact_model=v.get("contact_model"),
                                    family=fam), crits)
+
+
+def task_lab_gate(v: dict, trials: tuple[str, ...]) -> dict:
+    """The W13 lab gate restricted to the gating trials: no-fall >= 0.9 over them, forward ratio in [0.5, 1.5], turn ratio in
+    [0.4, 1.6] only if `turn` gates, stand_ok only if `stand` gates (ratios are tracker_validation's, over non-fallen episodes)."""
+    s, g = v["summary"], v["gate"]
+    nf = float(sum(1.0 - s[k]["fall_rate"] for k in trials) / len(trials))
+    ok = dict(no_fall=nf >= 0.9, forward=0.5 <= g["forward_ratio"] <= 1.5)
+    if "turn" in trials:
+        ok["turn"] = 0.4 <= g["turn_ratio"] <= 1.6
+    if "stand" in trials:
+        ok["stand"] = s["stand"]["fall_rate"] == 0.0
+    return dict(trials=list(trials), no_fall_rate=nf, checks=ok, passed=all(ok.values()))
+
+
+def tracker_verdict(v: dict, task: str) -> dict:
+    """D-147 install verdict of a terrain tracker from its recorded validation: `pass` (D-112 passes on the gating trials), `exception`
+    (lab gate passes on the gating trials and ONLY margin / force / CoT fail, within EXCEPTION; the label lists the failing values) or `fail`."""
+    trials = TASK_GATE_TRIALS[task]
+    rep, lab = check_tracker(v, trials), task_lab_gate(v, trials)
+    failed = [c for c in rep["criteria"] if c["status"] == "fail"]
+    within = {"joint_limit_margin": lambda x: x >= EXCEPTION["joint_limit_margin_min"],
+              "peak_foot_force_bw": lambda x: x <= EXCEPTION["peak_force_bw_max"], "cot_forward": lambda x: x <= EXCEPTION["cot_max"]}
+    if not failed and lab["passed"]:
+        verdict = "pass"
+    elif lab["passed"] and all(c["name"] in EXEMPT and within[c["name"]](c["value"]) for c in failed):
+        verdict = "exception"
+    else:
+        verdict = "fail"
+    label = "; ".join(f"{c['name']} {c['value']:.3g}" for c in failed if not isinstance(c["value"], (str, list)))
+    return dict(task=task, verdict=verdict, label=f"D-147 exception: {label}" if verdict == "exception" else label,
+                lab=lab, report=rep)
 
 
 # ------------------------------------------------------------------ datasets
