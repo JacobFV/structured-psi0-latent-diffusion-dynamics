@@ -1,8 +1,7 @@
 # armdiv G4 (PRE-REGISTERED in research/tracks/armdiv.md): the direct-action BC baselines on the six sealed armdiv targets, same data,
 # protocol (recipes/presets/eval-armdiv_v1.json), harness, budgets and acquisition as arm_targets_v8div_latent. The experts are the
 # v7div BC checkpoints by run id (recipes/armdiv/armdiv_bc_v7div.yaml; NOT retrained here): seed 1701 pinned by sha256 (also the
-# lineages' DAgger labeller), seed 1702 PENDING (its BC run is a separate step; the placeholder refuses the nodes until the lead
-# records the checkpoint's sha256). adapt_seed = the BC seed (protocol seeds). Only the nodes that load the expert are pinned (`bc_pin` per seed); adapted-checkpoint evals are not.
+# lineages' DAgger labeller), seed 1702 pinned by sha256 (trained in campaign run T6, D-147; peer sha256 of runs/armdiv/bcv7div-1702/train_bc-bc1702_s1702/policy.pt). adapt_seed = the BC seed (protocol seeds). Only the nodes that load the expert are pinned (`bc_pin` per seed); adapted-checkpoint evals are not.
 #   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag recipes/armdiv/arm_targets_v8div_bc.yaml --dry-run
 extends: ../templates/arm_targets_bc.yaml
 name: arm_targets_v8div_bc
@@ -23,7 +22,7 @@ matrix:
 axis_vars:
   seed:
     1701: {bc_pin: 831470cbc314236f6b51a4f14533e118ae9b4ddf44217d70dc18c57e7d94d8cd}
-    1702: {bc_pin: PENDING_bcv7div_1702_not_trained_yet}
+    1702: {bc_pin: f4abaec350b760838e816134b65cbf029f8978483866134d75c3f8999d04706e}
   target:
     gen3_pg2: {tk: g3p}
     rizon4_tf3: {tk: r4t}

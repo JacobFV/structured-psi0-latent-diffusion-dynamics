@@ -198,16 +198,15 @@ def test_v6ref_cells_are_pinned_on_exactly_the_v6_files_with_their_recorded_hash
                                {"pin_sha256": {"flow": V6[("nosem", 2)][0]}}))
 
 
-def test_pending_pins_reports_every_placeholder_and_only_those():
-    """Red (round 3): the dry-run was silent about an unfilled pin. The two T6-produced pins are the only ones left."""
-    bc = parm.pending_pins(_plan("arm_targets_v8div_bc").nodes)
-    assert bc and {k for _, k, _ in bc} == {"bc_policy"}
-    assert {v for _, _, v in bc} == {"PENDING_bcv7div_1702_not_trained_yet"}
-    assert all(".s1702." in n or "1702" in n for n, _, _ in bc)
-    kf = parm.pending_pins(_plan("arm_lineage_v8div_kinfeat").nodes)
-    assert kf and {v for _, _, v in kf} == {"PENDING_bcv7divkf_1701_not_trained_yet"}
-    for clean in ("arm_targets_v6ref", "arm_targets_v8div_latent", "arm_lineage_v8div"):
+def test_no_pending_pins_left_after_t6_phase_a():
+    """T6 phase A (D-147, 2026-10-02) filled the last two pins (BC 1702, kinfeat BC 1701): every G3/G4 recipe is pin-clean,
+    and the pins are real 64-hex sha256 values, not placeholders."""
+    for clean in ("arm_targets_v6ref", "arm_targets_v8div_latent", "arm_lineage_v8div", "arm_targets_v8div_bc",
+                  "arm_lineage_v8div_kinfeat"):
         assert parm.pending_pins(_plan(clean).nodes) == [], clean
+    pins = {n.rc.options["pin_sha256"]["bc_policy"] for n in _plan("arm_targets_v8div_bc").nodes.values()
+            if (n.rc.options or {}).get("pin_sha256", {}).get("bc_policy")}
+    assert "f4abaec350b760838e816134b65cbf029f8978483866134d75c3f8999d04706e" in pins
 
 
 def test_pending_pins_flags_a_short_or_malformed_hash():
@@ -217,8 +216,8 @@ def test_pending_pins_flags_a_short_or_malformed_hash():
     assert [(n, k) for n, k, _ in parm.pending_pins(nodes)] == [("a", "flow"), ("a", "x")]
 
 
-@pytest.mark.parametrize("recipe,pending", [("arm_targets_v6ref", False), ("arm_targets_v8div_bc", True),
-                                            ("arm_lineage_v8div_kinfeat", True), ("arm_targets_v8div_latent", False)])
+@pytest.mark.parametrize("recipe,pending", [("arm_targets_v6ref", False), ("arm_targets_v8div_bc", False),
+                                            ("arm_lineage_v8div_kinfeat", False), ("arm_targets_v8div_latent", False)])
 def test_run_dag_dry_run_reports_pending_pins(recipe, pending, tmp_path, capsys):
     from rrp.cli.dag import cmd_run_dag
     import argparse

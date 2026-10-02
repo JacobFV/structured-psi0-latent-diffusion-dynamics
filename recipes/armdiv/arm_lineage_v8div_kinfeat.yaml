@@ -1,8 +1,8 @@
 # armdiv G3 ablation (D-137 H2): the v8div lineage recipe with the `kinfeat` features (options.kinfeat=v1 on EVERY node:
 # base-frame joint axes at home in the static columns, world-axis column in the base frame; rrp.policies.features.kinfeat).
 # semfix x seeds 1, 2. DAgger labeller = the kinfeat BC expert bcv7divkf 1701 (recipes/armdiv/armdiv_bc_v7div_kinfeat.yaml), so
-# the expert and the latent route see the same inputs. Same data/pack (the flag is applied at load time). The kinfeat BC expert is NOT trained yet: its pin is a placeholder that
-# refuses every stage taking bc_policy until the lead records the trained checkpoint's sha256 here.
+# the expert and the latent route see the same inputs. Same data/pack (the flag is applied at load time). The kinfeat BC expert was trained in campaign run T6 (D-147): the pin below is the sha256
+# of runs/armdiv/bcv7divkf-1701/train_bc-bc1701_s1701/policy.pt (peer store).
 #   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/armdiv rrp run-dag recipes/armdiv/arm_lineage_v8div_kinfeat.yaml --max-parallel-gpu 1
 extends: arm_lineage_v8div.yaml         # (sibling instance: the v8div lineage + `options.kinfeat`)
 name: arm_lineage_v8div_kinfeat
@@ -23,4 +23,4 @@ vars:
   bc_policy: 'runs/armdiv/bcv7divkf-1701/train_bc-bc1701_s1701:policy.pt'
   bc_label: bcv7divkf_direct1701_final
 base:
-  options: {kinfeat: v1, pin_sha256: {bc_policy: PENDING_bcv7divkf_1701_not_trained_yet}}
+  options: {kinfeat: v1, pin_sha256: {bc_policy: a5ffdeeb6f77da1ba11c80a9e52a7c35b6078a746f6cf5d518e6bdcce2a2a6f1}}

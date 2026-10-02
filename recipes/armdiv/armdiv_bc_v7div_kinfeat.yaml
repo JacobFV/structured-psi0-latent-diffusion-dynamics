@@ -20,3 +20,4 @@ base:
   options: {kinfeat: v1}
 nodes:
   ref_v6bc_newarms: null
+  ev_newarms: {resources: {mem: 12G}}   # T6 2026-10-02: the 6G eval was throttled (memory.high) at ~5.7 G RSS and stalled; one bounded rerun at 12G
