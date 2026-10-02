@@ -33,6 +33,9 @@ axis_vars:
 vars: {task: steps, body: null, recipe: '{body}_{recipe_suffix}', recipe_suffix: null}
 lists:
   installs: {gait: ub_v1, steps: steps_ub_v1}
+# D-147: the broker caps a lease at 6 h (21600 s); the trainer resumes from checkpoint.pt, so a long run is 6 h segments
+# (retries 3 = the template's former 24 h budget).
+defaults: {retries: 3, resources: {max_seconds: 21600}}
 nodes:
   validate:
     stage: validate_tracker
