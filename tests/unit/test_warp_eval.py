@@ -23,6 +23,7 @@ def _xml(n_geoms=1, z=0.1):
 
 
 def test_group_models_batches_only_per_world_differences():
+    pytest.importorskip("mujoco_warp")
     from rrp.envs.warp.batch_sim import group_models
     a, b = (mujoco.MjModel.from_xml_string(_xml(1, z)) for z in (0.1, 0.3))
     c = mujoco.MjModel.from_xml_string(_xml(2))
