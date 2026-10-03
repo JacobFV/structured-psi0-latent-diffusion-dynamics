@@ -249,8 +249,8 @@ def main(argv=None):
     if a.tracker_actor:
         if a.tracker_id:
             raise SystemExit("--tracker-actor and --tracker-id are exclusive")
-        from rrp.harness.eval.humanoid_eval import resolve_actor
-        a.tracker_id = resolve_actor(a.body, a.tracker_actor)
+        from rrp.envs.mujoco.legged_tracker import register_actor_file
+        a.tracker_id = register_actor_file(a.body, a.tracker_actor)
     sig = [float(x) for x in a.sigmas.split(",")]
     out = Path(a.out) / a.body
     seeds = parse_seed_spec(a.seeds)

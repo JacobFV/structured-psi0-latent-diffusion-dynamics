@@ -33,6 +33,23 @@ PUBLIC_EXTRA = {"none": (), "terrain_scan": ("terrain_scan",), "terrain_scan+ran
 
 
 
+def register_actor_file(body: str, actor) -> str:
+    """Register an actor FILE for this process under a temporary store and return its spec `<body>:file_<sha12>` (sha256 pinned,
+    decision `unregistered`). Used where a trained actor is evaluated or driven without passing the install gate (eval tools; D-147
+    sealed-body adaptation checks, whose trackers cannot be validated on sealed bodies)."""
+    import tempfile
+    import torch
+    p = Path(actor)
+    meta = torch.load(str(p), map_location="cpu", weights_only=False)["meta"]
+    sha = file_digest(p, length=None)
+    version = f"file_{sha[:12]}"
+    store = Path(tempfile.mkdtemp(prefix="rrp_actor_")) / body / version
+    store.mkdir(parents=True)
+    (store / "actor.pt").symlink_to(p.resolve())
+    (store / "meta.json").write_text(json.dumps({**meta, "sha256": sha, "decision": "unregistered"}, default=str))
+    TRACKERS.update(scan_trackers(store.parent.parent))
+    return f"{body}:{version}"
+
 def wire_public_sensors(tracker, binding, terrain: bool | None = None, ring: bool | None = None):
     """D-146 / HS1: build the public terrain-scan and range-ring sensors a tracker's actor takes and wire them to it (sampled once per
     tracker tick just before it acts; the actor gets their values as its extra block, scan first). `terrain` / `ring`: None = exactly

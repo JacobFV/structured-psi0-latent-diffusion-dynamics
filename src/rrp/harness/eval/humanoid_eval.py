@@ -21,12 +21,10 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import tempfile
 from collections import Counter
 from pathlib import Path
 
 import numpy as np
-from rrp.core.provenance import file_digest
 
 SRC_EXPERT = "privileged_teacher:rl_expert + scripted_teacher command"
 SRC_LEARNED = "learned:rl_expert + scripted_teacher command"
@@ -49,14 +47,7 @@ def resolve_actor(body: str, actor: str) -> str:
     meta = torch.load(str(p), map_location="cpu", weights_only=False)["meta"]
     if LT.extra_kind(meta) == "privileged":
         raise SystemExit(_privileged_msg(str(p)))
-    sha = file_digest(p, length=None)
-    version = f"file_{sha[:12]}"
-    store = Path(tempfile.mkdtemp(prefix="rrp_actor_")) / body / version
-    store.mkdir(parents=True)
-    (store / "actor.pt").symlink_to(p.resolve())
-    (store / "meta.json").write_text(json.dumps({**meta, "sha256": sha, "decision": "unregistered"}, default=str))
-    LT.TRACKERS.update(LT.scan_trackers(store.parent.parent))
-    return f"{body}:{version}"
+    return LT.register_actor_file(body, p)
 
 
 def _privileged_msg(what: str) -> str:
