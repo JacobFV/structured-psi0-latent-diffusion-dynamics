@@ -93,6 +93,17 @@ class RecordingTracker:
             setattr(self, k, getattr(bt, k))
         self.body = bt
 
+    # D-147 (2026-10-03): direct controls hand the teacher's `legs` targets to the slot as `session.tracker.pending`; the wrapper must
+    # forward it to the wrapped DirectTargets, else the slot holds the default stance every tick (every wholebody h_* collection fell at 1 s,
+    # all recorded actions 0, while the same teacher succeeded 20/20 under evaluate()).
+    @property
+    def pending(self):
+        return getattr(self.inner, "pending", None)
+
+    @pending.setter
+    def pending(self, v):
+        self.inner.pending = v
+
     @property
     def terrain_source(self) -> str:
         return "collector_scan" if self.scan_own is not None else "session_scan"

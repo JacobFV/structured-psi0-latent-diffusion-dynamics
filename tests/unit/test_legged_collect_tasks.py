@@ -131,3 +131,21 @@ def test_latent_collect_20_ticks_records_task_and_teacher(task, stub_tracker):
     assert meta["task"] == task and meta["teacher"].startswith("teacher:") and meta["max_steps"] == TICKS
     assert meta["tracker_sha256"] == _sha(stub_tracker(task)) and meta["steps"] <= TICKS
     assert arr["ctx"].shape[1] == F.GLOBAL_DIM and arr["ev"].max() <= F.EVENT_SLOTS
+
+
+def test_recording_tracker_forwards_the_direct_legs_target():
+    """D-147 (2026-10-03): under legs / wholebody control the session hands the teacher's `legs` targets to `session.tracker.pending`; the
+    collector's RecordingTracker wraps that slot and must forward them (before: the slot held the default stance and every wholebody
+    collection fell at 1 s with all recorded actions 0)."""
+    from types import SimpleNamespace as NS
+    import numpy as np
+    from rrp.envs.mujoco.legged import DirectTargets
+    from rrp.harness.data.legged_latent_collect import RecordingTracker
+    b = NS(q0=np.zeros(3), lo=-np.ones(3), hi=np.ones(3))
+    slot = DirectTargets(b)
+    s = NS(tracker=slot, control="wholebody", terrain=NS(values=None), binding=b, body_tracker=NS(source="learned_tracker", version="v"))
+    rt = RecordingTracker(s, morph=NS(gait_period=0.7), sigma=0.0, rng=np.random.default_rng(0))
+    s.tracker = rt
+    s.tracker.pending = np.array([0.1, -0.2, 0.3])            # what LeggedSession._step_legs does
+    assert np.allclose(rt.act(None, None), [0.1, -0.2, 0.3])  # the commanded target is executed, not the default stance
+    assert np.allclose(rt.act(None, None), 0.0)               # one tick only, then the declared fallback
