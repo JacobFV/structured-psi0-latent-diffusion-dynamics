@@ -13,6 +13,8 @@ matplotlib / Pillow, which the repository environment does not ship, so put them
 research/tracks/pointer.md).  Run under the ops broker: `python -m rrp.cli ops run --cpu 2 --mem 4G --label paper_build -- ...`.
 
 Sections: [U3] relation tables, [U2] environments table and Fig. 3 (source-tagged environment tiles), [U1] Fig. 2.
+`tiles` (factor_tiles.py): the relation-factor tile grid, one tile per implemented factor, as the appendix pages
+figures/factor_grid_p<k>.pdf after Table 6 (`tiles build` renders and caches the tiles, `tiles grid` composes the pages).
 Fig. 2 shows factor VALUES computed by the real relation code or read from simulator state; it is not trained attention.
 """
 from __future__ import annotations
@@ -398,7 +400,8 @@ def impl_table(rows, sha, totals):
               r"data generator is declared or a relgen label exists (scene parts upright, transforms italic); probe "
               r"targets are task-pipeline packet labels, hence N. Attn: form $\in$ \{bias, aug, gate, mask\}. Read: a "
               r"readout is declared. Nets: families whose \texttt{resolve(family=...)} accepts the factor. Data envs: "
-              r"label caps and scene part available; $^\ddagger$ no registered environment provides the caps yet.}",
+              r"label caps and scene part available; $^\ddagger$ no registered environment provides the caps yet. "
+              r"Fig.~\ref{fig:tiles} draws one tile per factor.}",
             r"\label{tab:relations}", r"\end{table*}"]
     return "\n".join(out) + "\n"
 
@@ -1406,11 +1409,7 @@ def draw_panel(ax, P: Panel, fs, frame_lw, show_title=False):
         elif k == "rect":
             ax.add_patch(Rectangle((mk["x0"], mk["y0"]), mk["x1"] - mk["x0"], mk["y1"] - mk["y0"], fill=mk.get("fill", False),
                                    fc=mk.get("fc", "none"), ec=mk["color"], lw=mk["lw"] * fs * 0.2, zorder=mk.get("z", 3), alpha=mk.get("alpha", 1)))
-    # top-left provenance chip (scene source), bottom badge (term source)
-    ax.text(8, 8, P.tag, color="white", fontsize=fs * 0.74, ha="left", va="top", family=MONO, zorder=8,
-            bbox=dict(boxstyle="square,pad=0.25", fc=(0.11, 0.12, 0.13, 0.82), ec="none"))
-    ax.text(8, F2_H - 8, "\n".join(textwrap.wrap(P.badge, 40 if fs < 6 else 52)), color="white", fontsize=fs * 0.80, ha="left", va="bottom", zorder=8, wrap=False,
-            bbox=dict(boxstyle="square,pad=0.25", fc=P.color if P.color != "#F2A33A" else "#B87414", ec="none", alpha=0.92))
+    draw_tag_badge(ax, P.tag, P.badge, P.color, fs)
     if P.cbar is not None:
         hi, lo, cm = P.cbar
         ins = ax.inset_axes([0.885, 0.50, 0.03, 0.30])
@@ -1422,6 +1421,14 @@ def draw_panel(ax, P: Panel, fs, frame_lw, show_title=False):
         for yy, s_ in ((0.80, hi), (0.50, lo)):
             ax.text(0.875, yy, s_, color="#1D1F22", fontsize=fs * 0.7, ha="right", va="center", family=MONO, zorder=8, transform=ax.transAxes,
                     bbox=dict(boxstyle="round,pad=0.1", fc=(1, 1, 1, 0.75), ec="none"))
+
+
+def draw_tag_badge(ax, tag, badge, color, fs):
+    """Top-left provenance chip (scene source) and bottom-left badge (term source) of a 600x450 panel."""
+    ax.text(8, 8, tag, color="white", fontsize=fs * 0.74, ha="left", va="top", family=MONO, zorder=8,
+            bbox=dict(boxstyle="square,pad=0.25", fc=(0.11, 0.12, 0.13, 0.82), ec="none"))
+    ax.text(8, F2_H - 8, "\n".join(textwrap.wrap(badge, 40 if fs < 6 else 52)), color="white", fontsize=fs * 0.80, ha="left", va="bottom", zorder=8, wrap=False,
+            bbox=dict(boxstyle="square,pad=0.25", fc=color if color != "#F2A33A" else "#B87414", ec="none", alpha=0.92))
 
 
 # Fig. 2 math (equation row, term labels, per-panel formulas) is set in Computer Modern, the paper's math font.
@@ -2106,8 +2113,13 @@ def roadmap(out=None):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("what", choices=["fig2", "fig3", "table_relations", "table_envs", "embodiments", "roadmap", "all"])
+    ap.add_argument("what", choices=["fig2", "fig3", "table_relations", "table_envs", "embodiments", "roadmap", "tiles", "all"])
+    ap.add_argument("args", nargs="*", help="tiles: build [A|B|C|<scene>|<factor> ...] | grid | all (factor_tiles.py)")
     a = ap.parse_args()
+    if a.what == "tiles":                     # relation-factor tile grid (appendix pages); heavy, not part of "all"
+        import factor_tiles
+        factor_tiles.main(a.args)
+        return
     todo = ["table_relations", "table_envs", "embodiments", "roadmap", "fig2", "fig3"] if a.what == "all" else [a.what]
     for t in todo:
         if t == "table_relations":

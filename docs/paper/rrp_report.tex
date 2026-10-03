@@ -24,6 +24,7 @@
 \newcommand{\zcell}[1]{{\color{rel!#1!white}\rule{1.6mm}{1.6mm}}\hspace{0.2mm}}
 \input{table_relations}
 \input{table_embodiments}
+\input{fig_tiles}
 \newcommand{\sysz}{System~0}\newcommand{\sysi}{System~1}\newcommand{\sysii}{System~2}
 
 \title{\vspace{-1.6em}\textbf{Relational attention for a structured semantic latent packet:\\toward morphology-general robot control}}
@@ -183,7 +184,7 @@ with $M_i\succeq0$ diagonal in a learned frame and $\tilde b_i$ a learned direct
 
 \paragraph{Sites and controls.} Factors attach at the encoder (\code{ctx>ctx}), decoder cross- and self-attention (\code{act>ctx}, \code{act>act}) and System~0 routing (\code{node>knot}). Uniform controls apply to any factor: \code{off}, \code{zero}, \code{rewired} (keys permuted, degree preserving), \code{shuffled}, \code{reversed}, and for message factors \code{serialized}, the same facts as hashed text (the equal-information baseline).
 
-\paragraph{Probes and diagnostics.} Probes are readouts in the same registry. Attention maps and probe accuracy are diagnostics: causal use is shown by editing the packet or the context and rolling out (Section~\ref{sec:results}, D-142, D-124). Fig.~\ref{fig:fig2} shows factor \emph{values} computed from real simulator states, not learned attention.
+\paragraph{Probes and diagnostics.} Probes are readouts in the same registry. Attention maps and probe accuracy are diagnostics: causal use is shown by editing the packet or the context and rolling out (Section~\ref{sec:results}, D-142, D-124). Fig.~\ref{fig:fig2} shows factor \emph{values} computed from real simulator states, not learned attention; Fig.~\ref{fig:tiles} covers every factor.
 
 \begin{figure*}[t]
 \centering
@@ -410,6 +411,8 @@ The evidence is narrow. (i) \emph{No cross-body transfer claim.} Zero-shot trans
 \section{Relation tables (generated)}\label{app:relations}
 Both tables are written by \code{make\_figures.py table\_relations} from the live registries and the candidate catalog; nothing about an implemented factor is typed by hand.
 \relfull
+Fig.~\ref{fig:tiles} draws every row of Table~\ref{tab:relations} as one tile: the factor's term for one query token on a real simulator or environment state, computed by the same operator and label code the model uses, with hand-set coefficients where the model learns them. It extends Fig.~\ref{fig:fig2} from eight panels to all implemented factors and, like it, shows no trained attention. Badges separate public (given) terms from probe-sourced ones, whose tiles show the simulator-truth label that trains the probe (training-only); the deployed term is the estimated-probe value. Tiles marked illustrative are not fully computable from shipped code or data; the caption of Fig.~\ref{fig:tiles} says why for each.
+\tilegrid
 \relplanned
 
 \section{Embodiment count (generated)}\label{app:embodiments}

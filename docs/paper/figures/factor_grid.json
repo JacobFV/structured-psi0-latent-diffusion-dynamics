@@ -1,0 +1,3174 @@
+{
+ "pages": 5,
+ "order": [
+  "edge.node_in_assembly",
+  "edge.same_assembly",
+  "edge.same_node",
+  "id.same_assembly",
+  "id.same_body",
+  "id.slot_handle",
+  "msg.incidence",
+  "route.assembly_reads",
+  "route.own_assembly",
+  "geo.above",
+  "geo.depth3d",
+  "geo.normal_align",
+  "geo.orient",
+  "geo.pos3d",
+  "edge.foot_of",
+  "edge.limb_adjacent",
+  "edge.over_cell",
+  "edge.kin_child",
+  "edge.mirror",
+  "edge.kin_parent",
+  "kin.ancestor",
+  "kin.sibling",
+  "ix.contact",
+  "ix.force_flow",
+  "ix.handover",
+  "ix.held_by",
+  "ix.support",
+  "edge.actor_of",
+  "edge.consumed_by",
+  "edge.destination_of",
+  "edge.enables",
+  "edge.maintained",
+  "edge.node_actor_of",
+  "edge.output_to",
+  "edge.patient_of",
+  "edge.pred_arg",
+  "edge.produced",
+  "edge.role_in_event",
+  "edge.role_points_to",
+  "edge.support_of",
+  "edge.target_of",
+  "task.next_contact",
+  "leg.com_support",
+  "leg.foothold",
+  "ui.above",
+  "ui.drag_to",
+  "ui.focus_next",
+  "ui.label_for",
+  "ui.same_window",
+  "probe.arm.acting_on",
+  "probe.arm.focused_on",
+  "probe.arm.goal_effect",
+  "probe.arm.held_by",
+  "probe.arm.looking_at",
+  "probe.arm.observed_effect",
+  "probe.arm.rel_pos",
+  "probe.arm.subtask",
+  "probe.arm.visible",
+  "probe.legged.contact",
+  "probe.legged.disp",
+  "probe.legged.fall",
+  "probe.legged.goal",
+  "probe.legged.subtask",
+  "probe.pointer.phase",
+  "probe.pointer.rel",
+  "probe.pointer.slot",
+  "probe.psi0.active_hand",
+  "probe.psi0.base_cmd",
+  "probe.psi0.base_disp",
+  "probe.psi0.contact",
+  "probe.psi0.grasp_face",
+  "probe.psi0.grasp_pt",
+  "probe.psi0.hand_dist",
+  "probe.psi0.lift",
+  "probe.psi0.target_pos"
+ ],
+ "tile_px": [
+  600,
+  520
+ ],
+ "caption": {
+  "font_pt": 4.4,
+  "max_lines": 4
+ },
+ "probe_colour_rule": "tile colour = what the readout encodes: cyan geometric quantity, amber physical interaction, violet task / procedure state",
+ "tiles": {
+  "edge.node_in_assembly": {
+   "page": 1,
+   "row": 0,
+   "col": 0,
+   "family": "structure",
+   "status": "computed",
+   "caption": "edge.node_in_assembly: a joint / sensor token attends to the assembly (arm, gripper) it belongs to. edge x bias at act>ctx and ctx>ctx (solid: act nodes, dashed: touch / grip sensors; w=1). Source: public morphology (featurizer).",
+   "colour": "#4E9A5B",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "tick": 29,
+    "phase": "descend",
+    "scene_source": "scripted privileged teacher (PickPlaceTeacher) state, replayed from reset (Figure 2 scene)",
+    "query": "act node slide_a",
+    "site": "act>ctx (+ ctx>ctx sensor rows)",
+    "act_to_asm": {
+     "j1": [
+      "asm:arm"
+     ],
+     "j2": [
+      "asm:arm"
+     ],
+     "j3": [
+      "asm:arm"
+     ],
+     "j4": [
+      "asm:arm"
+     ],
+     "j5": [
+      "asm:arm"
+     ],
+     "j6": [
+      "asm:arm"
+     ],
+     "j7": [
+      "asm:arm"
+     ],
+     "slide_a": [
+      "asm:gripper"
+     ]
+    },
+    "sensor_to_asm": {
+     "ev:grasp": [],
+     "ev:place": [],
+     "grasp.actor": [],
+     "grasp.patient": [],
+     "place.actor": [],
+     "place.patient": [],
+     "place.destination": [],
+     "p:held_by": [],
+     "p:in_region": [],
+     "touch": [
+      "asm:gripper"
+     ],
+     "grip_w": [
+      "asm:gripper"
+     ]
+    },
+    "code_path": "FactorSite(['edge.node_in_assembly']) at act>ctx and ctx>ctx .contributions over the collated arm-rel-v1 edges, w=1"
+   }
+  },
+  "edge.same_assembly": {
+   "page": 1,
+   "row": 0,
+   "col": 1,
+   "family": "structure",
+   "status": "computed",
+   "caption": "edge.same_assembly: a command dim attends to the other dims of its own assembly (here the left arm). edge x bias at dims>dims (g1-dim-rel-v1 channel same_assembly; w=1). Source: public morphology (bodies.g1_simple).",
+   "colour": "#4E9A5B",
+   "meta": {
+    "env": "mujoco/humanoid (rrp.envs.mujoco.humanoid_scenes.task_model('g1','h_steps'))",
+    "body": "g1 (36 command-dim tokens, bodies.g1_simple, vocab g1-dim-rel-v1)",
+    "task": "keyframe 0 (static pose, no policy)",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "simulator keyframe (no controller, no motion)",
+    "not_drawn": "finger and base dims have no link in the rendered model: they are tokens in the strip only",
+    "query": "l_elbow",
+    "site": "dims>dims",
+    "keys": [
+     "l_shoulder_pitch",
+     "l_shoulder_roll",
+     "l_shoulder_yaw",
+     "l_elbow",
+     "l_wrist_roll",
+     "l_wrist_pitch",
+     "l_wrist_yaw"
+    ],
+    "n_edges_total": 230,
+    "note": null,
+    "code_path": "FactorSite(['edge.same_assembly'], dims>dims).contributions over RelCtx edges = bodies.g1_simple.relation_matrix(); weight 1"
+   }
+  },
+  "edge.same_node": {
+   "page": 1,
+   "row": 0,
+   "col": 2,
+   "family": "structure",
+   "status": "computed",
+   "caption": "edge.same_node: an action-node query attends to its OWN morphology token (one per actuated joint). edge x bias, w*A[i,j] at act>ctx (arm-rel-v1, w=1 shown). Source: public morphology (featurizer).",
+   "colour": "#4E9A5B",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "tick": 29,
+    "phase": "descend",
+    "scene_source": "scripted privileged teacher (PickPlaceTeacher) state, replayed from reset (Figure 2 scene)",
+    "query": "act node j4",
+    "site": "act>ctx",
+    "row": {
+     "j1": 0.0,
+     "j2": 0.0,
+     "j3": 0.0,
+     "j4": 1.0,
+     "j5": 0.0,
+     "j6": 0.0,
+     "j7": 0.0,
+     "slide_a": 0.0,
+     "slide_b*": 0.0,
+     "asm:arm": 0.0,
+     "asm:gripper": 0.0,
+     "red cube": 0.0,
+     "green target zone": 0.0,
+     "blue cube": 0.0,
+     "yellow cube": 0.0,
+     "ev:grasp": 0.0,
+     "ev:place": 0.0,
+     "grasp.actor": 0.0,
+     "grasp.patient": 0.0,
+     "place.actor": 0.0,
+     "place.patient": 0.0,
+     "place.destination": 0.0,
+     "p:held_by": 0.0,
+     "p:in_region": 0.0,
+     "touch": 0.0,
+     "grip_w": 0.0
+    },
+    "n_edges": 8,
+    "code_path": "arm_featurize -> collate_inputs -> act_rel; FactorSite(['edge.same_node'], act>ctx).contributions, w=1"
+   }
+  },
+  "id.same_assembly": {
+   "page": 1,
+   "row": 0,
+   "col": 3,
+   "family": "structure",
+   "status": "computed",
+   "caption": "id.same_assembly: soft same-assembly term: a command dim prefers knots of its own assembly (left arm); other assemblies stay readable. same x aug, random 16-d codes for 64 ids (small cross-talk), g=1, dims>knots. Source: public morphology (bodies.g1_simple).",
+   "colour": "#4E9A5B",
+   "meta": {
+    "env": "mujoco/humanoid (rrp.envs.mujoco.humanoid_scenes.task_model('g1','h_steps'))",
+    "body": "g1 (36 command-dim tokens, bodies.g1_simple, vocab g1-dim-rel-v1)",
+    "task": "keyframe 0 (static pose, no policy)",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "simulator keyframe (no controller, no motion)",
+    "not_drawn": "finger and base dims have no link in the rendered model: they are tokens in the strip only",
+    "query": "l_elbow",
+    "query_assembly": "left_arm",
+    "site": "dims>knots (Psi0 system-0 Realizer)",
+    "K": 5,
+    "per_assembly": {
+     "left_hand": -0.30021798610687256,
+     "right_hand": -0.2358109951019287,
+     "left_arm": 0.9999999403953552,
+     "right_arm": -0.31632980704307556,
+     "torso": -0.3651954233646393,
+     "base": -0.05490368977189064
+    },
+    "n_allowed": 5,
+    "code_path": "FactorSite([{'name': 'id.same_assembly'}], dims>knots).contributions over dims/knots assembly_id (exactly psi0.nets.Realizer.forward's RelCtx)"
+   }
+  },
+  "id.same_body": {
+   "page": 1,
+   "row": 1,
+   "col": 0,
+   "family": "structure",
+   "status": "computed",
+   "caption": "id.same_body: tokens denoting the SAME entity (a tracker slot and the task roles bound to it) attend to each other. same x aug: fixed random 16-d unit codes for 64 ids (1 on equal ids, small cross-talk otherwise), g=1. Source: public ids (featurizer pointers).",
+   "colour": "#4E9A5B",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "tick": 29,
+    "phase": "descend",
+    "scene_source": "scripted privileged teacher (PickPlaceTeacher) state, replayed from reset (Figure 2 scene)",
+    "query": "red cube (scene slot 0)",
+    "entity_id": {
+     "j1": 0,
+     "j2": 1,
+     "j3": 2,
+     "j4": 3,
+     "j5": 4,
+     "j6": 5,
+     "j7": 6,
+     "slide_a": 7,
+     "slide_b*": 8,
+     "asm:arm": 9,
+     "asm:gripper": 10,
+     "red cube": 11,
+     "green target zone": 12,
+     "blue cube": 13,
+     "yellow cube": 14,
+     "ev:grasp": 15,
+     "ev:place": 16,
+     "grasp.actor": 10,
+     "grasp.patient": 11,
+     "place.actor": 10,
+     "place.patient": 11,
+     "place.destination": 12,
+     "p:held_by": 22,
+     "p:in_region": 23,
+     "touch": 24,
+     "grip_w": 25
+    },
+    "row": {
+     "j1": 0.22652031481266022,
+     "j2": 0.6062690615653992,
+     "j3": -0.08092204481363297,
+     "j4": 0.021119479089975357,
+     "j5": -0.09543716907501221,
+     "j6": -0.2287292629480362,
+     "j7": 0.12502101063728333,
+     "slide_a": 0.12027893960475922,
+     "slide_b*": -0.03427467122673988,
+     "asm:arm": 0.22349566221237183,
+     "asm:gripper": 0.07122057676315308,
+     "red cube": 1.0000001192092896,
+     "green target zone": 0.03328507021069527,
+     "blue cube": 0.2982744872570038,
+     "yellow cube": 0.1625255048274994,
+     "ev:grasp": 0.22464415431022644,
+     "ev:place": 0.10652335733175278,
+     "grasp.actor": 0.07122057676315308,
+     "grasp.patient": 1.0000001192092896,
+     "place.actor": 0.07122057676315308,
+     "place.patient": 1.0000001192092896,
+     "place.destination": 0.03328507021069527,
+     "p:held_by": 0.15922871232032776,
+     "p:in_region": -0.18579867482185364,
+     "touch": -0.1120467334985733,
+     "grip_w": 0.07377111911773682
+    },
+    "code_path": "nets.batch.ctx_id_fields -> TokenSet ctx.entity_id; FactorSite(['id.same_body'], ctx>ctx).contributions (aug), g=1"
+   }
+  },
+  "id.slot_handle": {
+   "page": 1,
+   "row": 1,
+   "col": 1,
+   "family": "structure",
+   "status": "computed",
+   "caption": "id.slot_handle: each scene token carries its public tracker slot address as a learned embedding, so a slot keeps its identity across steps. embed form (unary, no attention term); E learned. Source: public tracker slot ids.",
+   "colour": "#4E9A5B",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "tick": 29,
+    "phase": "descend",
+    "scene_source": "scripted privileged teacher (PickPlaceTeacher) state, replayed from reset (Figure 2 scene)",
+    "slots": [
+     {
+      "slot": 0,
+      "descriptor": "red cube",
+      "position_estimate": [
+       0.4940993192986118,
+       -0.01720848058256849,
+       0.022998219173028057
+      ],
+      "visible": true,
+      "std": [
+       0.0039655063847887926,
+       0.0039655063847887926,
+       0.0039655063847887926
+      ],
+      "radius_px": 9.0
+     },
+     {
+      "slot": 1,
+      "descriptor": "green target zone",
+      "position_estimate": [
+       0.3091970964904039,
+       0.10398984877095926,
+       0.002714721160984864
+      ],
+      "visible": true,
+      "std": [
+       0.0039655063847887926,
+       0.0039655063847887926,
+       0.0039655063847887926
+      ],
+      "radius_px": 9.0
+     },
+     {
+      "slot": 2,
+      "descriptor": "blue cube",
+      "position_estimate": [
+       0.5402480673823893,
+       -0.18651508315245235,
+       0.016172517179652658
+      ],
+      "visible": true,
+      "std": [
+       0.0039655063847887926,
+       0.0039655063847887926,
+       0.0039655063847887926
+      ],
+      "radius_px": 9.953126047108888
+     },
+     {
+      "slot": 3,
+      "descriptor": "yellow cube",
+      "position_estimate": [
+       0.4419508047240188,
+       -0.1349678245787369,
+       0.017474217875314085
+      ],
+      "visible": true,
+      "std": [
+       0.0039655063847887926,
+       0.0039655063847887926,
+       0.0039655063847887926
+      ],
+      "radius_px": 9.0
+     }
+    ],
+    "note": "slot ids / descriptors / estimates are the real tracker output (PolicyObservation.object_descriptors); E is learned",
+    "code_path": "FlowNet.forward: x_scene += slot_emb.weight[:T_scene] (id.slot_handle on)"
+   }
+  },
+  "msg.incidence": {
+   "page": 1,
+   "row": 1,
+   "col": 2,
+   "family": "structure",
+   "status": "computed",
+   "caption": "msg.incidence: role and predicate tokens receive a message from the entity they point to (arrows: entity -> role). message form, not a logit term; W learned; control `serialized` = same facts as hashed text. Source: public task graph + tracker slots.",
+   "colour": "#4E9A5B",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "tick": 29,
+    "phase": "descend",
+    "scene_source": "scripted privileged teacher (PickPlaceTeacher) state, replayed from reset (Figure 2 scene)",
+    "query": "grasp.patient (role token)",
+    "pointers": [
+     [
+      "grasp.actor",
+      "asm:gripper"
+     ],
+     [
+      "grasp.patient",
+      "red cube"
+     ],
+     [
+      "place.actor",
+      "asm:gripper"
+     ],
+     [
+      "place.patient",
+      "red cube"
+     ],
+     [
+      "place.destination",
+      "green target zone"
+     ],
+     [
+      "p:held_by",
+      "red cube"
+     ],
+     [
+      "p:held_by",
+      "asm:gripper"
+     ],
+     [
+      "p:in_region",
+      "red cube"
+     ],
+     [
+      "p:in_region",
+      "green target zone"
+     ]
+    ],
+    "note": "incidence structure is the real featurizer output (PolicyInput.pointers); the message map W (FlowNet.ptr) is learned and not shown",
+    "code_path": "arm_featurize -> collate_inputs -> Batch.pointers; FlowNet: h.scatter_add(src, ptr(h[dst]))"
+   }
+  },
+  "route.assembly_reads": {
+   "page": 1,
+   "row": 1,
+   "col": 3,
+   "family": "structure",
+   "status": "computed",
+   "caption": "route.assembly_reads: system 0 (Psi0 Realizer): a command dim reads packet knots of its own assembly and its kinematic neighbours only (left arm: arm, hand, torso). same x mask with params.reads = bodies.g1_simple.READS. Source: public morphology (bodies.g1_simple).",
+   "colour": "#4E9A5B",
+   "meta": {
+    "env": "mujoco/humanoid (rrp.envs.mujoco.humanoid_scenes.task_model('g1','h_steps'))",
+    "body": "g1 (36 command-dim tokens, bodies.g1_simple, vocab g1-dim-rel-v1)",
+    "task": "keyframe 0 (static pose, no policy)",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "simulator keyframe (no controller, no motion)",
+    "not_drawn": "finger and base dims have no link in the rendered model: they are tokens in the strip only",
+    "query": "l_elbow",
+    "query_assembly": "left_arm",
+    "site": "dims>knots (Psi0 system-0 Realizer)",
+    "K": 5,
+    "per_assembly": {
+     "left_hand": 1.0,
+     "right_hand": 0.0,
+     "left_arm": 1.0,
+     "right_arm": 0.0,
+     "torso": 1.0,
+     "base": 0.0
+    },
+    "n_allowed": 15,
+    "code_path": "FactorSite([{'name': 'route.assembly_reads', 'params': {'reads': [[True, False, True, False, False, False], [False, True, False, True, False, False], [True, False, True, False, True, False], [False, True, False, True, True, False], [False, False, True, True, True, True], [False, False, False, False, True, True]]}}], dims>knots).bias over dims/knots assembly_id (exactly psi0.nets.Realizer.forward's RelCtx)"
+   }
+  },
+  "route.own_assembly": {
+   "page": 1,
+   "row": 2,
+   "col": 0,
+   "family": "structure",
+   "status": "computed",
+   "caption": "route.own_assembly: system 0 (legged Realizer): a joint node reads only the packet knots of its own limb plus the body assembly. same x mask on assembly_id, params.also_key_field = body (preset legged-s0). Source: public morphology (LeggedMorph).",
+   "colour": "#4E9A5B",
+   "meta": {
+    "env": "mujoco/legged",
+    "body": "go2",
+    "task": "foothold_steps",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "reset state (no controller running); morphology = LeggedMorph (public), terrain = TerrainScan sensor model (public declared channel 0:terrain_scan)",
+    "ctx_layout": "[glob | joints | limbs | feet | terrain cells] (nets.legged_latent.legged_graph), padded to MAX_N / MAX_M",
+    "query": "node FL_calf",
+    "site": "act>knots",
+    "K": 4,
+    "allowed": [
+     "FL",
+     "body"
+    ],
+    "code_path": "FactorSite([route.own_assembly also_key_field=body], act>knots).bias over the RelCtx of LeggedRealizer._route_bias"
+   }
+  },
+  "geo.above": {
+   "page": 1,
+   "row": 0,
+   "col": 0,
+   "family": "geometry",
+   "status": "computed",
+   "caption": "geo.above: above / below along gravity: +1 for tokens (and surface points) higher than the query by > 1 cm, -1 lower, 0 in the dead zone (query: middle cube of a stack). order x bias on pos3d, axis +z, margin 0.01 m (w=1). Source: tracker pos3d (given).",
+   "colour": "#2BB3C0",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place cubes teleported into a 3-stack (Session.teleport_object, logged intervention) then 10 ticks of settling",
+    "seed": 3000001,
+    "tick": 10,
+    "phase": "pregrasp",
+    "scene_source": "figure-only intervention scene (Figure 2 panel 5's stack)",
+    "query": "yellow cube (middle)",
+    "row": {
+     "j1": 1.0,
+     "j2": 1.0,
+     "j3": 1.0,
+     "j4": 1.0,
+     "j5": 1.0,
+     "j6": 1.0,
+     "j7": 1.0,
+     "slide_a": 1.0,
+     "slide_b*": 1.0,
+     "asm:arm": 1.0,
+     "asm:gripper": 1.0,
+     "red cube": 1.0,
+     "green target zone": -1.0,
+     "blue cube": -1.0,
+     "yellow cube": 0.0,
+     "ev:grasp": -0.0,
+     "ev:place": -0.0,
+     "grasp.actor": -0.0,
+     "grasp.patient": -0.0,
+     "place.actor": -0.0,
+     "place.patient": -0.0,
+     "place.destination": -0.0,
+     "p:held_by": -0.0,
+     "p:in_region": -0.0,
+     "touch": -0.0,
+     "grip_w": -0.0
+    },
+    "code_path": "FactorSite(['geo.above']) ctx>ctx and ctx>pix .contributions -> OrderOp over pos3d (base frame), w=1"
+   }
+  },
+  "geo.depth3d": {
+   "page": 1,
+   "row": 0,
+   "col": 1,
+   "family": "geometry",
+   "status": "computed",
+   "caption": "geo.depth3d: PaPE over (u, v, depth) in the declared front camera; weight on depth only, so tokens at the query's depth score high. sqdiff+diff x aug on cam_uvd, a=(0,0,60), b=0 (learned). Source: projected tracker pos3d (given); default source = probe.",
+   "colour": "#2BB3C0",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "tick": 29,
+    "phase": "descend",
+    "scene_source": "scripted privileged teacher (PickPlaceTeacher) state, replayed from reset (Figure 2 scene)",
+    "camera": "cam_uvd w.r.t. the declared 'front' camera (looks along -x toward the robot); tile rendered from Figure 2's arm view",
+    "query": "red cube scene slot",
+    "coefficients": {
+     "a": [
+      0.0,
+      0.0,
+      60.0
+     ],
+     "b": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "g": 1.0,
+     "W_p": "I"
+    },
+    "token_values": {
+     "blue cube": -0.08766269355140821,
+     "yellow cube": -0.14473437934242384
+    },
+    "token_cam_uvd": {
+     "j1": [
+      -1.0580634636521758e-16,
+      0.42006567120552063,
+      1.259800672531128
+     ],
+     "j2": [
+      -1.0580634636521758e-16,
+      0.42006567120552063,
+      1.259800672531128
+     ],
+     "j3": [
+      -0.0032732232939451933,
+      0.9277572631835938,
+      1.0395265817642212
+     ],
+     "j4": [
+      -0.008702469058334827,
+      0.8710500001907349,
+      0.9804161190986633
+     ],
+     "j5": [
+      -0.028320850804448128,
+      0.12162785977125168,
+      0.9126831293106079
+     ],
+     "j6": [
+      -0.028320850804448128,
+      0.12162785977125168,
+      0.9126831293106079
+     ],
+     "j7": [
+      -0.039417073130607605,
+      0.04044712707400322,
+      0.8344962000846863
+     ],
+     "slide_a": [
+      -0.04494208097457886,
+      -0.2275867909193039,
+      0.9117197394371033
+     ],
+     "slide_b*": [
+      -0.02772444300353527,
+      -0.25481119751930237,
+      0.8917466998100281
+     ],
+     "asm:arm": [
+      -0.03719674050807953,
+      -0.16869424283504486,
+      0.88343745470047
+     ],
+     "asm:gripper": [
+      -0.03566843643784523,
+      -0.3126511871814728,
+      0.9206007719039917
+     ],
+     "red cube": [
+      -0.03456050157546997,
+      -0.4473748505115509,
+      0.956501841545105
+     ],
+     "green target zone": [
+      0.176631897687912,
+      -0.26872700452804565,
+      1.1309545040130615
+     ],
+     "blue cube": [
+      -0.3901784121990204,
+      -0.5219429731369019,
+      0.9182776808738708
+     ],
+     "yellow cube": [
+      -0.25782302021980286,
+      -0.3904135525226593,
+      1.0056153535842896
+     ]
+    },
+    "closed_form_max_abs_err": 6.155453036171821e-06,
+    "code_path": "ctx pos3d (base frame) -> world -> nets.batch.attach_cam_uvd(front) -> PaPE kernel (make_figures.pape_values = FactorSite contributions); pixels: project_points of ray-cast surface points"
+   }
+  },
+  "geo.normal_align": {
+   "page": 1,
+   "row": 0,
+   "col": 2,
+   "family": "geometry",
+   "status": "computed",
+   "caption": "geo.normal_align: query direction b vs each token's contact normal (arrows: outward normal, mean over the token's contacts). align x aug, world frame, b=(0,0,1) (learned per head). Source: gt contact_normal (sim truth, training-only); deployed = probe.",
+   "colour": "#2BB3C0",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "tick": 58,
+    "phase": "lift",
+    "scene_source": "scripted privileged teacher (PickPlaceTeacher) state, replayed from reset (Figure 2 scene)",
+    "query": "gripper (query side reads only b in the world frame)",
+    "b": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "normals": {
+     "cube": [
+      -0.03669242916001362,
+      0.1327945855305219,
+      0.9904641657809303
+     ],
+     "target": null,
+     "obj:distractor0": [
+      0.0,
+      0.0,
+      -1.0
+     ],
+     "obj:distractor1": [
+      0.0,
+      0.0,
+      -1.0
+     ],
+     "gripper": [
+      0.03669242916001362,
+      -0.1327945855305219,
+      -0.9904641657809303
+     ]
+    },
+    "row": {
+     "cube": 0.9904641509056091,
+     "target": 0.0,
+     "obj:distractor0": -1.0,
+     "obj:distractor1": -1.0,
+     "gripper": -0.9904641509056091
+    },
+    "note": "the arm family fills no public `normal` field: resolve() accepts this factor only with source probe or gt",
+    "code_path": "relgen LABELS['contact_normal'] -> TokenSet.labels; FactorSite([{'name':'geo.normal_align','source':'gt'}]).contributions -> AlignOp"
+   }
+  },
+  "geo.orient": {
+   "page": 1,
+   "row": 0,
+   "col": 3,
+   "family": "geometry",
+   "status": "computed",
+   "caption": "geo.orient: relative rotation between token frames: tr(R_i^T R_j) = 1 + 2 cos(angle) (axes: x red, y green, z blue). rel_rot x aug, B = I (learned per head). Source: gt orient label (sim truth, training-only); deployed = probe estimate (object frames are not tracked).",
+   "colour": "#2BB3C0",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "tick": 29,
+    "phase": "descend",
+    "scene_source": "scripted privileged teacher (PickPlaceTeacher) state, replayed from reset (Figure 2 scene)",
+    "query": "cube",
+    "source": "gt (relgen LABELS['orient'], privileged); arm ctx fills `orient` publicly only on assembly tokens",
+    "row": {
+     "cube": 3.0,
+     "target": 2.871691942214966,
+     "obj:distractor0": 2.8142764568328857,
+     "obj:distractor1": 2.982456922531128,
+     "gripper": -0.9999791383743286
+    },
+    "check": "== trace(R_i^T R_j) (asserted)",
+    "code_path": "FactorSite([{'name':'geo.orient','source':'gt'}], ctx>ctx).contributions -> RelRotOp, B bias = I, weights 0"
+   }
+  },
+  "geo.pos3d": {
+   "page": 1,
+   "row": 1,
+   "col": 0,
+   "family": "geometry",
+   "status": "computed",
+   "caption": "geo.pos3d: PaPE relative-position term: tokens near and below the gripper score high; heat = the term at every surface point. sqdiff+diff x aug, a=30, b=(0,0,-8), W_p=I (learned per head). Source: public FK + tracker pos3d (given).",
+   "colour": "#2BB3C0",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "tick": 29,
+    "phase": "descend",
+    "scene_source": "scripted privileged teacher (PickPlaceTeacher) state, replayed from reset (Figure 2 scene)",
+    "query": "asm:gripper (TCP frame token)",
+    "coefficients": {
+     "a": [
+      30.0,
+      30.0,
+      30.0
+     ],
+     "b": [
+      0.0,
+      0.0,
+      -8.0
+     ],
+     "g": 1.0,
+     "W_p": "I"
+    },
+    "token_values": {
+     "red cube": 0.45204439471067737,
+     "green target zone": -0.9568792312353676,
+     "blue cube": -0.4544273345678871,
+     "yellow cube": -0.028461548587662477
+    },
+    "closed_form_max_abs_err": 2.617702511420461e-07,
+    "pixel": {
+     "min": -14.36147794415651,
+     "max": 0.49198713610472034
+    },
+    "code_path": "nets.batch.ctx_geometry_fields pos3d (base frame) -> make_figures.pape_values (FactorSite(['geo.pos3d']).contributions, asserted == closed form); pixels: mj_multiRay world points -> base frame"
+   }
+  },
+  "edge.foot_of": {
+   "page": 2,
+   "row": 0,
+   "col": 0,
+   "family": "kinematics",
+   "status": "computed",
+   "caption": "edge.foot_of: a limb token attends to its own foot token (feet exist only on foot-carrying assemblies; limbs drawn at hips, feet at foot sites). edge x bias at ctx>ctx (legged-rel-v1; w=1). Source: public morphology (LeggedMorph).",
+   "colour": "#3A3F47",
+   "meta": {
+    "env": "mujoco/legged",
+    "body": "go2",
+    "task": "foothold_steps",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "reset state (no controller running); morphology = LeggedMorph (public), terrain = TerrainScan sensor model (public declared channel 0:terrain_scan)",
+    "ctx_layout": "[glob | joints | limbs | feet | terrain cells] (nets.legged_latent.legged_graph), padded to MAX_N / MAX_M",
+    "query": "limb FR",
+    "n_edges": 4,
+    "code_path": "legged_graph ctx>ctx; FactorSite(['edge.foot_of']).contributions, w=1"
+   }
+  },
+  "edge.limb_adjacent": {
+   "page": 2,
+   "row": 0,
+   "col": 1,
+   "family": "kinematics",
+   "status": "computed",
+   "caption": "edge.limb_adjacent: a limb token attends to the other limbs of the same kind on the trunk (all four legs; tokens drawn at their hips). edge x bias at ctx>ctx (legged-rel-v1, symmetric; w=1). Source: public morphology (LeggedMorph).",
+   "colour": "#3A3F47",
+   "meta": {
+    "env": "mujoco/legged",
+    "body": "go2",
+    "task": "foothold_steps",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "reset state (no controller running); morphology = LeggedMorph (public), terrain = TerrainScan sensor model (public declared channel 0:terrain_scan)",
+    "ctx_layout": "[glob | joints | limbs | feet | terrain cells] (nets.legged_latent.legged_graph), padded to MAX_N / MAX_M",
+    "query": "limb FL",
+    "row": {
+     "FL": 0.0,
+     "FR": 1.0,
+     "RL": 1.0,
+     "RR": 1.0,
+     "body": 0.0
+    },
+    "drawn_at": "limb tokens drawn at their hip joint anchor (their pos3d field is the default foot position)",
+    "code_path": "legged_graph ctx>ctx; FactorSite(['edge.limb_adjacent']).contributions, w=1"
+   }
+  },
+  "edge.over_cell": {
+   "page": 2,
+   "row": 0,
+   "col": 2,
+   "family": "kinematics",
+   "status": "computed",
+   "caption": "edge.over_cell: a foot token attends to the terrain-scan cells of its landing window (0.05 m behind to 0.35 m ahead, +-0.15 m aside of its default stance, body frame). edge x bias at ctx>ctx (legged-rel-v1; w=1). Source: public morphology + public terrain scan.",
+   "colour": "#3A3F47",
+   "meta": {
+    "env": "mujoco/legged",
+    "body": "go2",
+    "task": "foothold_steps",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "reset state (no controller running); morphology = LeggedMorph (public), terrain = TerrainScan sensor model (public declared channel 0:terrain_scan)",
+    "ctx_layout": "[glob | joints | limbs | feet | terrain cells] (nets.legged_latent.legged_graph), padded to MAX_N / MAX_M",
+    "query": "foot FL",
+    "n_cells_in_window": 12,
+    "cells_per_foot": [
+     12,
+     12,
+     6,
+     6
+    ],
+    "scan_valid": 75,
+    "scan_cells": 77,
+    "code_path": "legged_graph (scan_xy, OVER_CELL_DX/DY, default stance foot_xy) ctx>ctx; FactorSite(['edge.over_cell']).contributions, w=1"
+   }
+  },
+  "edge.kin_child": {
+   "page": 2,
+   "row": 0,
+   "col": 3,
+   "family": "kinematics",
+   "status": "computed",
+   "caption": "edge.kin_child: a command dim attends to its kinematic children (waist pitch -> both shoulder pitches). edge x bias at dims>dims (channel kin_child; w=1). Source: public morphology (bodies.g1_simple).",
+   "colour": "#3A3F47",
+   "meta": {
+    "env": "mujoco/humanoid (rrp.envs.mujoco.humanoid_scenes.task_model('g1','h_steps'))",
+    "body": "g1 (36 command-dim tokens, bodies.g1_simple, vocab g1-dim-rel-v1)",
+    "task": "keyframe 0 (static pose, no policy)",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "simulator keyframe (no controller, no motion)",
+    "not_drawn": "finger and base dims have no link in the rendered model: they are tokens in the strip only",
+    "query": "waist_pitch",
+    "site": "dims>dims",
+    "keys": [
+     "l_shoulder_pitch",
+     "r_shoulder_pitch"
+    ],
+    "n_edges_total": 35,
+    "note": null,
+    "code_path": "FactorSite(['edge.kin_child'], dims>dims).contributions over RelCtx edges = bodies.g1_simple.relation_matrix(); weight 1"
+   }
+  },
+  "edge.mirror": {
+   "page": 2,
+   "row": 1,
+   "col": 0,
+   "family": "kinematics",
+   "status": "computed",
+   "caption": "edge.mirror: a command dim attends to its left/right homologue (grey lines: every mirror pair of the body). edge x bias at dims>dims (channel mirror; w=1). Source: public morphology (bodies.g1_simple).",
+   "colour": "#3A3F47",
+   "meta": {
+    "env": "mujoco/humanoid (rrp.envs.mujoco.humanoid_scenes.task_model('g1','h_steps'))",
+    "body": "g1 (36 command-dim tokens, bodies.g1_simple, vocab g1-dim-rel-v1)",
+    "task": "keyframe 0 (static pose, no policy)",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "simulator keyframe (no controller, no motion)",
+    "not_drawn": "finger and base dims have no link in the rendered model: they are tokens in the strip only",
+    "query": "l_elbow",
+    "site": "dims>dims",
+    "keys": [
+     "r_elbow"
+    ],
+    "n_edges_total": 28,
+    "note": null,
+    "code_path": "FactorSite(['edge.mirror'], dims>dims).contributions over RelCtx edges = bodies.g1_simple.relation_matrix(); weight 1"
+   }
+  },
+  "edge.kin_parent": {
+   "page": 2,
+   "row": 1,
+   "col": 1,
+   "family": "kinematics",
+   "status": "computed",
+   "caption": "edge.kin_parent: a joint token attends to its kinematic parent joint (grey: every parent edge of the four legs). edge x bias at ctx>ctx (legged-rel-v1, from the per-assembly depth chain; w=1). Source: public morphology (LeggedMorph).",
+   "colour": "#3A3F47",
+   "meta": {
+    "env": "mujoco/legged",
+    "body": "go2",
+    "task": "foothold_steps",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "reset state (no controller running); morphology = LeggedMorph (public), terrain = TerrainScan sensor model (public declared channel 0:terrain_scan)",
+    "ctx_layout": "[glob | joints | limbs | feet | terrain cells] (nets.legged_latent.legged_graph), padded to MAX_N / MAX_M",
+    "query": "joint FL_calf",
+    "parents": [
+     "FL_thigh"
+    ],
+    "site": "ctx>ctx",
+    "n_edges": 8,
+    "code_path": "legged_graph -> EdgeSet ctx>ctx; FactorSite(['edge.kin_parent']).contributions, w=1"
+   }
+  },
+  "kin.ancestor": {
+   "page": 2,
+   "row": 1,
+   "col": 2,
+   "family": "kinematics",
+   "status": "computed",
+   "caption": "kin.ancestor: a joint token attends to every joint up its kinematic chain (transitive closure of kin_parent; grey arrows: the parent edges). ancestor (closure) x bias at ctx>ctx (arm-rel-v1; w=1). Source: public morphology (featurizer).",
+   "colour": "#3A3F47",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "tick": 29,
+    "phase": "descend",
+    "scene_source": "scripted privileged teacher (PickPlaceTeacher) state, replayed from reset (Figure 2 scene)",
+    "query": "morph joint token j7",
+    "ancestors": [
+     "j1",
+     "j2",
+     "j3",
+     "j4",
+     "j5",
+     "j6"
+    ],
+    "code_path": "FactorSite(['kin.ancestor'], ctx>ctx).contributions -> ClosureOp over arm-rel-v1 kin_parent, w=1"
+   }
+  },
+  "kin.sibling": {
+   "page": 2,
+   "row": 1,
+   "col": 3,
+   "family": "kinematics",
+   "status": "computed",
+   "caption": "kin.sibling: dims at undirected tree distance 2: the sibling (r_shoulder_pitch) and, by the same op, grandparent and grandchild. hop x bias over the symmetrized kin_parent graph (hops=2; w=1). Source: public morphology (bodies.g1_simple).",
+   "colour": "#3A3F47",
+   "meta": {
+    "env": "mujoco/humanoid (rrp.envs.mujoco.humanoid_scenes.task_model('g1','h_steps'))",
+    "body": "g1 (36 command-dim tokens, bodies.g1_simple, vocab g1-dim-rel-v1)",
+    "task": "keyframe 0 (static pose, no policy)",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "simulator keyframe (no controller, no motion)",
+    "not_drawn": "finger and base dims have no link in the rendered model: they are tokens in the strip only",
+    "query": "l_shoulder_pitch",
+    "site": "dims>dims",
+    "keys": [
+     "l_shoulder_yaw",
+     "r_shoulder_pitch",
+     "waist_roll"
+    ],
+    "n_edges_total": 94,
+    "note": "hop op lights grandparent / grandchild pairs at the same undirected distance (catalog doc)",
+    "code_path": "FactorSite(['kin.sibling'], dims>dims).contributions over RelCtx edges = bodies.g1_simple.relation_matrix(); weight 1"
+   }
+  },
+  "ix.contact": {
+   "page": 2,
+   "row": 0,
+   "col": 0,
+   "family": "interaction",
+   "status": "computed (label)",
+   "caption": "ix.contact: two entities in geometric contact (sim contact truth): query gripper → cube 1, distractors / target 0. White dots: the gripper–cube contact points. bilinear × aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "scene_source": "scripted privileged PickPlaceTeacher, replayed from reset",
+    "tick": 40,
+    "phase": "close",
+    "query": "gripper",
+    "label": "contact_pairs",
+    "values": {
+     "cube": 1.0,
+     "target": 0.0,
+     "obj:distractor0": 0.0,
+     "obj:distractor1": 0.0,
+     "gripper": 0.0
+    },
+    "badge": "shown: gt label (training-only); deployed: estimated-probe",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "ix.force_flow": {
+   "page": 2,
+   "row": 0,
+   "col": 1,
+   "family": "interaction",
+   "status": "computed",
+   "caption": "ix.force_flow: transitive closure of the support graph: everything the query carries, directly or through others. Bottom cube → middle 1 and top 1 (direct edge only to the middle). Op: flow (closure) over support-v1. flow × bias. Source: shown: closure of gt support (training-only); deployed: closure of the ix.support estimated-probe.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place cubes teleported into a 3-stack (Session.teleport_object; logged intervention), 10 settle ticks under the scripted teacher",
+    "seed": 3000001,
+    "tick": 10,
+    "stack_bottom_to_top": [
+     "obj:distractor0",
+     "obj:distractor1",
+     "cube"
+    ],
+    "query": "obj:distractor0",
+    "flow_row": {
+     "cube": 1.0,
+     "target": 0.0,
+     "obj:distractor0": 0.0,
+     "obj:distractor1": 1.0,
+     "gripper": 0.0
+    },
+    "code_path": "FactorSite([{ix.force_flow, source: gt}]).contributions -> ClosureOp over rc.edges['ctx>ctx#support-v1@gt'] (relgen support_pairs); asserted == relgen support_closure",
+    "closure_check": "flow == support_closure for all pairs",
+    "badge": "shown: closure of gt support (training-only); deployed: closure of the ix.support estimated-probe",
+    "scene": "TELEPORTED STACK (figure-only)"
+   }
+  },
+  "ix.handover": {
+   "page": 2,
+   "row": 0,
+   "col": 2,
+   "family": "interaction",
+   "status": "computed (label)",
+   "caption": "ix.handover: two manipulator assemblies in contact with the same object at once (a handover in progress): query L grip → R grip 1, bar / target 0. Dots: bar contacts of each hand. Dual env only. bilinear × aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 162,
+    "phase": "{'left': 'l_hold', 'right': 'r_close'}",
+    "query": "left",
+    "label": "handover_pairs",
+    "values": {
+     "bar": 0.0,
+     "target": 0.0,
+     "left": 0.0,
+     "right": 1.0
+    },
+    "scene_source": "scripted privileged HandoverTeacher",
+    "badge": "shown: gt label (training-only); deployed: estimated-probe",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "ix.held_by": {
+   "page": 2,
+   "row": 0,
+   "col": 3,
+   "family": "interaction",
+   "status": "computed (label)",
+   "caption": "ix.held_by: object held by a manipulator assembly (≥ 2 contacts with its hand bodies): lifted cube → gripper 1; target and distractors 0. bilinear × aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "scene_source": "scripted privileged PickPlaceTeacher, replayed from reset",
+    "tick": 58,
+    "phase": "lift",
+    "query": "cube",
+    "label": "held_pairs",
+    "cube_z": 0.1377439018087784,
+    "values": {
+     "cube": 0.0,
+     "target": 0.0,
+     "obj:distractor0": 0.0,
+     "obj:distractor1": 0.0,
+     "gripper": 1.0
+    },
+    "badge": "shown: gt label (training-only); deployed: estimated-probe",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "ix.support": {
+   "page": 2,
+   "row": 1,
+   "col": 0,
+   "family": "interaction",
+   "status": "computed (label)",
+   "caption": "ix.support: a supports b: contact + contact normal within 30° of gravity-up at a's top. Query middle cube → top 1 (row); it is itself supported by the bottom cube (grey arrow, column). Emits the estimated support-v1 graph. bilinear × aug (probe, emits). Source: shown: gt label (training-only); deployed: estimated-probe.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place cubes teleported into a 3-stack (Session.teleport_object; logged intervention), 10 settle ticks under the scripted teacher",
+    "seed": 3000001,
+    "tick": 10,
+    "stack_bottom_to_top": [
+     "obj:distractor0",
+     "obj:distractor1",
+     "cube"
+    ],
+    "query": "obj:distractor1",
+    "label": "support_pairs",
+    "row": {
+     "cube": 1.0,
+     "target": 0.0,
+     "obj:distractor0": 0.0,
+     "obj:distractor1": 0.0,
+     "gripper": 0.0
+    },
+    "column": {
+     "cube": 0.0,
+     "target": 0.0,
+     "obj:distractor0": 1.0,
+     "obj:distractor1": 0.0,
+     "gripper": 0.0
+    },
+    "badge": "shown: gt label (training-only); deployed: estimated-probe",
+    "scene": "TELEPORTED STACK (figure-only)"
+   }
+  },
+  "edge.actor_of": {
+   "page": 3,
+   "row": 0,
+   "col": 0,
+   "family": "task",
+   "status": "computed",
+   "caption": "edge.actor_of: manipulator entity ↔ every event it is (cooperating) actor of; L grip acts in take, offer, release. Typed edge channel of the arm-rel-v1 graph, one learned weight per head. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 75,
+    "phase": "{'left': 'l_close', 'right': 'r_wait'}",
+    "scene_source": "scripted privileged HandoverTeacher, replayed from reset",
+    "code_path": "MultiFeaturizer(session.observe()) -> collate_inputs -> RelCtx{ctx>ctx: EdgeSet(arm-rel-v1, ctx_rel)} -> FactorSite([edge.X]).contributions (w=1); asserted == ctx_rel channel",
+    "query": "left",
+    "keys": {
+     "take": 1.0,
+     "offer": 1.0,
+     "release": 1.0
+    },
+    "n_nonzero": 3,
+    "n_tokens": 51,
+    "badge": "public (given): supplied task graph + runtime",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "edge.consumed_by": {
+   "page": 3,
+   "row": 0,
+   "col": 1,
+   "family": "task",
+   "status": "computed",
+   "caption": "edge.consumed_by: runtime receipt ↔ the event whose output-binding role consumes it: offer.anchor is consumed by receive. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 75,
+    "phase": "{'left': 'l_close', 'right': 'r_wait'}",
+    "scene_source": "scripted privileged HandoverTeacher, replayed from reset",
+    "code_path": "MultiFeaturizer(session.observe()) -> collate_inputs -> RelCtx{ctx>ctx: EdgeSet(arm-rel-v1, ctx_rel)} -> FactorSite([edge.X]).contributions (w=1); asserted == ctx_rel channel",
+    "query": "offer.anchor",
+    "keys": {
+     "receive": 1.0
+    },
+    "n_nonzero": 1,
+    "n_tokens": 51,
+    "badge": "public (given): supplied task graph + runtime",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "edge.destination_of": {
+   "page": 3,
+   "row": 0,
+   "col": 2,
+   "family": "task",
+   "status": "computed",
+   "caption": "edge.destination_of: destination entity ↔ event: the right gripper is where 'offer' and 'release' deliver the bar (target zone is place's destination). edge × bias. Source: public (given): supplied task graph + runtime.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 75,
+    "phase": "{'left': 'l_close', 'right': 'r_wait'}",
+    "scene_source": "scripted privileged HandoverTeacher, replayed from reset",
+    "code_path": "MultiFeaturizer(session.observe()) -> collate_inputs -> RelCtx{ctx>ctx: EdgeSet(arm-rel-v1, ctx_rel)} -> FactorSite([edge.X]).contributions (w=1); asserted == ctx_rel channel",
+    "query": "right",
+    "keys": {
+     "offer": 1.0,
+     "release": 1.0
+    },
+    "n_nonzero": 2,
+    "n_tokens": 51,
+    "badge": "public (given): supplied task graph + runtime",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "edge.enables": {
+   "page": 3,
+   "row": 0,
+   "col": 3,
+   "family": "task",
+   "status": "computed",
+   "caption": "edge.enables: event → event it requires COMPLETED (requires_completed): release needs receive and offer done. Public task-graph precedence. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 75,
+    "phase": "{'left': 'l_close', 'right': 'r_wait'}",
+    "scene_source": "scripted privileged HandoverTeacher, replayed from reset",
+    "code_path": "MultiFeaturizer(session.observe()) -> collate_inputs -> RelCtx{ctx>ctx: EdgeSet(arm-rel-v1, ctx_rel)} -> FactorSite([edge.X]).contributions (w=1); asserted == ctx_rel channel",
+    "query": "release",
+    "keys": {
+     "offer": 1.0,
+     "receive": 1.0
+    },
+    "n_nonzero": 2,
+    "n_tokens": 51,
+    "badge": "public (given): supplied task graph + runtime",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "edge.maintained": {
+   "page": 3,
+   "row": 1,
+   "col": 0,
+   "family": "task",
+   "status": "computed",
+   "caption": "edge.maintained: event → event it requires ACTIVE (requires_active): receive is only valid while offer is held. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 75,
+    "phase": "{'left': 'l_close', 'right': 'r_wait'}",
+    "scene_source": "scripted privileged HandoverTeacher, replayed from reset",
+    "code_path": "MultiFeaturizer(session.observe()) -> collate_inputs -> RelCtx{ctx>ctx: EdgeSet(arm-rel-v1, ctx_rel)} -> FactorSite([edge.X]).contributions (w=1); asserted == ctx_rel channel",
+    "query": "receive",
+    "keys": {
+     "offer": 1.0
+    },
+    "n_nonzero": 1,
+    "n_tokens": 51,
+    "badge": "public (given): supplied task graph + runtime",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "edge.node_actor_of": {
+   "page": 3,
+   "row": 1,
+   "col": 1,
+   "family": "task",
+   "status": "computed",
+   "caption": "edge.node_actor_of: action node (one joint-command token) → every event its manipulator acts in: a 2-hop composition node → assembly → actor binding. Left-arm joint7 → take, offer, release. edge × bias (act>ctx). Source: public (given): supplied task graph + runtime.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 75,
+    "phase": "{'left': 'l_close', 'right': 'r_wait'}",
+    "scene_source": "scripted privileged HandoverTeacher, replayed from reset",
+    "code_path": "FactorSite('act>ctx', [edge.node_actor_of]).contributions over EdgeSet(arm-rel-v1, batch.act_rel); asserted == act_rel channel",
+    "site": "act>ctx",
+    "query": "r0:r0_joint7",
+    "keys": {
+     "take": 1.0,
+     "offer": 1.0,
+     "release": 1.0
+    },
+    "badge": "public (given): supplied task graph + runtime",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "edge.output_to": {
+   "page": 3,
+   "row": 1,
+   "col": 2,
+   "family": "task",
+   "status": "computed",
+   "caption": "edge.output_to: event ↔ event consuming its output: receive's reference role binds offer's 'anchor' output (event_output binding). edge × bias. Source: public (given): supplied task graph + runtime.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 75,
+    "phase": "{'left': 'l_close', 'right': 'r_wait'}",
+    "scene_source": "scripted privileged HandoverTeacher, replayed from reset",
+    "code_path": "MultiFeaturizer(session.observe()) -> collate_inputs -> RelCtx{ctx>ctx: EdgeSet(arm-rel-v1, ctx_rel)} -> FactorSite([edge.X]).contributions (w=1); asserted == ctx_rel channel",
+    "query": "receive",
+    "keys": {
+     "offer": 1.0
+    },
+    "n_nonzero": 1,
+    "n_tokens": 51,
+    "badge": "public (given): supplied task graph + runtime",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "edge.patient_of": {
+   "page": 3,
+   "row": 1,
+   "col": 3,
+   "family": "task",
+   "status": "computed",
+   "caption": "edge.patient_of: patient entity ↔ the events that act on it: the bar is the patient of all five handover events (take, offer, receive, release, place). edge × bias. Source: public (given): supplied task graph + runtime.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 75,
+    "phase": "{'left': 'l_close', 'right': 'r_wait'}",
+    "scene_source": "scripted privileged HandoverTeacher, replayed from reset",
+    "code_path": "MultiFeaturizer(session.observe()) -> collate_inputs -> RelCtx{ctx>ctx: EdgeSet(arm-rel-v1, ctx_rel)} -> FactorSite([edge.X]).contributions (w=1); asserted == ctx_rel channel",
+    "query": "bar",
+    "keys": {
+     "take": 1.0,
+     "offer": 1.0,
+     "receive": 1.0,
+     "release": 1.0,
+     "place": 1.0
+    },
+    "n_nonzero": 5,
+    "n_tokens": 51,
+    "badge": "public (given): supplied task graph + runtime",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "edge.pred_arg": {
+   "page": 3,
+   "row": 2,
+   "col": 0,
+   "family": "task",
+   "status": "computed",
+   "caption": "edge.pred_arg: predicate-estimate token ↔ its argument entities: held_by(bar, left) points at the bar slot and the left-gripper assembly. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 75,
+    "phase": "{'left': 'l_close', 'right': 'r_wait'}",
+    "scene_source": "scripted privileged HandoverTeacher, replayed from reset",
+    "code_path": "MultiFeaturizer(session.observe()) -> collate_inputs -> RelCtx{ctx>ctx: EdgeSet(arm-rel-v1, ctx_rel)} -> FactorSite([edge.X]).contributions (w=1); asserted == ctx_rel channel",
+    "query": "held_by(bar,left)",
+    "keys": {
+     "left": 1.0,
+     "bar": 1.0
+    },
+    "n_nonzero": 2,
+    "n_tokens": 51,
+    "badge": "public (given): supplied task graph + runtime",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "edge.produced": {
+   "page": 3,
+   "row": 2,
+   "col": 1,
+   "family": "task",
+   "status": "computed",
+   "caption": "edge.produced: runtime receipt ↔ the event that produced it: the 'anchor' receipt (interact bank) was emitted by offer. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 75,
+    "phase": "{'left': 'l_close', 'right': 'r_wait'}",
+    "scene_source": "scripted privileged HandoverTeacher, replayed from reset",
+    "code_path": "MultiFeaturizer(session.observe()) -> collate_inputs -> RelCtx{ctx>ctx: EdgeSet(arm-rel-v1, ctx_rel)} -> FactorSite([edge.X]).contributions (w=1); asserted == ctx_rel channel",
+    "query": "offer.anchor",
+    "keys": {
+     "offer": 1.0
+    },
+    "n_nonzero": 1,
+    "n_tokens": 51,
+    "badge": "public (given): supplied task graph + runtime",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "edge.role_in_event": {
+   "page": 3,
+   "row": 2,
+   "col": 2,
+   "family": "task",
+   "status": "computed",
+   "caption": "edge.role_in_event: role-slot token ↔ its event: receive owns four ordered role slots (actor, patient, source, reference); multiplicity is explicit. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 75,
+    "phase": "{'left': 'l_close', 'right': 'r_wait'}",
+    "scene_source": "scripted privileged HandoverTeacher, replayed from reset",
+    "code_path": "MultiFeaturizer(session.observe()) -> collate_inputs -> RelCtx{ctx>ctx: EdgeSet(arm-rel-v1, ctx_rel)} -> FactorSite([edge.X]).contributions (w=1); asserted == ctx_rel channel",
+    "query": "receive",
+    "keys": {
+     "receive:actor": 1.0,
+     "receive:patient": 1.0,
+     "receive:source": 1.0,
+     "receive:reference": 1.0
+    },
+    "n_nonzero": 4,
+    "n_tokens": 51,
+    "badge": "public (given): supplied task graph + runtime",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "edge.role_points_to": {
+   "page": 3,
+   "row": 2,
+   "col": 3,
+   "family": "task",
+   "status": "computed",
+   "caption": "edge.role_points_to: role-slot token → the entity token it is bound to: receive:source → left-gripper assembly (an output binding points to no entity). edge × bias. Source: public (given): supplied task graph + runtime.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 75,
+    "phase": "{'left': 'l_close', 'right': 'r_wait'}",
+    "scene_source": "scripted privileged HandoverTeacher, replayed from reset",
+    "code_path": "MultiFeaturizer(session.observe()) -> collate_inputs -> RelCtx{ctx>ctx: EdgeSet(arm-rel-v1, ctx_rel)} -> FactorSite([edge.X]).contributions (w=1); asserted == ctx_rel channel",
+    "query": "receive:source",
+    "keys": {
+     "left": 1.0
+    },
+    "n_nonzero": 1,
+    "n_tokens": 51,
+    "badge": "public (given): supplied task graph + runtime",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "edge.support_of": {
+   "page": 3,
+   "row": 3,
+   "col": 0,
+   "family": "task",
+   "status": "illustrative",
+   "caption": "edge.support_of: support-role entity ↔ event: the left arm braces the fixture during align. ILLUSTRATIVE: no shipped arm/dual graph binds a support role to an entity; align:support rebound to 'left' (figure-only). edge × bias. Source: illustrative: public edge on a figure-only task-graph variant.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "support_insert (task graph EDITED: align:support -> entity left)",
+    "seed": 0,
+    "tick": 60,
+    "phase": "{'left': 'l_descend', 'right': 'r_pre'}",
+    "query": "left",
+    "keys": {
+     "align": 1.0
+    },
+    "why_illustrative": "no shipped arm/dual task graph binds role 'support' to an entity; only humanoid graphs do (crate), whose net family uses legged-rel-v1, not arm-rel-v1",
+    "badge": "illustrative: public edge on a figure-only task-graph variant",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "edge.target_of": {
+   "page": 3,
+   "row": 3,
+   "col": 1,
+   "family": "task",
+   "status": "computed",
+   "caption": "edge.target_of: target entity (and every role without its own channel, here receive:source) ↔ event: the left gripper is the source of 'receive'. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/dual",
+    "body": "panda_pg2__ur5e_pg2",
+    "task": "handover",
+    "seed": 0,
+    "tick": 75,
+    "phase": "{'left': 'l_close', 'right': 'r_wait'}",
+    "scene_source": "scripted privileged HandoverTeacher, replayed from reset",
+    "code_path": "MultiFeaturizer(session.observe()) -> collate_inputs -> RelCtx{ctx>ctx: EdgeSet(arm-rel-v1, ctx_rel)} -> FactorSite([edge.X]).contributions (w=1); asserted == ctx_rel channel",
+    "query": "left",
+    "keys": {
+     "receive": 1.0
+    },
+    "n_nonzero": 1,
+    "n_tokens": 51,
+    "badge": "public (given): supplied task graph + runtime",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "task.next_contact": {
+   "page": 3,
+   "row": 3,
+   "col": 2,
+   "family": "task",
+   "status": "computed (label)",
+   "caption": "task.next_contact: manipulator → graspable score, sharpened by the task gate (g_task = 1.00 at init, learned). Dashed: PUBLIC candidate edges (1/|E|); solid: selected (gt reveal posterior given contact). bilinear × aug, gated. Source: candidates: public; selected: gt (training-only); deployed: estimated-probe × g_task.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "tick": 40,
+    "phase": "close",
+    "query": "0:touch",
+    "candidates": {
+     "cube": 0.25,
+     "target": 0.25,
+     "distractor0": 0.25,
+     "distractor1": 0.25
+    },
+    "posterior": {
+     "cube": 1.0,
+     "target": 0.0,
+     "distractor0": 0.0,
+     "distractor1": 0.0
+    },
+    "next_contact_label_now": {
+     "cube": 1.0,
+     "target": 0.0,
+     "obj:distractor0": 0.0,
+     "obj:distractor1": 0.0,
+     "gripper": 0.0
+    },
+    "gate_text": "grasp(actor=gripper, patient=cube)",
+    "gate_value_at_init": 1.0,
+    "code_path": "nets.batch.candidate_interaction_edges (public, graspable row of the sensor token); relgen.task.next_contact_sample(default contact-truth evidence) -> TRANSFORMS['reveal'](schedule=[0]); gate = FactorSite._gate = 2*sigmoid(u·task + b) = 1 at init",
+    "badge": "candidates: public; selected: gt (training-only); deployed: estimated-probe × g_task",
+    "scene": "SCRIPTED TEACHER (privileged)"
+   }
+  },
+  "leg.com_support": {
+   "page": 3,
+   "row": 0,
+   "col": 0,
+   "family": "locomotion",
+   "status": "computed",
+   "caption": "leg.com_support: readout of the stability margin: signed planar distance of the COM projection to the stance-foot support polygon (m, + inside). readout (inert), address assembly, gauss (1-d). Source: gt sim truth (contacts), training-only.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "mujoco/legged",
+    "body": "go2",
+    "task": "waypoint_contact",
+    "seed": 3000001,
+    "sigma": 0.0,
+    "ticks": 435,
+    "tracker": "learned_tracker",
+    "teacher": "teacher:waypoint_contact",
+    "waypoints": {
+     "a": [
+      2.9631966914051513,
+      -0.29296339401337873
+     ],
+     "b": [
+      4.287421663945964,
+      0.5493371810771575
+     ]
+    },
+    "scene_source": "harness.data.legged_latent_collect.collect_episode (scripted waypoint teacher -> frozen go2 RL tracker), qpos replayed per 50 Hz tick",
+    "label_code": "legged_latent_train.LeggedData.labels math (numpy) on the collector arrays; goal = goal_columns(public context)",
+    "tick": 61,
+    "margin_m": -0.11064626342427247,
+    "stance_feet": [
+     "FL_calf",
+     "RL_calf",
+     "RR_calf"
+    ],
+    "note": "value = legged_collect.com_support(s) recorded per tick (= relgen.body.support_polygon_margin)",
+    "episode_status": "success"
+   }
+  },
+  "leg.foothold": {
+   "page": 3,
+   "row": 0,
+   "col": 1,
+   "family": "locomotion",
+   "status": "computed",
+   "caption": "leg.foothold: pair label: each swinging foot -> the terrain-scan cell containing its next touchdown (hindsight); planted feet have no true pair. op bilinear, form aug (the bias IS the pair probe). Source: gt label (future touchdown), training-only; deployed = estimated-probe.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "mujoco/legged",
+    "body": "go2",
+    "task": "waypoint_contact",
+    "seed": 3000001,
+    "sigma": 0.0,
+    "ticks": 435,
+    "tracker": "learned_tracker",
+    "teacher": "teacher:waypoint_contact",
+    "waypoints": {
+     "a": [
+      2.9631966914051513,
+      -0.29296339401337873
+     ],
+     "b": [
+      4.287421663945964,
+      0.5493371810771575
+     ]
+    },
+    "scene_source": "harness.data.legged_latent_collect.collect_episode (scripted waypoint teacher -> frozen go2 RL tracker), qpos replayed per 50 Hz tick",
+    "label_code": "legged_latent_train.LeggedData.labels math (numpy) on the collector arrays; goal = goal_columns(public context)",
+    "tick": 48,
+    "pairs": [
+     {
+      "foot": "FR_calf",
+      "cell": 23,
+      "ix": 3,
+      "iy": 2
+     },
+     {
+      "foot": "RL_calf",
+      "cell": 5,
+      "ix": 0,
+      "iy": 5
+     }
+    ],
+    "note": "arr['foothold_cell'] = legged_latent_collect.foothold_cells (the training form one-hot onto the 77 scan-cell ctx tokens by nets.legged_latent.legged_graph); terrain flat (waypoint_contact)",
+    "episode_status": "success"
+   }
+  },
+  "ui.above": {
+   "page": 4,
+   "row": 0,
+   "col": 0,
+   "family": "ui",
+   "status": "computed",
+   "caption": "ui.above: signed render order: +1 if widget j is drawn above i (higher dense z-layer), -1 below, 0 same layer; dark = +1 (resize handles, shell), light = -1 (window frame, desktop icon). op order over field zlayer, form bias (antisymmetric). Source: public (given widget tree).",
+   "colour": "#3A3F47",
+   "meta": {
+    "env": "computerworld (cw-site)",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "rendered ComputerWorld desktop at reset; no teacher, no policy",
+    "code_path": "FactorSite([factor]).contributions on RelCtx(ui_public_fields, ui_edges) of the public widget table; weights = 1",
+    "task": "cw/drag_window",
+    "query": {
+     "slot": 16,
+     "label": "5",
+     "zlayer": 2.0
+    },
+    "counts": {
+     "plus": 19,
+     "minus": 6,
+     "zero": 20
+    },
+    "widgets_per_layer": {
+     "0": 1,
+     "1": 5,
+     "2": 21,
+     "3": 8,
+     "4": 11
+    }
+   }
+  },
+  "ui.drag_to": {
+   "page": 4,
+   "row": 0,
+   "col": 1,
+   "family": "ui",
+   "status": "computed",
+   "caption": "ui.drag_to: pair label: the teacher's drag handle -> the nearest widget outside the dragged window to where the drag ends (cw/drag_window); 1 pair of 2116 valid. op bilinear, form aug (the bias IS the pair probe). Source: gt label (teacher goal), training-only; deployed = estimated-probe.",
+   "colour": "#3A3F47",
+   "meta": {
+    "env": "computerworld (cw-site)",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "rendered ComputerWorld desktop at reset; no teacher, no policy",
+    "code_path": "FactorSite([factor]).contributions on RelCtx(ui_public_fields, ui_edges) of the public widget table; weights = 1",
+    "task": "cw/drag_window",
+    "goal": {
+     "window": 0,
+     "start": [
+      125,
+      71
+     ],
+     "dx": -23,
+     "dy": 31
+    },
+    "drag": {
+     "src": "slot2:window:0:drag|button|Move Calculator",
+     "dst": "slot36:shell:panel:calendar|button|Open calendar and notifications",
+     "dest_px": [
+      457,
+      124
+     ],
+     "src_slot": 2,
+     "dst_slot": 36
+    },
+    "n_valid_pairs": 2116,
+    "n_true": 1,
+    "note": "relgen.ui.drag_to_fn via teacher_drag_view(env); the deployed term is the learned bilinear probe (NOT computed here)"
+   }
+  },
+  "ui.focus_next": {
+   "page": 4,
+   "row": 0,
+   "col": 2,
+   "family": "ui",
+   "status": "computed",
+   "caption": "ui.focus_next: public UI edge: i, j consecutive in the tab order (focusable, enabled widgets in scene order, cyclic); Name -> Email. op edge, form bias (edges:ui-rel-v1 channel focus_next). Source: public (given widget tree).",
+   "colour": "#3A3F47",
+   "meta": {
+    "env": "computerworld (cw-site)",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "rendered ComputerWorld desktop at reset; no teacher, no policy",
+    "code_path": "FactorSite([factor]).contributions on RelCtx(ui_public_fields, ui_edges) of the public widget table; weights = 1",
+    "task": "cw/fill_form",
+    "query": {
+     "slot": 23,
+     "label": "Name",
+     "role": "textbox"
+    },
+    "partners": [
+     27
+    ],
+    "tab_order_from_query": [
+     {
+      "slot": 23,
+      "label": "Name"
+     },
+     {
+      "slot": 27,
+      "label": "Email"
+     },
+     {
+      "slot": 28,
+      "label": "Submit"
+     },
+     {
+      "slot": 30,
+      "label": "Resize browser — http://form.internal/ n"
+     }
+    ]
+   }
+  },
+  "ui.label_for": {
+   "page": 4,
+   "row": 0,
+   "col": 3,
+   "family": "ui",
+   "status": "computed",
+   "caption": "ui.label_for: public UI edge: a role=label widget -> the next widget after it in the same window (scene order); here 'Email' -> its textbox. op edge, form bias (edges:ui-rel-v1 channel label_for). Source: public (given widget tree).",
+   "colour": "#3A3F47",
+   "meta": {
+    "env": "computerworld (cw-site)",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "rendered ComputerWorld desktop at reset; no teacher, no policy",
+    "code_path": "FactorSite([factor]).contributions on RelCtx(ui_public_fields, ui_edges) of the public widget table; weights = 1",
+    "task": "cw/fill_form",
+    "query": {
+     "slot": 24,
+     "role": "label",
+     "label": "Email",
+     "box": [
+      133,
+      258,
+      177,
+      277
+     ]
+    },
+    "partners": [
+     {
+      "slot": 27,
+      "label": "Email",
+      "role": "textbox"
+     }
+    ],
+    "row_stats": {
+     "min": 0.0,
+     "max": 1.0,
+     "nnz": 1
+    }
+   }
+  },
+  "ui.same_window": {
+   "page": 4,
+   "row": 1,
+   "col": 0,
+   "family": "ui",
+   "status": "computed",
+   "caption": "ui.same_window: 1 when two widgets belong to the same window (parent_id equality; shell items such as the tab strip have parent -1 and never match). op same over field parent_id, form bias. Source: public (given widget tree).",
+   "colour": "#3A3F47",
+   "meta": {
+    "env": "computerworld (cw-site)",
+    "seed": 3000001,
+    "tick": 0,
+    "scene_source": "rendered ComputerWorld desktop at reset; no teacher, no policy",
+    "code_path": "FactorSite([factor]).contributions on RelCtx(ui_public_fields, ui_edges) of the public widget table; weights = 1",
+    "task": "cw/fill_form",
+    "query": {
+     "slot": 23,
+     "label": "Name"
+    },
+    "n_same": 24,
+    "n_widgets": 51,
+    "same": [
+     1,
+     2,
+     6,
+     7,
+     8,
+     11,
+     12,
+     16,
+     18,
+     20,
+     23,
+     24,
+     27,
+     28,
+     30,
+     31,
+     32,
+     33,
+     34,
+     35,
+     36,
+     37,
+     41,
+     42
+    ]
+   }
+  },
+  "probe.arm.acting_on": {
+   "page": 4,
+   "row": 0,
+   "col": 0,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.arm.acting_on: readout of whether assembly a's hand links touch entity e (contact truth). readout (inert), address entity x assembly, bce. Source: gt sim truth (Session.truth held_by / contacts), training-only.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "episode_steps": 119,
+    "outcome": "success",
+    "slots": [
+     "cube",
+     "target_zone",
+     "distractor0",
+     "distractor1"
+    ],
+    "horizon_H": 16,
+    "scene_source": "scripted privileged PickPlaceTeacher episode via harness.data.collect._TeacherTrace (the real collection hook); state replayed per tick from qpos snapshots",
+    "label_code": "collect.privileged_labels -> chunks.episode_samples(H=16) -> packed._focus / derived.active_operator / latent_batch.goal_effect_from_batch",
+    "tick": 56,
+    "phase": "lift",
+    "query_assembly": "gripper",
+    "value": {
+     "cube": 1,
+     "target_zone": 0,
+     "distractor0": 0,
+     "distractor1": 0
+    }
+   }
+  },
+  "probe.arm.focused_on": {
+   "page": 4,
+   "row": 0,
+   "col": 1,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.arm.focused_on: readout of which entities a currently ACTIVE task event binds (active op 'place': cube + target). readout (inert), address entity, bce. Source: public label (task runtime status + bindings).",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "episode_steps": 119,
+    "outcome": "success",
+    "slots": [
+     "cube",
+     "target_zone",
+     "distractor0",
+     "distractor1"
+    ],
+    "horizon_H": 16,
+    "scene_source": "scripted privileged PickPlaceTeacher episode via harness.data.collect._TeacherTrace (the real collection hook); state replayed per tick from qpos snapshots",
+    "label_code": "collect.privileged_labels -> chunks.episode_samples(H=16) -> packed._focus / derived.active_operator / latent_batch.goal_effect_from_batch",
+    "tick": 63,
+    "phase": "transport",
+    "value": {
+     "cube": 1,
+     "target_zone": 1,
+     "distractor0": 0,
+     "distractor1": 0
+    },
+    "note": "packed._focus(pi): task event tokens with status active -> scene slots via relations 4/5/6 (patient/target/destination)"
+   }
+  },
+  "probe.arm.goal_effect": {
+   "page": 4,
+   "row": 0,
+   "col": 2,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.arm.goal_effect: readout of the displacement the task asks of each entity: destination minus patient for open events (cube -> target; others 0). readout (inert), address entity, gauss. Source: public label (task spec + public pose estimates).",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "episode_steps": 119,
+    "outcome": "success",
+    "slots": [
+     "cube",
+     "target_zone",
+     "distractor0",
+     "distractor1"
+    ],
+    "horizon_H": 16,
+    "scene_source": "scripted privileged PickPlaceTeacher episode via harness.data.collect._TeacherTrace (the real collection hook); state replayed per tick from qpos snapshots",
+    "label_code": "collect.privileged_labels -> chunks.episode_samples(H=16) -> packed._focus / derived.active_operator / latent_batch.goal_effect_from_batch",
+    "tick": 6,
+    "phase": "pregrasp",
+    "value_base_frame": {
+     "cube": [
+      -0.18425312638282776,
+      0.12183520942926407,
+      -0.02064185030758381
+     ],
+     "target_zone": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "distractor0": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "distractor1": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "note": "latent_batch.goal_effect_from_batch on collate_samples([sample]); arrow drawn cube -> target_zone (sim poses), numbers = label (base frame, public estimates)"
+   }
+  },
+  "probe.arm.held_by": {
+   "page": 4,
+   "row": 0,
+   "col": 3,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.arm.held_by: readout of whether entity e is held by assembly a (here gripper; cube 1, others 0). readout (inert), address entity x assembly, bce. Source: gt sim truth (Session.truth held_by / contacts), training-only.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "episode_steps": 119,
+    "outcome": "success",
+    "slots": [
+     "cube",
+     "target_zone",
+     "distractor0",
+     "distractor1"
+    ],
+    "horizon_H": 16,
+    "scene_source": "scripted privileged PickPlaceTeacher episode via harness.data.collect._TeacherTrace (the real collection hook); state replayed per tick from qpos snapshots",
+    "label_code": "collect.privileged_labels -> chunks.episode_samples(H=16) -> packed._focus / derived.active_operator / latent_batch.goal_effect_from_batch",
+    "tick": 56,
+    "phase": "lift",
+    "query_assembly": "gripper",
+    "value": {
+     "cube": 1,
+     "target_zone": 0,
+     "distractor0": 0,
+     "distractor1": 0
+    }
+   }
+  },
+  "probe.arm.looking_at": {
+   "page": 4,
+   "row": 1,
+   "col": 0,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.arm.looking_at: readout of each entity's angle off the front-camera optical axis (gaze label, degrees, scaled 1/30). readout (inert), address entity, mse. Source: gt sim truth (camera pose + body pose), training-only.",
+   "colour": "#2BB3C0",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "episode_steps": 119,
+    "outcome": "success",
+    "slots": [
+     "cube",
+     "target_zone",
+     "distractor0",
+     "distractor1"
+    ],
+    "horizon_H": 16,
+    "scene_source": "scripted privileged PickPlaceTeacher episode via harness.data.collect._TeacherTrace (the real collection hook); state replayed per tick from qpos snapshots",
+    "label_code": "collect.privileged_labels -> chunks.episode_samples(H=16) -> packed._focus / derived.active_operator / latent_batch.goal_effect_from_batch",
+    "tick": 6,
+    "phase": "pregrasp",
+    "value": {
+     "cube": 13.290782928466797,
+     "target_zone": 9.718408584594727,
+     "distractor0": 18.697193145751953,
+     "distractor1": 13.36483097076416
+    },
+    "note": "collect.privileged_labels slot_gaze_angle; front camera is the scene camera, not the render view"
+   }
+  },
+  "probe.arm.observed_effect": {
+   "page": 4,
+   "row": 1,
+   "col": 1,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.arm.observed_effect: readout of each entity's realized displacement over the 16-tick chunk (future_disp; cube lifted, others 0). readout (inert), address entity, gauss. Source: gt sim truth (future state), training-only.",
+   "colour": "#2BB3C0",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "episode_steps": 119,
+    "outcome": "success",
+    "slots": [
+     "cube",
+     "target_zone",
+     "distractor0",
+     "distractor1"
+    ],
+    "horizon_H": 16,
+    "scene_source": "scripted privileged PickPlaceTeacher episode via harness.data.collect._TeacherTrace (the real collection hook); state replayed per tick from qpos snapshots",
+    "label_code": "collect.privileged_labels -> chunks.episode_samples(H=16) -> packed._focus / derived.active_operator / latent_batch.goal_effect_from_batch",
+    "tick": 54,
+    "tick_end": 69,
+    "phase": "lift",
+    "value_base_frame": {
+     "cube": [
+      -0.07246127724647522,
+      0.050132811069488525,
+      0.10806970298290253
+     ],
+     "target_zone": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "distractor0": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "distractor1": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "note": "arrow = world positions at t and t+H-1 (same rigid displacement as the base-frame label)"
+   }
+  },
+  "probe.arm.rel_pos": {
+   "page": 4,
+   "row": 1,
+   "col": 2,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.arm.rel_pos: readout of entity position relative to the assembly's TCP, (x,y,z) m, world frame. readout (inert), address entity x assembly, gauss (mu, logvar). Source: gt sim truth, training-only.",
+   "colour": "#2BB3C0",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "episode_steps": 119,
+    "outcome": "success",
+    "slots": [
+     "cube",
+     "target_zone",
+     "distractor0",
+     "distractor1"
+    ],
+    "horizon_H": 16,
+    "scene_source": "scripted privileged PickPlaceTeacher episode via harness.data.collect._TeacherTrace (the real collection hook); state replayed per tick from qpos snapshots",
+    "label_code": "collect.privileged_labels -> chunks.episode_samples(H=16) -> packed._focus / derived.active_operator / latent_batch.goal_effect_from_batch",
+    "tick": 24,
+    "phase": "descend",
+    "query_assembly": "gripper",
+    "value": {
+     "cube": [
+      0.0003095076244790107,
+      -0.0007071837317198515,
+      -0.1400265097618103
+     ],
+     "target_zone": [
+      -0.18361195921897888,
+      0.12208075076341629,
+      -0.16141875088214874
+     ],
+     "distractor0": [
+      0.04787161201238632,
+      -0.17006252706050873,
+      -0.1400265097618103
+     ],
+     "distractor1": [
+      -0.053217168897390366,
+      -0.11167220771312714,
+      -0.1400265097618103
+     ]
+    },
+    "note": "arrows drawn from the TCP site to tcp + label (the label's own vector)"
+   }
+  },
+  "probe.arm.subtask": {
+   "page": 4,
+   "row": 1,
+   "col": 3,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.arm.subtask: readout of the active task operator for the assembly (12-way; this episode: grasp -> place -> none). readout (inert), address assembly, ce. Source: public label (task runtime: first ACTIVE event's operator).",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "episode_steps": 119,
+    "outcome": "success",
+    "slots": [
+     "cube",
+     "target_zone",
+     "distractor0",
+     "distractor1"
+    ],
+    "horizon_H": 16,
+    "scene_source": "scripted privileged PickPlaceTeacher episode via harness.data.collect._TeacherTrace (the real collection hook); state replayed per tick from qpos snapshots",
+    "label_code": "collect.privileged_labels -> chunks.episode_samples(H=16) -> packed._focus / derived.active_operator / latent_batch.goal_effect_from_batch",
+    "tick": 63,
+    "phase": "transport",
+    "value": 2,
+    "value_name": "place",
+    "episode_sequence": [
+     "grasp",
+     "place",
+     "none"
+    ],
+    "note": "derived.active_operator(pi); OPERATORS[:12] shown (the head is 12-way)"
+   }
+  },
+  "probe.arm.visible": {
+   "page": 4,
+   "row": 2,
+   "col": 0,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.arm.visible: readout of whether each entity is visible in the front camera (cube occluded by the closing gripper here: 0). readout (inert) on the packet, address entity, bce. Source: gt sim truth, training-only target; deployed = probe estimate.",
+   "colour": "#2BB3C0",
+   "meta": {
+    "env": "mujoco/arm",
+    "body": "panda_pg2",
+    "task": "pick_place(n_distractors=2)",
+    "seed": 3000001,
+    "episode_steps": 119,
+    "outcome": "success",
+    "slots": [
+     "cube",
+     "target_zone",
+     "distractor0",
+     "distractor1"
+    ],
+    "horizon_H": 16,
+    "scene_source": "scripted privileged PickPlaceTeacher episode via harness.data.collect._TeacherTrace (the real collection hook); state replayed per tick from qpos snapshots",
+    "label_code": "collect.privileged_labels -> chunks.episode_samples(H=16) -> packed._focus / derived.active_operator / latent_batch.goal_effect_from_batch",
+    "tick": 36,
+    "phase": "close",
+    "value": {
+     "cube": 0,
+     "target_zone": 1,
+     "distractor0": 1,
+     "distractor1": 1
+    },
+    "note": "label = envs.mujoco.sensors.camera_visibility(model, data, 'front', slot) (privileged); colour = label"
+   }
+  },
+  "probe.legged.contact": {
+   "page": 4,
+   "row": 2,
+   "col": 1,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.legged.contact: readout of each foot's ground contact at the 4 packet knots (+0.1/0.3/0.5/0.7 s) of a trot. readout (inert), address knot x assembly (feet), bce. Source: gt sim truth (future contacts), training-only.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "mujoco/legged",
+    "body": "go2",
+    "task": "waypoint_contact",
+    "seed": 3000001,
+    "sigma": 0.0,
+    "ticks": 435,
+    "tracker": "learned_tracker",
+    "teacher": "teacher:waypoint_contact",
+    "waypoints": {
+     "a": [
+      2.9631966914051513,
+      -0.29296339401337873
+     ],
+     "b": [
+      4.287421663945964,
+      0.5493371810771575
+     ]
+    },
+    "scene_source": "harness.data.legged_latent_collect.collect_episode (scripted waypoint teacher -> frozen go2 RL tracker), qpos replayed per 50 Hz tick",
+    "label_code": "legged_latent_train.LeggedData.labels math (numpy) on the collector arrays; goal = goal_columns(public context)",
+    "tick": 40,
+    "feet": [
+     "FL_calf",
+     "FR_calf",
+     "RL_calf",
+     "RR_calf"
+    ],
+    "contact_k": [
+     [
+      0,
+      1,
+      1,
+      0
+     ],
+     [
+      0,
+      1,
+      0,
+      1
+     ],
+     [
+      1,
+      0,
+      0,
+      1
+     ],
+     [
+      1,
+      0,
+      0,
+      1
+     ]
+    ],
+    "knot_ticks": [
+     45,
+     55,
+     65,
+     75
+    ],
+    "knot_times": [
+     0.1,
+     0.3,
+     0.5,
+     0.7
+    ],
+    "episode_status": "success"
+   }
+  },
+  "probe.legged.disp": {
+   "page": 4,
+   "row": 2,
+   "col": 2,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.legged.disp: readout of the base displacement over the next 0.8 s in the start body frame (xy in 0.5 m units, yaw change in rad). readout (inert), address assembly, gauss (3-d). Source: gt sim truth (future base pose), training-only.",
+   "colour": "#2BB3C0",
+   "meta": {
+    "env": "mujoco/legged",
+    "body": "go2",
+    "task": "waypoint_contact",
+    "seed": 3000001,
+    "sigma": 0.0,
+    "ticks": 435,
+    "tracker": "learned_tracker",
+    "teacher": "teacher:waypoint_contact",
+    "waypoints": {
+     "a": [
+      2.9631966914051513,
+      -0.29296339401337873
+     ],
+     "b": [
+      4.287421663945964,
+      0.5493371810771575
+     ]
+    },
+    "scene_source": "harness.data.legged_latent_collect.collect_episode (scripted waypoint teacher -> frozen go2 RL tracker), qpos replayed per 50 Hz tick",
+    "label_code": "legged_latent_train.LeggedData.labels math (numpy) on the collector arrays; goal = goal_columns(public context)",
+    "tick": 150,
+    "tick_end": 190,
+    "disp": [
+     1.1766761541366577,
+     -0.07635338604450226,
+     0.030350685119628906
+    ],
+    "episode_status": "success"
+   }
+  },
+  "probe.legged.fall": {
+   "page": 4,
+   "row": 2,
+   "col": 3,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.legged.fall: readout of an imminent fall: 1 in the last 0.8 s of an episode that ends in a fall (non-foot ground contact, low base or tilt). readout (inert), address assembly, bce. Source: gt sim truth (episode outcome), training-only.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "mujoco/legged",
+    "body": "pquad4",
+    "task": "waypoint_contact",
+    "seed": 11,
+    "sigma": 0.3,
+    "ticks": 265,
+    "tracker": "scripted_controller",
+    "teacher": "teacher:waypoint_contact",
+    "waypoints": {
+     "a": [
+      2.9631966914051513,
+      -0.29296339401337873
+     ],
+     "b": [
+      4.287421663945964,
+      0.5493371810771575
+     ]
+    },
+    "scene_source": "harness.data.legged_latent_collect.collect_episode (scripted waypoint teacher -> frozen go2 RL tracker), qpos replayed per 50 Hz tick",
+    "label_code": "legged_latent_train.LeggedData.labels math (numpy) on the collector arrays; goal = goal_columns(public context)",
+    "tick": 244,
+    "fall_label_ticks": 41,
+    "note": "episode chosen because artifacts/datasets/legged_latent_v1/pquad4/s0-99.json records seed 11 sigma 0.3 as status 'fell'; re-collected here",
+    "episode_status": "fell"
+   }
+  },
+  "probe.legged.goal": {
+   "page": 5,
+   "row": 0,
+   "col": 0,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.legged.goal: readout of the active event's goal entity (here the waypoint) in the body yaw frame, /2 m, as the PUBLIC context estimates it. readout (inert), address assembly (body row), gauss (2-d). Source: public label (public context estimate).",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/legged",
+    "body": "go2",
+    "task": "waypoint_contact",
+    "seed": 3000001,
+    "sigma": 0.0,
+    "ticks": 435,
+    "tracker": "learned_tracker",
+    "teacher": "teacher:waypoint_contact",
+    "waypoints": {
+     "a": [
+      2.9631966914051513,
+      -0.29296339401337873
+     ],
+     "b": [
+      4.287421663945964,
+      0.5493371810771575
+     ]
+    },
+    "scene_source": "harness.data.legged_latent_collect.collect_episode (scripted waypoint teacher -> frozen go2 RL tracker), qpos replayed per 50 Hz tick",
+    "label_code": "legged_latent_train.LeggedData.labels math (numpy) on the collector arrays; goal = goal_columns(public context)",
+    "tick": 60,
+    "goal": [
+     1.0670568943023682,
+     -0.0587039589881897
+    ],
+    "goal_valid": true,
+    "active_event": "walk_to_a",
+    "episode_status": "success"
+   }
+  },
+  "probe.legged.subtask": {
+   "page": 5,
+   "row": 0,
+   "col": 1,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.legged.subtask: readout of which task event is active (walk_to_a, walk_to_b, halt, done) from the public task runtime. readout (inert), address assembly, ce. Source: public label (task runtime).",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "mujoco/legged",
+    "body": "go2",
+    "task": "waypoint_contact",
+    "seed": 3000001,
+    "sigma": 0.0,
+    "ticks": 435,
+    "tracker": "learned_tracker",
+    "teacher": "teacher:waypoint_contact",
+    "waypoints": {
+     "a": [
+      2.9631966914051513,
+      -0.29296339401337873
+     ],
+     "b": [
+      4.287421663945964,
+      0.5493371810771575
+     ]
+    },
+    "scene_source": "harness.data.legged_latent_collect.collect_episode (scripted waypoint teacher -> frozen go2 RL tracker), qpos replayed per 50 Hz tick",
+    "label_code": "legged_latent_train.LeggedData.labels math (numpy) on the collector arrays; goal = goal_columns(public context)",
+    "tick": 310,
+    "subtask": 2,
+    "name": "halt",
+    "runs": [
+     [
+      0,
+      180
+     ],
+     [
+      1,
+      120
+     ],
+     [
+      2,
+      80
+     ],
+     [
+      3,
+      55
+     ]
+    ],
+    "episode_status": "success"
+   }
+  },
+  "probe.pointer.phase": {
+   "page": 5,
+   "row": 0,
+   "col": 2,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.pointer.phase: readout of the interaction phase of the commanded tick (idle, move, press, release, drag, type) at each knot. readout (inert), address knot x assembly, ce. Source: gt teacher command, training-only.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "computerworld (cw-site)",
+    "task": "cw/fill_form",
+    "seed": 3000001,
+    "tick": 12,
+    "knots": [
+     12,
+     14,
+     16,
+     18
+    ],
+    "LATE": [
+     0,
+     2,
+     4,
+     6
+    ],
+    "labels": {
+     "slot": [
+      27,
+      27,
+      27,
+      27
+     ],
+     "rel": [
+      [
+       -0.004166666666666707,
+       -0.06562499999999999
+      ],
+      [
+       -0.004166666666666707,
+       -0.06562499999999999
+      ],
+      [
+       -0.004166666666666707,
+       -0.06562499999999999
+      ],
+      [
+       -0.004166666666666707,
+       -0.06562499999999999
+      ]
+     ],
+     "phase": [
+      1,
+      3,
+      5,
+      5
+     ]
+    },
+    "episode_ticks": 37,
+    "phase_sequence": [
+     "move",
+     "move",
+     "move",
+     "move",
+     "press",
+     "release",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "move",
+     "press",
+     "release",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "move",
+     "move",
+     "press",
+     "release"
+    ],
+    "scene_source": "scripted privileged CWTeacher, stepped from reset; frame rendered before the tick's command",
+    "code_path": "DemoTeacher row (slot = env.slots.slots[target], txy = target_px/half, phase = phase_of) -> Demos labels at t+LATE (rel = txy[t+j] - ptr[t])"
+   }
+  },
+  "probe.pointer.rel": {
+   "page": 5,
+   "row": 0,
+   "col": 3,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.pointer.rel: readout of the target point relative to the pointer, normalized screen units (x right, y up), per knot. readout (inert), address knot x assembly, gauss (2-d mean + logvar). Source: gt teacher target, training-only.",
+   "colour": "#2BB3C0",
+   "meta": {
+    "env": "computerworld (cw-site)",
+    "task": "cw/fill_form",
+    "seed": 3000001,
+    "tick": 12,
+    "knots": [
+     12,
+     14,
+     16,
+     18
+    ],
+    "LATE": [
+     0,
+     2,
+     4,
+     6
+    ],
+    "labels": {
+     "slot": [
+      27,
+      27,
+      27,
+      27
+     ],
+     "rel": [
+      [
+       -0.004166666666666707,
+       -0.06562499999999999
+      ],
+      [
+       -0.004166666666666707,
+       -0.06562499999999999
+      ],
+      [
+       -0.004166666666666707,
+       -0.06562499999999999
+      ],
+      [
+       -0.004166666666666707,
+       -0.06562499999999999
+      ]
+     ],
+     "phase": [
+      1,
+      3,
+      5,
+      5
+     ]
+    },
+    "episode_ticks": 37,
+    "phase_sequence": [
+     "move",
+     "move",
+     "move",
+     "move",
+     "press",
+     "release",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "move",
+     "press",
+     "release",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "move",
+     "move",
+     "press",
+     "release"
+    ],
+    "scene_source": "scripted privileged CWTeacher, stepped from reset; frame rendered before the tick's command",
+    "code_path": "DemoTeacher row (slot = env.slots.slots[target], txy = target_px/half, phase = phase_of) -> Demos labels at t+LATE (rel = txy[t+j] - ptr[t])"
+   }
+  },
+  "probe.pointer.slot": {
+   "page": 5,
+   "row": 1,
+   "col": 0,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.pointer.slot: readout of WHICH widget the current plan step targets, as its stable slot index (opaque codes only, no widget content). readout (inert), address knot x assembly, ce over 80 slots. Source: gt teacher target, training-only.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "computerworld (cw-site)",
+    "task": "cw/fill_form",
+    "seed": 3000001,
+    "tick": 12,
+    "knots": [
+     12,
+     14,
+     16,
+     18
+    ],
+    "LATE": [
+     0,
+     2,
+     4,
+     6
+    ],
+    "labels": {
+     "slot": [
+      27,
+      27,
+      27,
+      27
+     ],
+     "rel": [
+      [
+       -0.004166666666666707,
+       -0.06562499999999999
+      ],
+      [
+       -0.004166666666666707,
+       -0.06562499999999999
+      ],
+      [
+       -0.004166666666666707,
+       -0.06562499999999999
+      ],
+      [
+       -0.004166666666666707,
+       -0.06562499999999999
+      ]
+     ],
+     "phase": [
+      1,
+      3,
+      5,
+      5
+     ]
+    },
+    "episode_ticks": 37,
+    "phase_sequence": [
+     "move",
+     "move",
+     "move",
+     "move",
+     "press",
+     "release",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "move",
+     "press",
+     "release",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "type",
+     "move",
+     "move",
+     "press",
+     "release"
+    ],
+    "scene_source": "scripted privileged CWTeacher, stepped from reset; frame rendered before the tick's command",
+    "code_path": "DemoTeacher row (slot = env.slots.slots[target], txy = target_px/half, phase = phase_of) -> Demos labels at t+LATE (rel = txy[t+j] - ptr[t])"
+   }
+  },
+  "probe.psi0.active_hand": {
+   "page": 5,
+   "row": 1,
+   "col": 1,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.psi0.active_hand: readout of which hand the packet binds to the target (here right); -1 (no contact ever) is masked. readout (inert), address body (per packet), ce over 2. Source: gt sim truth (future contacts), training-only.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
+    "task": "G1WholebodyXMovePickTeleop-v0",
+    "episode": 0,
+    "ticks": 226,
+    "label_file": "/home/brandonin/work/ext/runs/psi1z/replay_labels/G1WholebodyXMovePickTeleop-v0/episode_000000.npz",
+    "video": "G1WholebodyXMovePickTeleop-v0/videos/chunk-000/egocentric/episode_000000.mp4",
+    "scene_source": "recorded egocentric frame of the teleop demonstration (no rendering, no policy here)",
+    "label_code": "rrp.policies.psi0.data.EpisodeLabels.labels(t) on the recorded replay npz (sim truth via SIMPLE worker _sim_truth)",
+    "tick": 148,
+    "value": 1
+   }
+  },
+  "probe.psi0.base_cmd": {
+   "page": 5,
+   "row": 1,
+   "col": 2,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.psi0.base_cmd: readout of the demonstrated base command at each knot (normalized action dims 32 = vx, 34 = turning flag per bodies.g1_simple). readout (inert), address knot x pair (slot 0), gauss (2-d). Source: label from the recorded demonstration actions, training-only.",
+   "colour": "#8C7CF0",
+   "meta": {
+    "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
+    "task": "G1WholebodyXMovePickTeleop-v0",
+    "episode": 0,
+    "ticks": 226,
+    "label_file": "/home/brandonin/work/ext/runs/psi1z/replay_labels/G1WholebodyXMovePickTeleop-v0/episode_000000.npz",
+    "video": "G1WholebodyXMovePickTeleop-v0/videos/chunk-000/egocentric/episode_000000.mp4",
+    "scene_source": "recorded egocentric frame of the teleop demonstration (no rendering, no policy here)",
+    "label_code": "rrp.policies.psi0.data.EpisodeLabels.labels(t) on the recorded replay npz (sim truth via SIMPLE worker _sim_truth)",
+    "tick": 68,
+    "dataset_index": 68,
+    "value": [
+     [
+      1.0,
+      -0.20479631423950195
+     ],
+     [
+      1.0,
+      -0.5372931957244873
+     ],
+     [
+      -1.0,
+      -0.1396259069442749
+     ],
+     [
+      -1.0,
+      -0.33651381731033325
+     ],
+     [
+      -1.0,
+      -0.6805578470230103
+     ]
+    ],
+    "note": "nets.add_cmd_labels: actions[:, KNOT_STEPS][..., CMD_DIMS]; the code comment calls dim 34 the yaw-rate command, the g1_simple docstring the turning flag"
+   }
+  },
+  "probe.psi0.base_disp": {
+   "page": 5,
+   "row": 1,
+   "col": 3,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.psi0.base_disp: readout of the pelvis displacement over the packet (t -> t+29) in the robot frame at t, plus yaw change. readout (inert), address body, gauss (3-d). Source: gt sim truth (pelvis pose), training-only.",
+   "colour": "#2BB3C0",
+   "meta": {
+    "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
+    "task": "G1WholebodyXMovePickTeleop-v0",
+    "episode": 0,
+    "ticks": 226,
+    "label_file": "/home/brandonin/work/ext/runs/psi1z/replay_labels/G1WholebodyXMovePickTeleop-v0/episode_000000.npz",
+    "video": "G1WholebodyXMovePickTeleop-v0/videos/chunk-000/egocentric/episode_000000.mp4",
+    "scene_source": "recorded egocentric frame of the teleop demonstration (no rendering, no policy here)",
+    "label_code": "rrp.policies.psi0.data.EpisodeLabels.labels(t) on the recorded replay npz (sim truth via SIMPLE worker _sim_truth)",
+    "tick": 68,
+    "value": [
+     0.18492496013641357,
+     0.022749662399291992,
+     0.05723278969526291
+    ]
+   }
+  },
+  "probe.psi0.contact": {
+   "page": 5,
+   "row": 2,
+   "col": 0,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.psi0.contact: readout of hand-target contact per hand at the 5 knots (here the right hand closes on the target). readout (inert), address knot x pair, bce. Source: gt sim truth (recorded contacts), training-only.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
+    "task": "G1WholebodyXMovePickTeleop-v0",
+    "episode": 0,
+    "ticks": 226,
+    "label_file": "/home/brandonin/work/ext/runs/psi1z/replay_labels/G1WholebodyXMovePickTeleop-v0/episode_000000.npz",
+    "video": "G1WholebodyXMovePickTeleop-v0/videos/chunk-000/egocentric/episode_000000.mp4",
+    "scene_source": "recorded egocentric frame of the teleop demonstration (no rendering, no policy here)",
+    "label_code": "rrp.policies.psi0.data.EpisodeLabels.labels(t) on the recorded replay npz (sim truth via SIMPLE worker _sim_truth)",
+    "tick": 148,
+    "knots": [
+     153,
+     159,
+     165,
+     171,
+     177
+    ],
+    "value": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      1
+     ]
+    ]
+   }
+  },
+  "probe.psi0.grasp_face": {
+   "page": 5,
+   "row": 2,
+   "col": 1,
+   "family": "probe",
+   "status": "illustrative",
+   "caption": "probe.psi0.grasp_face: readout of the object face (+x,-x,+y,-y,+z,-z) of each hand's first contact. readout (inert), address knot x pair (last knot), ce over 6. Source: gt sim truth, training-only (default OFF). Illustrative: scene real, label value not computable here.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
+    "task": "G1WholebodyXMovePickTeleop-v0",
+    "episode": 0,
+    "ticks": 226,
+    "label_file": "/home/brandonin/work/ext/runs/psi1z/replay_labels/G1WholebodyXMovePickTeleop-v0/episode_000000.npz",
+    "video": "G1WholebodyXMovePickTeleop-v0/videos/chunk-000/egocentric/episode_000000.mp4",
+    "scene_source": "recorded egocentric frame of the teleop demonstration (no rendering, no policy here)",
+    "label_code": "rrp.policies.psi0.data.EpisodeLabels.labels(t) on the recorded replay npz (sim truth via SIMPLE worker _sim_truth)",
+    "tick": 165,
+    "reason": "no cpos__left/right in any recorded replay npz (EpisodeLabels.grasp is None); computing it needs SIMPLE/Isaac Sim"
+   }
+  },
+  "probe.psi0.grasp_pt": {
+   "page": 5,
+   "row": 2,
+   "col": 2,
+   "family": "probe",
+   "status": "illustrative",
+   "caption": "probe.psi0.grasp_pt: readout of each hand's FIRST contact point on the target in the object frame (last knot). readout (inert), address knot x pair (last knot), gauss (3-d). Source: gt sim truth, training-only (default OFF). Illustrative: scene real, label value not computable here.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
+    "task": "G1WholebodyXMovePickTeleop-v0",
+    "episode": 0,
+    "ticks": 226,
+    "label_file": "/home/brandonin/work/ext/runs/psi1z/replay_labels/G1WholebodyXMovePickTeleop-v0/episode_000000.npz",
+    "video": "G1WholebodyXMovePickTeleop-v0/videos/chunk-000/egocentric/episode_000000.mp4",
+    "scene_source": "recorded egocentric frame of the teleop demonstration (no rendering, no policy here)",
+    "label_code": "rrp.policies.psi0.data.EpisodeLabels.labels(t) on the recorded replay npz (sim truth via SIMPLE worker _sim_truth)",
+    "tick": 165,
+    "reason": "no cpos__left/right in any recorded replay npz (EpisodeLabels.grasp is None); computing it needs SIMPLE/Isaac Sim"
+   }
+  },
+  "probe.psi0.hand_dist": {
+   "page": 5,
+   "row": 2,
+   "col": 3,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.psi0.hand_dist: readout of each hand's palm-to-target distance at the 5 packet knots (+5..+29 ticks of 20 ms). readout (inert), address knot x pair (pair = L/R hand), gauss. Source: gt sim truth (recorded SIMPLE replay), training-only.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
+    "task": "G1WholebodyXMovePickTeleop-v0",
+    "episode": 0,
+    "ticks": 226,
+    "label_file": "/home/brandonin/work/ext/runs/psi1z/replay_labels/G1WholebodyXMovePickTeleop-v0/episode_000000.npz",
+    "video": "G1WholebodyXMovePickTeleop-v0/videos/chunk-000/egocentric/episode_000000.mp4",
+    "scene_source": "recorded egocentric frame of the teleop demonstration (no rendering, no policy here)",
+    "label_code": "rrp.policies.psi0.data.EpisodeLabels.labels(t) on the recorded replay npz (sim truth via SIMPLE worker _sim_truth)",
+    "tick": 148,
+    "knots": [
+     153,
+     159,
+     165,
+     171,
+     177
+    ],
+    "value": [
+     [
+      0.3507377505302429,
+      0.2008807212114334
+     ],
+     [
+      0.34550654888153076,
+      0.1980075091123581
+     ],
+     [
+      0.3423937261104584,
+      0.19286397099494934
+     ],
+     [
+      0.33764079213142395,
+      0.19149315357208252
+     ],
+     [
+      0.3295675218105316,
+      0.19159691035747528
+     ]
+    ]
+   }
+  },
+  "probe.psi0.lift": {
+   "page": 5,
+   "row": 3,
+   "col": 0,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.psi0.lift: readout of whether the target is lifted >= 3 cm above its initial height at each knot. readout (inert), address knot x pair (slot 0), bce. Source: gt sim truth (target pose), training-only.",
+   "colour": "#F2A33A",
+   "meta": {
+    "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
+    "task": "G1WholebodyXMovePickTeleop-v0",
+    "episode": 0,
+    "ticks": 226,
+    "label_file": "/home/brandonin/work/ext/runs/psi1z/replay_labels/G1WholebodyXMovePickTeleop-v0/episode_000000.npz",
+    "video": "G1WholebodyXMovePickTeleop-v0/videos/chunk-000/egocentric/episode_000000.mp4",
+    "scene_source": "recorded egocentric frame of the teleop demonstration (no rendering, no policy here)",
+    "label_code": "rrp.policies.psi0.data.EpisodeLabels.labels(t) on the recorded replay npz (sim truth via SIMPLE worker _sim_truth)",
+    "tick": 204,
+    "knots": [
+     209,
+     215,
+     221,
+     225,
+     225
+    ],
+    "value": [
+     0,
+     0,
+     1,
+     1,
+     1
+    ],
+    "dz": [
+     0.0064470767974853516,
+     0.012392044067382812,
+     0.03474396467208862,
+     0.06115245819091797,
+     0.06115245819091797
+    ]
+   }
+  },
+  "probe.psi0.target_pos": {
+   "page": 5,
+   "row": 3,
+   "col": 1,
+   "family": "probe",
+   "status": "computed",
+   "caption": "probe.psi0.target_pos: readout of the target's position at each knot in the robot (pelvis yaw) frame at t. readout (inert), address knot x pair (slot 0), gauss (3-d). Source: gt sim truth (target pose), training-only.",
+   "colour": "#2BB3C0",
+   "meta": {
+    "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
+    "task": "G1WholebodyXMovePickTeleop-v0",
+    "episode": 0,
+    "ticks": 226,
+    "label_file": "/home/brandonin/work/ext/runs/psi1z/replay_labels/G1WholebodyXMovePickTeleop-v0/episode_000000.npz",
+    "video": "G1WholebodyXMovePickTeleop-v0/videos/chunk-000/egocentric/episode_000000.mp4",
+    "scene_source": "recorded egocentric frame of the teleop demonstration (no rendering, no policy here)",
+    "label_code": "rrp.policies.psi0.data.EpisodeLabels.labels(t) on the recorded replay npz (sim truth via SIMPLE worker _sim_truth)",
+    "tick": 204,
+    "knots": [
+     209,
+     215,
+     221,
+     225,
+     225
+    ],
+    "value": [
+     [
+      0.2882916033267975,
+      -0.056891605257987976,
+      -0.0475771427154541
+     ],
+     [
+      0.29093968868255615,
+      -0.059323716908693314,
+      -0.04163217544555664
+     ],
+     [
+      0.3019813299179077,
+      -0.058115940541028976,
+      -0.01928025484085083
+     ],
+     [
+      0.3142358362674713,
+      -0.055193714797496796,
+      0.007128238677978516
+     ],
+     [
+      0.3142358362674713,
+      -0.055193714797496796,
+      0.007128238677978516
+     ]
+    ]
+   }
+  }
+ }
+}
