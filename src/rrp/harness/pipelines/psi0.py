@@ -18,7 +18,7 @@ Options: `task` (SIMPLE task name, e.g. G1WholebodyTabletopGraspMP-v0; selects t
 `summary` + `stage_a` (gate, probes, heldout), `gate` (train_flow: the gate node's `packet_gate.json`). Params pass through as
 `--<name>` flags (steps, batch, lr, w_sem, w_kl, lv_min, z_noise, ...).
 `RRP_PSI0_EXT` / `PSI_HOME` locate the third-party stack (one resolver: `rrp.envs.simple.compat.ext_dir`).
-Labelled sources: the released checkpoint is UPSTREAM (`learned:psi0-released/...`, not trained by us); every other checkpoint is
+Labelled sources: the released checkpoint is UPSTREAM (`upstream:psi0-released/...`, not trained by us; rows written before 2026-10-03 say `learned:psi0-released/...` and are relabelled on read by `parse_source`); every other checkpoint is
 ours (`learned:<final.pt>`), and the oracle route in `heldout` is a diagnostic that reads the target actions.
 """
 from __future__ import annotations
@@ -203,5 +203,6 @@ def eval_r2(ctx: StageContext) -> dict:
     if sp.exists():
         s = json.loads(sp.read_text())
         metrics = dict(success=f"{s.get('successes')}/{s.get('attempted')}")
+    src = dict(source=f"upstream:psi0-released/{_task(ctx)}/ckpt_40000") if arm == "released" else {}
     return dict(outputs=dict(rows=str(out.relative_to(ctx.root)), summary=str(sp.relative_to(ctx.root))), metrics=metrics,
-                source_detail=f"psi0-{arm}")
+                source_detail=f"psi0-{arm}", **src)

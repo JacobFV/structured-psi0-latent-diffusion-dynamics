@@ -458,7 +458,7 @@ def test_simple_tasks_registered_and_arm_policies_declined():
     assert {f"simple/{k}" for k in SIMPLE_TASKS} <= set(TASKS) and len(SIMPLE_TASKS) == 6
     assert POLICIES["psi0_direct"] == "rrp.policies.psi0:make_direct" and POLICIES["psi0_structured"] == "rrp.policies.psi0:make_structured"
     d, s = make_direct(), make_structured()           # construction is cheap: no weights touched before reset
-    assert d.info.source.startswith("learned:psi0-released/") and d.info.variant == "released" and s.info.version == "unhashed"
+    assert d.info.source.startswith("upstream:psi0-released/") and d.info.variant == "released" and s.info.version == "unhashed"
     from rrp.envs.simple import env_spec
     simple = env_spec(task="simple/G1WholebodyTabletopGraspMP-v0")         # static: no worker, no Isaac
     assert simple.env_id == "simple" and simple.action_kinds() == {"psi0"} and simple.bodies[0].key == "g1_simple"
@@ -489,3 +489,20 @@ def test_viz_psi0_reads_the_folded_p_log(tmp_path):
     d = d.get("data", d)
     assert [p["id"] for p in d["p_decisions"]] == ["P-012"] and d["crosswalk"][0]["rrp"] == ["D-120"]
     assert d["notes_markdown"].startswith("# track psi0") and d["notes_tables"]
+
+
+def test_eval_released_stamps_upstream_source(tmp_path, monkeypatch):
+    """The eval_r2 stage of the released arm returns an `upstream:` source (the manifest uses it), never `learned:`."""
+    import json as _json
+    from types import SimpleNamespace
+    from rrp.harness.pipelines import psi0 as P
+    out = tmp_path / "o"; out.mkdir()
+    def run(argv, log_to=None):
+        (out / "released.summary.json").write_text(_json.dumps(dict(successes=1, attempted=1)))
+    ctx = SimpleNamespace(opts=dict(arm="released", task="G1WholebodyBendPickMP-v0"), out=out, root=tmp_path, run=run,
+                          rc=SimpleNamespace(config=dict(options=dict(task="G1WholebodyBendPickMP-v0"))))
+    monkeypatch.setattr(P, "_task", lambda c: "G1WholebodyBendPickMP-v0")
+    res = P.eval_r2(ctx)
+    assert res["source"].startswith("upstream:psi0-released/") and res["metrics"]["success"] == "1/1"
+    ctx.opts = dict(arm="direct"); ctx.inp = lambda k: "ckpt.pt"
+    assert "source" not in P.eval_r2(ctx)            # our arms keep the stage default (learned:<run>)

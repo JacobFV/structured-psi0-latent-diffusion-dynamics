@@ -268,12 +268,17 @@ def source_label(raw) -> str | None:
             if k in raw:
                 return source_label(raw[k])
         return None
+    from rrp.core.provenance import LEGACY_UPSTREAM_DETAIL_PREFIXES
     s = str(raw).strip()
     lo = s.lower()
     if lo in ("teacher", "scripted_teacher", "scripted") or lo.startswith("scripted_teacher"):
         return "scripted_teacher"
     if lo.startswith("oracle") or "oracle diagnostic" in lo or lo.startswith("target_encoder_oracle"):
         return "oracle" if ":" not in s else "oracle:" + s.split(":", 1)[1].strip()
+    if lo.startswith("upstream:"):
+        return s
+    if lo.startswith("learned:") and s.split(":", 1)[1].startswith(LEGACY_UPSTREAM_DETAIL_PREFIXES):
+        return "upstream:" + s.split(":", 1)[1]      # pre-2026-10-03 Psi0 released rows (third-party weights, not ours)
     if lo.startswith(("learned:", "bc:", "learned_tracker:", "learned_latent")):
         return s
     if lo == "bc":

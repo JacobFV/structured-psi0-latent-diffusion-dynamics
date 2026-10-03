@@ -123,7 +123,8 @@ class Source(str, enum.Enum):
     SCRIPTED_TEACHER = "scripted_teacher"        # scripted expert (may read privileged state; see privileged flag)
     PRIVILEGED_TEACHER = "privileged_teacher"    # expert that explicitly consumes simulator truth
     ORACLE = "oracle"                            # teacher-encoded packet -> system 0: DIAGNOSTIC, not deployable
-    LEARNED = "learned"                          # learned:<ckpt>
+    LEARNED = "learned"                          # learned:<ckpt> (trained by us)
+    UPSTREAM = "upstream"                        # upstream:<release>/<ckpt>: third-party released weights, NOT trained by us
     BC = "bc"                                    # bc:<ckpt> (behaviour-cloning baseline)
     RANDOM = "random"
     MOCK = "mock"                                # mock / debug / synthetic commands
@@ -134,7 +135,10 @@ class Source(str, enum.Enum):
     UNKNOWN = "unknown"                          # legacy record whose source was not stored (never for new writes)
 
 
-NEEDS_CKPT = {Source.LEARNED, Source.BC}
+NEEDS_CKPT = {Source.LEARNED, Source.BC, Source.UPSTREAM}
+
+# legacy rows written before `upstream` existed: these learned:<detail> prefixes were upstream weights (relabelled on read)
+LEGACY_UPSTREAM_DETAIL_PREFIXES = ("psi0-released/",)
 
 # legacy free strings -> canonical kind (the on-disk strings stay as they are)
 LEGACY_SOURCE_MAP: dict[str, Source] = {
@@ -147,6 +151,7 @@ LEGACY_SOURCE_MAP: dict[str, Source] = {
     "privileged_oracle_packet": Source.ORACLE,
     "oracle_diagnostic": Source.ORACLE,
     "learned": Source.LEARNED,
+    "upstream": Source.UPSTREAM,
     "rep": Source.LEARNED,
     "bc": Source.BC,
     "random": Source.RANDOM,
@@ -171,7 +176,7 @@ class SourceLabel(Strict):
 
     @property
     def deployable(self) -> bool:
-        return self.kind in (Source.LEARNED, Source.BC, Source.CPG_TRACKER, Source.LEARNED_TRACKER, Source.RANDOM)
+        return self.kind in (Source.LEARNED, Source.UPSTREAM, Source.BC, Source.CPG_TRACKER, Source.LEARNED_TRACKER, Source.RANDOM)
 
 
 def parse_source(s: str | Source | SourceLabel, *, strict: bool = False) -> SourceLabel:
@@ -188,6 +193,10 @@ def parse_source(s: str | Source | SourceLabel, *, strict: bool = False) -> Sour
         if head not in LEGACY_SOURCE_MAP:
             raise ValueError(f"unknown source {s!r}; known kinds: {sorted(LEGACY_SOURCE_MAP)}")
         kind = LEGACY_SOURCE_MAP[head]
+        if kind is Source.LEARNED and rest.startswith(LEGACY_UPSTREAM_DETAIL_PREFIXES):
+            if strict:
+                raise ValueError(f"{s!r} is upstream weights: write 'upstream:{rest}'")
+            kind = Source.UPSTREAM          # recorded relabel (D-147 T7): old Psi0 released rows said learned:psi0-released/...
         if strict and head != kind.value:
             raise ValueError(f"legacy source name {head!r}: write {kind.value!r} instead")
         lab = SourceLabel(kind=kind, detail=rest or None)

@@ -276,3 +276,10 @@ def test_cached_peer_read_is_stale_and_peer_only_summaries_enter_results(tmp_pat
     assert lease["workstream"] == "legged8" and lease["dag"] == "legged_v2_go2" and lease["measured"]["memory_peak"] == 7
     r = next(r for r in _doc(cfg, "results")["rows"] if r.get("peer_only"))
     assert (r["k"], r["n"], r["body"], r["location"]) == (4, 10, "panda_pg2", "peer:nonexistent-peer-for-tests")
+
+
+def test_source_label_marks_upstream_weights():
+    from rrp.viz.export.common import source_label
+    assert source_label("learned:psi0-released/run/ckpt_40000") == "upstream:psi0-released/run/ckpt_40000"
+    assert source_label("upstream:psi0-released/run/ckpt_40000").startswith("upstream:")
+    assert source_label("learned:artifacts/runs/x/final.pt") == "learned:artifacts/runs/x/final.pt"

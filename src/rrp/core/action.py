@@ -12,7 +12,7 @@ from .base import Strict, NDArray
 # is deliberately absent (legacy reads only). A test keeps this list a superset of the enum.
 LEGACY_SOURCES = ("teacher", "scripted_teacher", "learned", "user", "debug", "random", "mock", "privileged_teacher")
 Source = Literal["teacher", "scripted_teacher", "learned", "user", "debug", "random", "mock", "privileged_teacher",
-                 "oracle", "bc", "cpg_tracker", "learned_tracker", "replay"]
+                 "oracle", "bc", "cpg_tracker", "learned_tracker", "replay", "upstream"]
 
 
 class GroupCommand(Strict):

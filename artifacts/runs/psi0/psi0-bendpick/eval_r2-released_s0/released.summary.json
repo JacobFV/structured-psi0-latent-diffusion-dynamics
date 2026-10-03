@@ -1,0 +1,21 @@
+{
+ "policy": "psi0_direct",
+ "source": "learned:psi0-released/g1wholebodybendpick-v0.simple.flow1000.cosine.lr1.0e-04.b256.gpus8.2603151312/ckpt_40000",
+ "env": "simple",
+ "task": "simple/G1WholebodyBendPickMP-v0",
+ "body": "g1_simple",
+ "attempted": 20,
+ "successes": 20,
+ "success_rate": 1.0,
+ "wilson95": [
+  0.8388748398148705,
+  1.0
+ ],
+ "infeasible": 0,
+ "outcomes": {
+  "success": 20
+ },
+ "public_private_agreement": 0.0,
+ "policy_calls": 140,
+ "control_steps": 4285
+}

@@ -1,7 +1,7 @@
 """Ψ₀ policies on the `simple` env (W10; the policy side of psi1z's serve_psi0 / serve_ours, D-140).
 
     psi0_direct      Ψ₀ action head over the 30x36 chunk: the RELEASED upstream checkpoint (`weights="released"`,
-                     source `learned:psi0-released/<run>/ckpt_<step>`: upstream weights, not trained by us; RTC as
+                     source `upstream:psi0-released/<run>/ckpt_<step>`: upstream weights, not trained by us; RTC as
                      released) or our matched fine-tune (`weights=<final.pt>`, source `learned:<final.pt>`, no RTC).
     psi0_structured  Ψ₀ + structure: system i samples the packet z[5, 6, 64] (StructuredHead), `packet_edit=` (a registered
                      `rrp.policies.packets` edit) or `packet_hook(i, z)` may edit it (harness packet edits); `Act.info["packet"]`
@@ -283,7 +283,7 @@ class Psi0Policy:
             source, version = f"replay:{self.task}", "recorded"
         elif kind == "psi0_direct" and weights == "released":
             self.ours, self.rtc = None, True if rtc is None else rtc
-            source, version = f"learned:psi0-released/{run.name}/ckpt_40000", f"{run.name}/ckpt_40000"
+            source, version = f"upstream:psi0-released/{run.name}/ckpt_40000", f"{run.name}/ckpt_40000"
         else:
             if kind == "psi0_structured" and weights and not stage_a:
                 raise ValueError("psi0_structured needs stage_a=<stage_a.pt> (with z_stats.pt next to it)")
@@ -377,7 +377,7 @@ def _chunk(rows, obs, info):
                        robot_spec_hash=obs.robot_spec_hash, controller_version="simple_agent", policy_version=info.version,
                        codec_version=None, start_time=obs.sensor_time, dt=0.02, horizon=len(rows),
                        command_groups=[GroupCommand(group="psi0", values=rows, mask=np.ones(rows.shape, bool))],
-                       sampling_seed=None, source="replay" if info.source.startswith("replay") else "learned")
+                       sampling_seed=None, source=info.source.partition(":")[0] if info.source.startswith(("replay", "upstream")) else "learned")
 
 
 def _policy_info(kind, source, version, task):

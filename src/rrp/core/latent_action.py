@@ -22,7 +22,7 @@ LATENT_SCHEMA = "latent-action-1.0"
 # kinds (D-126; "unknown" excluded). Admission (check_packet) does not look at the source.
 LatentSource = Literal["learned", "target_encoder_oracle", "debug", "replay",
                        "scripted_teacher", "privileged_teacher", "oracle", "bc", "random", "mock", "cpg_tracker",
-                       "learned_tracker", "user"]
+                       "learned_tracker", "user", "upstream"]
 
 
 class AssemblyHandle(Strict):

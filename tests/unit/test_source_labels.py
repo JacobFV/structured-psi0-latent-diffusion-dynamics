@@ -166,3 +166,18 @@ PRE_D126_LADDER_KEYS = [
     "track_q_rad", "track_tcp_m", "cmd_step_rad", "lab_err_arm", "lab_step_arm", "lab_err_grip", "by_phase",
     "lab_err_by_j", "oracle_cmp", "oracle_cmp_by_phase", "ticks", "replans", "interventions", "source",
     "checkpoints", "motion"]
+
+
+def test_upstream_weights_are_not_labelled_learned():
+    """D-147 T7: third-party released weights are `upstream:<release>/<ckpt>`; old Psi0 rows that said
+    learned:psi0-released/... are relabelled on read, and a NEW write of that legacy form is refused."""
+    import pytest
+    from rrp.core.provenance import Source, parse_source, source_label
+    assert source_label("upstream", "psi0-released/run/ckpt_40000") == "upstream:psi0-released/run/ckpt_40000"
+    old = parse_source("learned:psi0-released/g1wholebodybendpick-v0.x/ckpt_40000")
+    assert old.kind is Source.UPSTREAM and old.detail.startswith("psi0-released/")
+    assert parse_source("learned:artifacts/runs/psi0/psi0-tabletop/train_bc_s0/final.pt").kind is Source.LEARNED
+    with pytest.raises(ValueError):
+        parse_source("learned:psi0-released/run/ckpt_40000", strict=True)
+    with pytest.raises(ValueError):
+        source_label("upstream")                     # needs the checkpoint

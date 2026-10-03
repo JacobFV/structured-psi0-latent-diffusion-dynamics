@@ -1,0 +1,28 @@
+{
+ "schema_version": "runconfig-1",
+ "family": "psi0",
+ "stage": "eval_r2",
+ "variant": "na",
+ "seed": 0,
+ "lineage": "psi0-bendpick",
+ "track": "psi0",
+ "tag": "released",
+ "inputs": {},
+ "flags": {
+  "zero_prev_action": null,
+  "realizer_anchor": null,
+  "realizer_drop_qd": null,
+  "probe_lv_min": null,
+  "qd_dropout": null,
+  "contact_version": null
+ },
+ "params": {},
+ "options": {
+  "task": "G1WholebodyBendPickMP-v0",
+  "arm": "released",
+  "seeds": "0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9",
+  "batch": 2
+ },
+ "note": "",
+ "legacy": null
+}

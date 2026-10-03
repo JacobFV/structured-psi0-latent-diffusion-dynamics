@@ -1,0 +1,82 @@
+{
+ "config_hash": "8fdab108651a9fc7",
+ "episodes": [],
+ "finished": 1791044836.7570384,
+ "inputs": {},
+ "manifest_hash": "0eab50ee9aa055b8",
+ "metrics": {
+  "success": "20/20"
+ },
+ "n_episodes": 0,
+ "name": "runs/psi0/psi0-bendpick/eval_r2-released_s0",
+ "native_config": {
+  "name": "psi0_psi0-bendpick_eval_r2-released_s0",
+  "out_dir": "artifacts/runs/psi0/psi0-bendpick/eval_r2-released_s0"
+ },
+ "outputs": {
+  "rows": {
+   "digest": "50bdfb0e61f110fe",
+   "path": "artifacts/runs/psi0/psi0-bendpick/eval_r2-released_s0/released.jsonl"
+  },
+  "summary": {
+   "digest": "c34b293fcbac7a10",
+   "path": "artifacts/runs/psi0/psi0-bendpick/eval_r2-released_s0/released.summary.json"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": true,
+   "git_sha": "8e2dd2e5f5f07f072e93d1be6c5b5c45f63e77e4",
+   "src_tree": "22b55ea21034e3a8d2bf44655c019bdd23304e5a",
+   "tree": "bc05062055c1dcbd9213ec1fccd29720324d0a4b"
+  },
+  "created_at": 1791044836.756833,
+  "featurizer_version": null,
+  "flags": {},
+  "legacy": false,
+  "notes": "pipeline psi0/eval_r2 runs/psi0/psi0-bendpick/eval_r2-released_s0",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned:psi0-released",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/psi0/psi0-bendpick/eval_r2-released_s0",
+ "runconfig": {
+  "family": "psi0",
+  "flags": {
+   "contact_version": null,
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {},
+  "legacy": null,
+  "lineage": "psi0-bendpick",
+  "note": "",
+  "options": {
+   "arm": "released",
+   "batch": 2,
+   "seeds": "0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9",
+   "task": "G1WholebodyBendPickMP-v0"
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 0,
+  "stage": "eval_r2",
+  "tag": "released",
+  "track": "psi0",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1791043319.5098648,
+ "status_counts": {}
+}

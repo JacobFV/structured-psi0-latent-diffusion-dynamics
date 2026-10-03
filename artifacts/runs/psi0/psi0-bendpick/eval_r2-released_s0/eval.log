@@ -1,0 +1,56 @@
+[09:02:59 10/03] INFO     | >> [*] Using device: cuda:0  serve_psi0_simple.py:50
+                 INFO     | >> [*] Serving psi0          serve_psi0_simple.py:51
+[legacy ckpt] run_config.json predates `model.final_layer_norm`; serving with final_layer_norm=False (the value it was trained with)
+[09:03:23 10/03] INFO     | >> [*] Resized model token embeddings   psi0.py:1773
+                          to 153792                                             
+[09:03:25 10/03] INFO     | >> [*] loaded vlm_backbone checkpoint   psi0.py:1776
+                          successfully.                                         
+[09:03:26 10/03] INFO     | >> [*] Total ActionTransformerModel     psi0.py:1714
+                          parameters: 497,719,256                               
+                 INFO     | >> [*] Total VLM Backbone parameters:   psi0.py:1718
+                          2,131,333,120                                         
+                 INFO     | >> [*] loaded action head checkpoint    psi0.py:1794
+                          successfully.                                         
+[09:03:30 10/03] INFO     | >>     |=> Parameters (in   serve_psi0_simple.py:104
+                          millions): 2629.052 Total                             
+                 INFO     | >> [*] rtc_mode=train       serve_psi0_simple.py:172
+                          without                                               
+                          --rtc-inference-delay:                                
+                          defaulting to d=6. The frozen                         
+                          prefix is this sampler's only                         
+                          conditioning channel, so d=0                          
+                          would ignore the previous                             
+                          chunk entirely and smooth                             
+                          nothing.                                              
+                 INFO     | >> [*] RTC enabled:         serve_psi0_simple.py:232
+                          mode=train,                                           
+                          max_delay=8,                                          
+                          action_dim=36,                                        
+                          action_chunk_size=30,                                 
+                          action_exec_horizon=24                                
+                          (returned rows),                                      
+                          exec_shift=24 (prev-chunk                             
+                          shift),                                               
+                          inference_delay(d)=6,                                 
+                          min_exec_horizon(s)=24                                
+{
+ "policy": "psi0_direct",
+ "source": "learned:psi0-released/g1wholebodybendpick-v0.simple.flow1000.cosine.lr1.0e-04.b256.gpus8.2603151312/ckpt_40000",
+ "env": "simple",
+ "task": "simple/G1WholebodyBendPickMP-v0",
+ "body": "g1_simple",
+ "attempted": 20,
+ "successes": 20,
+ "success_rate": 1.0,
+ "wilson95": [
+  0.8388748398148705,
+  1.0
+ ],
+ "infeasible": 0,
+ "outcomes": {
+  "success": 20
+ },
+ "public_private_agreement": 0.0,
+ "policy_calls": 140,
+ "control_steps": 4285
+}

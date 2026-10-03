@@ -555,3 +555,14 @@ pattern as the recorded rows (structured s2 success x2, s9 timeout x2).
   (c) overfit of system i (val/train flow ratio 12x) -- but direct overfits too (70x) and works, so this alone does not explain it.
 - Not produced: probes on the generated packet (`probes_gen`: three infra kills, memory PSI x2 then GPU thermal x1); a per-chunk packet log
   (which hand z encodes per chunk) would directly test (b) and is the cheapest next diagnostic.
+
+### 2026-10-03 T7 source labels: released checkpoint = `upstream:` (fix + recorded relabel, nothing re-run)
+- New canonical source kind `upstream` (`rrp.core.provenance.Source.UPSTREAM`, needs a checkpoint detail): third-party released weights, not
+  trained by us. The Psi0 released policy and the `eval_r2` released arm now stamp `upstream:psi0-released/<run>/ckpt_40000` (was `learned:`).
+  Tests: `test_source_labels.py::test_upstream_weights_are_not_labelled_learned`, `test_psi0.py::test_eval_released_stamps_upstream_source`,
+  `test_viz_export.py::test_source_label_marks_upstream_weights`.
+- Rows already written with `learned:psi0-released/...` are NOT rewritten; `parse_source` (non-strict reads) and the viz export map that legacy
+  prefix to `upstream` (a strict new write of it is refused). Recorded relabel: `SOURCE_RELABEL.json` next to each affected output --
+  BendPickMP `eval_r2-released_s0` (20/20, committed here) and, when it finishes, tabletop `eval_r2-released_s0` (that node was already
+  running from the pre-fix checkout in p4).
+- BendPickMP released (upstream ckpt_40000, NOT ours): 20/20 Wilson95 [0.84, 1.00] (10 eval configs x 2, batch 2), lease 1791043319_6372ac.
