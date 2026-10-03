@@ -237,6 +237,7 @@ class BodyStance:
         self.com0 = d.subtree_com[b.root_bid].copy()
         fb = [int(m.site_bodyid[s]) for s in b.foot_sids]
         self.foot_body = fb
+        self.foot_rot0 = [d.xmat[f].reshape(3, 3).copy() for f in fb]      # default foot orientations (heading 0)
         self.sole_local, self.sole_half_x = [], []
         for f in fb:
             gs = [g for g in range(m.ngeom) if int(m.geom_bodyid[g]) == f and (m.geom_contype[g] or m.geom_conaffinity[g])]
@@ -277,6 +278,14 @@ class BodyStance:
         self.omega = math.sqrt(max(k_net, 1e-9) / I)
         self.KD = max(0.0, 2.0 * self.ZETA * math.sqrt(max(k_net, 1e-9) * I) - self.kd) / (self.K * self.h)
         self.KI = self.BETA * self.KP * self.omega
+
+    def feet_yaw(self, d) -> float:
+        """Mean heading of the feet relative to their default-stance orientation (rad)."""
+        ys = []
+        for f, r0 in zip(self.foot_body, self.foot_rot0):
+            rel = d.xmat[f].reshape(3, 3) @ r0.T
+            ys.append(math.atan2(rel[1, 0], rel[0, 0]))
+        return float(math.atan2(np.mean(np.sin(ys)), np.mean(np.cos(ys))))
 
     def _sole(self, d, i: int) -> np.ndarray:
         f = self.foot_body[i]
@@ -410,6 +419,32 @@ class SquatPlanner:
         kp = m.actuator_gainprm[b.pol_act, 0]
         return np.clip(np.asarray(pose["legs"], float) + tau / kp, b.lo, b.hi)
 
+    def at_feet(self, data, base_xy, base_yaw: float) -> "SquatPlanner":
+        """A copy of this planner whose foot targets are the CURRENT feet of `data` (same compiled model), expressed in the planning
+        frame (base at the origin, heading +x): after a walk the feet are wherever the gait left them, and the default-stance plan
+        forced onto them twists the pelvis (t1 h_loco_pick: 0.8 rad of yaw at the hand-over, then a fall). The CoM reference
+        becomes the middle of the current soles."""
+        import copy
+        p = copy.copy(self)
+        p.d = mujoco.MjData(self.m)
+        self.b.set_default(p.d)
+        c, s_ = math.cos(base_yaw), math.sin(base_yaw)
+        Rz = np.array([[c, s_, 0.0], [-s_, c, 0.0], [0.0, 0.0, 1.0]])           # world -> planning frame
+        o = np.array([base_xy[0], base_xy[1], 0.0])
+        p.foot_pos, p.foot_rot = [], []
+        for i, f in enumerate(self.foot_body):              # planned FLAT on the floor: the current xy and yaw, the default height / tilt
+            pos = Rz @ (data.xpos[f] - o)
+            pos[2] = self.foot_pos[i][2]
+            rel = Rz @ data.xmat[f].reshape(3, 3) @ self.foot_rot[i].T
+            fy = math.atan2(rel[1, 0], rel[0, 0])
+            Ry = np.array([[math.cos(fy), -math.sin(fy), 0.0], [math.sin(fy), math.cos(fy), 0.0], [0.0, 0.0, 1.0]])
+            p.foot_pos.append(pos)
+            p.foot_rot.append(Ry @ self.foot_rot[i])
+        sole = np.mean([self.stance._sole(data, i) for i in range(len(self.foot_body))], axis=0)
+        p.com_ref_x = float((Rz @ (sole - o))[0])
+        p.jp, p.jr = np.zeros((3, self.m.nv)), np.zeros((3, self.m.nv))
+        return p
+
     def sway(self, pose: dict, delta: float = 0.01) -> np.ndarray:
         """d(leg joints) / d(lateral pelvis shift) at `pose` with both feet planted (central difference of the foot-placement IK):
         the joint direction that slides the pelvis sideways, used by the lateral CoM feedback (`WholebodyTeacher.com_balanced`)."""
@@ -493,7 +528,8 @@ class WholebodyTeacher:
         """Joint targets of the `legs` group (policy order): the registered tracker on the base command."""
         return np.asarray(self.bt.act(self.s.data, self.command_values()), float)
 
-    KPY, KIY = 1.0, 1.0       # lateral CoM feedback: pelvis shift (m) per m of CoM error, and per m s (integral, clipped at LAT_I m s)
+    KPY, KIY, KDY = 1.0, 1.0, 0.2       # lateral CoM feedback: pelvis shift (m) per m of CoM error, per m s (integral, clipped at
+    #                                     LAT_I m s) and per m/s (damping: without it g1's sideways sway grew into a fall)
     LAT_I = 0.05
 
     def com_balanced(self, legs: np.ndarray, sway: np.ndarray | None = None) -> np.ndarray:
@@ -512,16 +548,25 @@ class WholebodyTeacher:
             lat = np.array([-fwd[1], fwd[0]])
             ey = float(lat @ (d.subtree_com[b.root_bid][:2] - st.support_centre(d)[:2]))
             self._lat_int = float(np.clip(getattr(self, "_lat_int", 0.0) + ey * self.dt, -self.LAT_I, self.LAT_I))
-            legs += np.asarray(sway, float) * -(self.KPY * ey + self.KIY * self._lat_int)
+            dey = 0.0 if getattr(self, "_lat_prev", None) is None else (ey - self._lat_prev) / self.dt
+            self._lat_prev = ey
+            legs += np.asarray(sway, float) * -(self.KPY * ey + self.KIY * self._lat_int + self.KDY * dey)
         return legs
 
     def _feet_yaw(self) -> float:
-        d = self.s.data
-        return float(np.mean([math.atan2(d.xmat[f][3], d.xmat[f][0]) for f in self.stance.foot_body]))
+        return self.stance.feet_yaw(self.s.data)
+
+    UPPER_RATE = 4.0          # rad/s: the upper-body targets move at most this fast (an IK branch switch is a ramp, not a 1.2 rad step
+    #                           in one tick that throws the body: g1 7-DoF arms at the start of the opening / squeeze)
 
     def act(self) -> NativeCommand:
         legs = self.legs_command()
         up = np.asarray(self.upper_target(), float)
+        prev = getattr(self, "_up_prev", None)
+        if prev is not None:
+            step = self.UPPER_RATE * self.dt
+            up = prev + np.clip(up - prev, -step, step)
+        self._up_prev = up.copy()
         self.k += 1
         return NativeCommand(controller_version=self.s.controller_version(),
                              groups={"legs": legs.tolist(), "upper": up.tolist()}, source="scripted_teacher")
@@ -856,7 +901,8 @@ class SquatPickTeacher(WholebodyTeacher):
         d = self.s.data
         dyaw = self._chest_yaw() - self.yaw0
         rz = np.array([[math.cos(dyaw), -math.sin(dyaw), 0.0], [math.sin(dyaw), math.cos(dyaw), 0.0], [0.0, 0.0, 1.0]])
-        tg = {sd: d.xanchor[self.sh_jid[sd]] + rz @ self.rel0[sd] for sd in self.ik.gid}
+        sh = np.r_[self._palm_shift(), 0.0]
+        tg = {sd: d.xanchor[self.sh_jid[sd]] + rz @ self.rel0[sd] + sh for sd in self.ik.gid}
         for sd in tg:                                   # centre the pinch on the box (it would tip about the palms otherwise)
             bx = d.xpos[self.m.body("box").id]
             tg[sd][2] = min(tg[sd][2], bx[2] + self.PALM_DZ + self.LEAD)
@@ -879,6 +925,10 @@ class SquatPickTeacher(WholebodyTeacher):
     def _after_grasp(self, up: np.ndarray) -> np.ndarray:
         return up
 
+    def _palm_shift(self) -> np.ndarray:
+        """World xy shift of both palm targets in the grip law (zero: keep the grasp offset from the shoulders)."""
+        return np.zeros(2)
+
 
 class PlaceTeacher(SquatPickTeacher):
     """h_place (M3): the M2 pick, then rise 5 cm, twist the trunk about the waist (a servo on the box's true angle round the waist
@@ -887,6 +937,8 @@ class PlaceTeacher(SquatPickTeacher):
     T_CARRY, T_TWIST, T_LOWER, T_REL = 1.0, 3.5, 1.0, 1.5
     W_CARRY = 0.75
     PSI_RATE = 0.35                            # rad/s, twist servo rate limit
+    SHIFT_KI, SHIFT_MAX = 1.0, 0.10            # 1/s, m: the arms also move the box onto the mark (integral on the box-to-mark xy error):
+    #                                            the twist turns the box about the waist axis, which a pitched trunk tilts (h1 put it 5 cm short)
 
     def __init__(self, session):
         super().__init__(session)
@@ -921,6 +973,18 @@ class PlaceTeacher(SquatPickTeacher):
 
     def twist(self) -> float:
         return self.psi
+
+    def _palm_shift(self) -> np.ndarray:
+        t, tl = self.t, self.tl
+        if not hasattr(self, "_shift"):
+            self._shift = np.zeros(2)
+        if tl["carry"] <= t < tl["lower"]:
+            err = np.asarray(self.sc["place"], float) - self.s._body_pos("box")[:2]          # PRIVILEGED box pose
+            self._shift = self._shift + self.SHIFT_KI * err * self.dt
+            n = float(np.linalg.norm(self._shift))
+            if n > self.SHIFT_MAX:
+                self._shift *= self.SHIFT_MAX / n
+        return self._shift
 
     def _box_angle_error(self) -> float:
         ax = self.s.data.xanchor[self.wjid][:2]
@@ -1035,22 +1099,42 @@ class LocoPickTeacher(SquatPickTeacher):
             head = _wrap(math.atan2(ey, ex) - yaw)
             vx = self.V_FRAC * self.r["vx"][1] * min(1.0, dist / 0.5) * max(0.0, math.cos(head)) ** 2
             return np.array([max(vx, self.V_MIN), 0.0, float(np.clip(1.5 * head, -0.5, 0.5))])
+        ex, ey = self._feet_err()                         # the final approach places the FEET (the squat plan is relative to the soles)
         c, s_ = math.cos(yaw), math.sin(yaw)
         vx = float(np.clip(1.5 * (c * ex + s_ * ey), 0.0, 0.3))
         vy = float(np.clip(1.5 * (-s_ * ex + c * ey), -0.1, 0.1))
-        return np.array([max(vx, self.V_MIN) if ex > self.X_TOL else 0.0, vy, float(np.clip(-1.5 * yaw, -0.3, 0.3))])
+        ex_b = c * ex + s_ * ey                          # stance error along the heading; an overshoot backs up (g1 stops ~0.15 m late)
+        if ex_b > self.X_TOL:
+            vx = max(vx, self.V_MIN)
+        elif ex_b < -self.X_TOL:
+            vx = max(min(1.5 * ex_b, -self.V_MIN), self.r["vx"][0])
+        else:
+            vx = 0.0
+        fy = self._feet_yaw()                            # square the FEET to the crate (g1's gait leaves them 0.4 rad off the pelvis heading)
+        return np.array([vx, vy, float(np.clip(-1.5 * fy, -0.3, 0.3))])
 
     V_FRAC = 0.6
 
+    def _feet_err(self) -> tuple[float, float]:
+        """World xy error of the sole centre from where the plan has it (the M2 stance shifted by the approach: stance_x plus the
+        default sole-centre offset). After a walk the feet are not where the default stance puts them under the pelvis (g1: 4 cm
+        further back), and a base-position stance left the box out of the planned arm reach."""
+        sc = self.stance.support_centre(self.s.data)
+        return float(self.sc["stance_x"] + self.stance.support_x0 - sc[0]), float(-sc[1])
+
     def _at_stance(self) -> bool:
-        x, y, _ = self.s.base_pose_truth()
-        return abs(self.sc["stance_x"] - x) <= self.X_SETTLE and abs(y) <= self.Y_TOL and self.s.truth_predicate("base_speed", ["body"]) < 0.08
+        ex, ey = self._feet_err()
+        return (abs(ex) <= self.X_SETTLE and abs(ey) <= self.Y_TOL and abs(self._feet_yaw()) <= self.YAW_TOL
+                and self.s.truth_predicate("base_speed", ["body"]) < 0.08)
+
+    YAW_TOL = 0.15
 
     def legs_command(self) -> np.ndarray:
         if self.k_pick is None:
             self._still = self._still + 1 if self._at_stance() else 0
-            if self._still * self.dt >= self.T_SETTLE or self.k * self.dt >= self.T_WALK_MAX:
+            if (self._still * self.dt >= self.T_SETTLE or self.k * self.dt >= self.T_WALK_MAX) and self._double_support():
                 self.k_pick = self.k
+                self._replan_at_feet()
         if self.k_pick is None:
             return np.asarray(self.bt.act(self.s.data, self.command_values()), float)
         planned = super().legs_command()
@@ -1058,6 +1142,22 @@ class LocoPickTeacher(SquatPickTeacher):
             return planned
         a = _smooth(self.t / self.T_BLEND)                    # tracker -> planned standing pose over the pick's first T_BLEND s
         return (1.0 - a) * np.asarray(self.bt.act(self.s.data, np.zeros(3)), float) + a * planned
+
+    def _double_support(self) -> bool:
+        """Both feet on the floor (contact, sole within 1 cm of its standing height): the hand-over to the planned pose never starts
+        mid-step (the ub_v1 trackers keep stepping in place under small commands; a blend from a swing foot toppled t1)."""
+        d, b = self.s.data, self.b
+        return bool(b.contacts(d)[0].all() and np.all(b.foot_clearance(d) < 0.01))
+
+    def _replan_at_feet(self):
+        """The leg trajectory of the pick re-planned for the feet where the walk left them (same depth / pitch as the cached plan;
+        the arm IK works on the true box pose anyway)."""
+        x, y, yaw = self.s.base_pose_truth()
+        pl = self.planner.at_feet(self.s.data, (x, y), yaw)       # the pelvis keeps its heading (the arms plan is in its frame)
+        poses = [pl.pose(self.plan["dz"] * w, self.plan["pitch"] * w) for w in self.plan["ws"]]
+        self.plan = {**self.plan, "legs": np.array([pl.servo_targets(p) for p in poses]), "sway": np.array([pl.sway(p) for p in poses]),
+                     "root_pos": np.array([p["root_pos"] for p in poses]), "root_quat": np.array([p["root_quat"] for p in poses]),
+                     "ok": [bool(p["ok"]) for p in poses], "replanned_at_feet": True}
 
     @property
     def approach_s(self) -> float:
