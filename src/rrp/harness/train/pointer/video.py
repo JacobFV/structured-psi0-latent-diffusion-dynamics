@@ -48,15 +48,18 @@ def cmd_video(a):
     from rrp.policies.base import make_policy
     name, _, kw = a.policy.partition("=")
     pol = make_policy(name, **(json.loads(kw) if kw else {}))
+    from rrp.cli.harness import _env_kw
+    env_kw = _env_kw(getattr(a, "env_kw", None)) or None
     frames, rows = [], []
     for task, seed in (x.split("@") for x in a.episodes):
         h = FrameHook(f"{pol.info.source.upper()}  {pol.info.name}  {pol.info.variant or ''}  {a.caption}")
-        ep = evaluate(pol, "computerworld", task, "cw_pointer", [int(seed)], batch=1, hooks=[h])[0]
+        ep = evaluate(pol, "computerworld", task, "cw_pointer", [int(seed)], batch=1, hooks=[h],
+                      env_kw=env_kw)[0]
         frames += h.frames[0]
         rows.append(dict(task=task, seed=int(seed), outcome=ep.outcome, failure_reason=ep.failure_reason,
                          steps=ep.steps))
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     imageio.mimsave(a.out, frames, fps=10, quality=6)
-    Path(a.out).with_suffix(".json").write_text(json.dumps(dict(policy=a.policy, source=pol.info.source,
+    Path(a.out).with_suffix(".json").write_text(json.dumps(dict(policy=a.policy, source=pol.info.source, env_kw=env_kw,
                                                                 episodes=rows), indent=1))
     print(json.dumps(rows))

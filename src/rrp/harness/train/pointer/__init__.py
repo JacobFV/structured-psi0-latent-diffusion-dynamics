@@ -144,6 +144,7 @@ def main(argv=None):
     p.add_argument("--policy", required=True, help="NAME or NAME=JSON kwargs (as rrp eval)")
     p.add_argument("--episodes", nargs="+", required=True, help="task@seed ...")
     p.add_argument("--caption", default="")
+    p.add_argument("--env-kw", action="append", default=[], help="k=v env kwargs as rrp eval (e.g. strings=procedural)")
     p.add_argument("--out", required=True)
     p.set_defaults(fn=video.cmd_video)
     a = ap.parse_args(argv)
