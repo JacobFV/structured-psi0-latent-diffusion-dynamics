@@ -178,7 +178,7 @@ Commands (peer, from `/dev/shm/rrp-brandonin/wt/accel-enable`, `RRP_PEER_PYTHONP
 
 | trainer (real trainer, same seed and data) | steps | determinism D (default twice) | seed-noise D median / last4 max | bf16 D median / last4 max / max | dev-metric gate | verdict |
 |---|---|---|---|---|---|---|
-| legged_rep (g1 h_walk, latent rep) | 300 | 0.000 / 0.000 (bit-exact) | 0.094 / 0.098 | 0.169 / 0.276 / 0.386 | 18 leaves, 0 failed (trainer reports no held-out numbers beyond its own) | FAILED (median > 0.05 and last4 > 0.10) |
+| legged_rep (g1 h_walk, latent rep) | 300 | 0.000 / 0.000 (bit-exact) | 0.094 / 0.098 | 0.169 / 0.276 / 0.386 | 18 leaves, 0 failed | FAILED (median > 0.05 and last4 > 0.10) |
 | arm_rep (50-step smoke only, tool validation) | 50 | 0.000 | 0.046 / 0.059 | 0.015 / 0.024 | 40 leaves, 0 failed | smoke only, NOT a gate pass (2 blocks) |
 | legged_flow | 300 | not completed (default ref run only; lease stopped by the broker `live_limit_reduced`) | - | - | - | not_checked |
 | legged_bc, arm_rep/flow/bc at 300, pointer_rep/flow/bc | - | - | - | - | - | not_checked (see below) |

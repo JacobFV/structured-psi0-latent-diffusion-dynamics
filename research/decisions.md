@@ -1670,3 +1670,13 @@ falls everywhere), gap h1 (eval 20/20; stand-trial falls, force 4.43, margin -0.
   small MLP minibatch next to physics rollouts, and the PPO advantage / ratio math must stay fp32; revisit only if a profile shows the update
   dominating. `target_adapt` does not exist in this tree.
 - Enable phase (switching any run to bf16 / compile) is a separate decision after the measured effect in research/tracks/compute.md.
+
+### D-147 addendum 2026-10-02 (unit enable): compute acceleration NOT enabled for any unstarted run (equivalence gate failed / not checkable)
+Pre-registered protocol and enable rules E1-E5: `research/tracks/compute.md` ("enable: ..."), committed before any measurement. Result: the one completed
+paired check, legged_rep bf16 (peer CPU device, 300 steps, same seed and data), failed the gate (median D 0.169 > 0.05, last-4 D 0.276 > 0.10; determinism
+bit-exact, seed-noise D 0.094 / 0.098). No GPU was available (humanoid-first rule, host GPU paused), so no speedup is claimed and compile / cuda_graphs /
+`eval_backend: warp` stay off (never run on a GPU). Consequently NO recipe changed: every run keeps today's behaviour (compute block absent = legacy
+defaults; fp32+TF32 for latent/behavior trainers, bf16 autocast for pointer and Psi0), so `tests/data/golden.json` and all recipe digests are unchanged and
+there is no run list to add. Runs per compute setting: ALL unstarted and running runs = default. Running track owners need do nothing at their next node.
+Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.json`), humanoid T1 round-2 placed nodes, T7 phase 2, T8/T9 running nodes.
+
