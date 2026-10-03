@@ -140,31 +140,44 @@ def _depth_table(runs: dict[tuple[str, int], Path]) -> list[dict]:
 
 
 def _final_metrics(runs: dict[tuple[str, int], Path]) -> list[dict]:
-    """Last train-log record of each run: the flow loss / probe terms (a factor set's cost to the action loss)."""
+    """Per run, the mean over the last 20 train-log records (2000 steps) of the flow loss and the relgen terms (a factor set's
+    cost to the action loss); `step` is the last record's step."""
     out = []
     for (fset, seed), run in sorted(runs.items()):
-        log = _read_jsonl(run / "train_log.jsonl")
-        rec = log[-1] if log else {}
-        out.append({"set": fset, "seed": seed, "step": rec.get("step"),
-                    **{k: v for k, v in rec.items() if k in ("flow", "loss", "relgen", "relgen_raw", "n_relgen") or k.startswith("probe_")}})
+        log = _read_jsonl(run / "train_log.jsonl")[-20:]
+        row = {"set": fset, "seed": seed, "step": log[-1].get("step") if log else None}
+        for k in ("flow", "relgen", "relgen_raw", "n_relgen"):
+            v = [r[k] for r in log if k in r]
+            row[k] = sum(v) / len(v) if v else None
+        out.append(row)
     return out
 
 
-def _eval_rows(root: Path, lineage: str, seed: int) -> dict[tuple, bool]:
-    """(stage, body, env seed) -> privileged-evaluator success of one run's deployable-route eval rows: `eval_r2-dev_s<seed>`
-    (dev bodies) and `heldout-dev_s<seed>` (held-out bodies), one `<body>/generated_<tag>.jsonl` each (arm._ladder_eval)."""
+_STAGES = ("approach", "grasp", "lift", "transport", "place")
+
+
+def _eval_rows(root: Path, lineage: str, seed: int) -> dict[tuple, dict]:
+    """(stage, body, env seed) -> the eval row of one run's deployable-route evaluation: `eval_r2-dev_s<seed>` (dev bodies) and
+    `heldout-dev_s<seed>` (held-out bodies), one `<body>/generated_*.jsonl` each (arm._ladder_eval). Rows carry the privileged
+    evaluator's success, the stage it failed at and the closest tcp-cube distance (graded outcomes for when success is at a floor)."""
     out = {}
     for stage, d in (("dev", f"eval_r2-dev_s{seed}"), ("heldout", f"heldout-dev_s{seed}")):
         for f in sorted((root / lineage / d).glob("*/generated_*.jsonl")):
             for r in _read_jsonl(f):
                 if "privileged_success" in r and "seed" in r:
-                    out[(stage, f.parent.name, int(r["seed"]))] = bool(r["privileged_success"])
+                    out[(stage, f.parent.name, int(r["seed"]))] = r
     return out
+
+
+def _stage_rank(r: dict) -> int:
+    """Furthest stage reached: index of the failed stage (approach 0 ... place 4), 5 for a success."""
+    return len(_STAGES) if r.get("privileged_success") else _STAGES.index(r["failed_stage"]) if r.get("failed_stage") in _STAGES else 0
 
 
 def _interference_table(root: Path, sets: list[str], seeds: list[int], base: str) -> list[dict]:
     """Each factor set against `base` at equal steps / data / training seed, per body and pooled: success rates, the paired
-    difference (same training seed, same body, same env seed) with a bootstrap 95% CI and the exact McNemar p."""
+    difference (same training seed, same body, same env seed) with a bootstrap 95% CI and the exact McNemar p, plus the graded
+    paired differences (set - base) of the furthest stage reached and the closest tcp-cube distance (m, lower is better)."""
     from rrp.harness.eval.statistics import mcnemar_exact, paired_bootstrap_ci, wilson
     ev = {(s, seed): _eval_rows(root, f"relations-{s}", seed) for s in [base, *sets] for seed in seeds}
     rows = []
@@ -174,15 +187,20 @@ def _interference_table(root: Path, sets: list[str], seeds: list[int], base: str
                     and (body is None or k[:2] == body)]
             if not keys:
                 continue
-            a = [float(ev[(s, seed)][k]) for seed, k in keys]
-            b = [float(ev[(base, seed)][k]) for seed, k in keys]
+            ra = [ev[(s, seed)][k] for seed, k in keys]
+            rb = [ev[(base, seed)][k] for seed, k in keys]
+            a = [float(r["privileged_success"]) for r in ra]
+            b = [float(r["privileged_success"]) for r in rb]
             n10 = sum(1 for x, y in zip(a, b) if x and not y)
             n01 = sum(1 for x, y in zip(a, b) if y and not x)
             lo, hi = wilson(int(sum(a)), len(a))
             rows.append({"set": s, "stage": "all" if body is None else body[0], "body": "pooled" if body is None else body[1],
                          "n_pairs": len(keys), "rate_set": sum(a) / len(a), "rate_set_wilson95": [lo, hi],
                          "rate_base": sum(b) / len(b), "delta": paired_bootstrap_ci(a, b), "set_only": n10, "base_only": n01,
-                         "mcnemar_p": mcnemar_exact(n10, n01)})
+                         "mcnemar_p": mcnemar_exact(n10, n01),
+                         "stage_rank_delta": paired_bootstrap_ci([_stage_rank(r) for r in ra], [_stage_rank(r) for r in rb]),
+                         "min_tcp_cube_m_delta": paired_bootstrap_ci([r["min_tcp_cube_m"] for r in ra],
+                                                                     [r["min_tcp_cube_m"] for r in rb])})
     return rows
 
 
@@ -212,12 +230,15 @@ def compare_main(argv: list[str]) -> int:
     out.mkdir(parents=True, exist_ok=True)
     (out / "tables.json").write_text(json.dumps({"competence_by_depth": depth, "training_final": train,
                                                  "vs_base": interf}, indent=1, default=str))
-    flat = [{**r, "delta_mean": r["delta"]["mean"], "delta_lo": r["delta"]["lo"], "delta_hi": r["delta"]["hi"]} for r in interf]
+    flat = [{**r, "delta_mean": r["delta"]["mean"], "delta_lo": r["delta"]["lo"], "delta_hi": r["delta"]["hi"],
+             "rank_d": r["stage_rank_delta"]["mean"], "rank_lo": r["stage_rank_delta"]["lo"], "rank_hi": r["stage_rank_delta"]["hi"],
+             "tcp_d": r["min_tcp_cube_m_delta"]["mean"], "tcp_lo": r["min_tcp_cube_m_delta"]["lo"],
+             "tcp_hi": r["min_tcp_cube_m_delta"]["hi"]} for r in interf]
     md = "\n".join([_md("competence by factor x composition depth (scheduler EMA competence)", depth,
                         ["set", "factor", "depth", "competence", "decisions"]),
                     _md("factor set vs base (paired: training seed x body x env seed)", flat,
                         ["set", "stage", "body", "n_pairs", "rate_set", "rate_base", "delta_mean", "delta_lo", "delta_hi",
-                         "set_only", "base_only", "mcnemar_p"]),
+                         "set_only", "base_only", "mcnemar_p", "rank_d", "rank_lo", "rank_hi", "tcp_d", "tcp_lo", "tcp_hi"]),
                     _md("final training record", train, ["set", "seed", "step", "flow", "relgen", "relgen_raw", "n_relgen"])])
     (out / "tables.md").write_text(md)
     print(md)
