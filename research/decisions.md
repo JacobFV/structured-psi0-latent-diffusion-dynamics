@@ -1715,3 +1715,13 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
 3. T3 shared morph_v2_ub keeps its retry; it feeds the Level-1 cells and blocks neither T4 nor T5's per-body cells.
 4. Monitoring: the lead model waits on a background waiter that blocks until a new line appears in `hum_events.log` (bounded) and re-arms it every
    time it fires; never a turn without one armed.
+
+### D-147 addendum 2026-10-03 (campaign lead): T4 teacher-quality gate — PRE-REGISTERED before it runs
+- Recipe `recipes/humanoid/teacher_quality.yaml`: the scripted teacher (`teacher:<task>`, source scripted_teacher, privileged) of h_walk, h_turn,
+  h_reach, h_squat_pick, h_place, h_loco_pick over the installed wholebody gait trackers `<body>:ub_v1` on t1 / g1 / h1, 20 dev scenes per body,
+  each task's own budget. Gate: POOLED success >= 0.8 (>= 48/60); per-body rates reported. A task below it is held back from T4 with a note.
+- h_carry = the T2 teacher check (12 dev scenes per body): passes iff EVERY body >= 10/12 AND the successes include both goal sides (left and right
+  of the start heading, read from each scene's goal bearing). A body below it makes h_carry `blocked_external` (D-147 T2 rule).
+- h_steps_carry (held out): `transfer_h_steps_carry.yaml` node `teacher_check` with `h1:steps_ub_v1` (installed 10-03 under the D-147 exception, sha
+  2de53dcbab23ed7c; t1 / g1 steps_ub failed their gate, so their cells report a missing tracker). Passes iff h1 >= 8/10; otherwise h_steps_carry stays out.
+- h_gap_cart (held out) stays out with h_gap (blocked_external).

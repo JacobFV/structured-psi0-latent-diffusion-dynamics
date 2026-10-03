@@ -1,0 +1,61 @@
+# D-147 T4 teacher-quality gate (lead 2026-10-03): BEFORE collection, the scripted teacher of every flat / manipulation h_* task runs over the
+# installed wholebody gait trackers (`<body>:ub_v1`, D-147 exception labels) on the dev bodies t1 / g1 / h1, dev scenes, under the task's own
+# budget. Gate (pre-registered in the D-147 addendum of 2026-10-03): pooled teacher success >= 0.8 per task (60 episodes = 20 scenes x 3 bodies);
+# h_carry is the T2 teacher check instead: 12 scenes per body, >= 10/12 per body and both goal sides represented in the successes (U3 failed
+# right-side goals 0/6). Tasks that fail are held back from T4 with a note. Source of every cell: scripted_teacher (privileged), never learned.
+name: humanoid_teacher_quality
+schema: dag-1
+family: humanoid
+track: humanoid
+policy: teacher
+env: mujoco/legged
+task: h_walk
+bodies: humanoid_pool_v1
+factors: []
+lineage: 'teacher-quality-{task}'
+label_prefix: 'htq_{task}'
+global_label_prefix: 'htq'
+matrix:
+  task: [h_walk, h_turn, h_reach, h_squat_pick, h_place, h_loco_pick, h_carry]
+axis_vars:
+  task:
+    h_walk: {scenes: 20}
+    h_turn: {scenes: 20}
+    h_reach: {scenes: 20}
+    h_squat_pick: {scenes: 20}
+    h_place: {scenes: 20}
+    h_loco_pick: {scenes: 20}
+    h_carry: {scenes: 12}
+defaults:
+  placement: peer
+  retries: 3          # dev cells already in results.jsonl are skipped on a retry
+  max_parallel: 4
+  resources: {cpu: 4, mem: 8G, gpu: false, max_seconds: 21600}
+base:
+  flags: {contact_version: contact_v2}
+nodes:
+  check:
+    stage: eval_transfer
+    tag: teacher-quality
+    config:
+      options:
+        variant: '-'
+        transfer:
+          name: 'humanoid_teacher_quality_{task}'
+          task: '{task}'
+          env: mujoco/legged
+          train_seeds: [0]
+          scenes: '{scenes}'
+          bodies: [t1, g1, h1]
+          pack: []
+          results_glob: []
+          latent_kw: {upper: true}
+          levels: {}
+          methods:
+            reference:
+              - name: teacher
+                level: 0
+                kind: teacher
+                source: scripted_teacher
+                policy: 'teacher:{task}'
+                env_kw: {tracker: '<body>:ub_v1'}
