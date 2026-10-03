@@ -13,3 +13,6 @@ factors: []
 vars:
   task: G1WholebodyHandoverTeleop-v0
   task_key: handover
+nodes:
+  feat:      # D-147 T7: tabletop feat peaked 13.6 G THROTTLED at memory.high (0.8 x 17G); bendpick feat 14.06 G throttled, killed by memory PSI.
+    resources: {cpu: 2, mem: 24G, gpu: true, gpu_mem: 18G, max_seconds: 21600}   # >= 1.35 x 14.06 G + margin (throttled peaks underestimate)
