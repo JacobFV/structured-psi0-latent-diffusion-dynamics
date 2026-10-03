@@ -1,0 +1,7 @@
+{
+ "relabel": "learned:psi0-released/ -> upstream:psi0-released/",
+ "reason": "these rows were produced by the RELEASED upstream Psi0 checkpoint (third-party weights, not trained by us); the pipeline stamped learned: before the upstream source kind existed (D-147 T7, lead request 2026-10-03)",
+ "files_unchanged": ["released.jsonl", "released.summary.json", "pipeline_manifest.json", "eval.log"],
+ "read_path": "rrp.core.provenance.parse_source and rrp.viz.export.common.source_label relabel the legacy prefix on read (LEGACY_UPSTREAM_DETAIL_PREFIXES); nothing was re-run",
+ "canonical_source": "upstream:psi0-released/g1wholebodytabletopgrasp-v0.simple.flow1000.cosine.lr1.0e-04.b128.gpus8.2603181503/ckpt_40000"
+}

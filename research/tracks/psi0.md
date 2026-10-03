@@ -563,6 +563,7 @@ pattern as the recorded rows (structured s2 success x2, s9 timeout x2).
   `test_viz_export.py::test_source_label_marks_upstream_weights`.
 - Rows already written with `learned:psi0-released/...` are NOT rewritten; `parse_source` (non-strict reads) and the viz export map that legacy
   prefix to `upstream` (a strict new write of it is refused). Recorded relabel: `SOURCE_RELABEL.json` next to each affected output --
-  BendPickMP `eval_r2-released_s0` (20/20, committed here) and, when it finishes, tabletop `eval_r2-released_s0` (that node was already
-  running from the pre-fix checkout in p4).
+  BendPickMP `eval_r2-released_s0` (20/20) and tabletop `eval_r2-released_s0` (20/20; that node ran from the pre-fix checkout in p4); both committed.
 - BendPickMP released (upstream ckpt_40000, NOT ours): 20/20 Wilson95 [0.84, 1.00] (10 eval configs x 2, batch 2), lease 1791043319_6372ac.
+- Tabletop released (upstream ckpt_40000, NOT ours) on the rrp path, this recipe: 20/20 Wilson95 [0.84, 1.00], every episode 163-177 steps
+  (lease 1791047543_cd48d1). Tabletop row: released 20/20 | direct (ours) 19/20 | structured (ours) 7/20.

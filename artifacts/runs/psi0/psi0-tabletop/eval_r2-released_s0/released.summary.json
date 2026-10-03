@@ -1,0 +1,21 @@
+{
+ "policy": "psi0_direct",
+ "source": "learned:psi0-released/g1wholebodytabletopgrasp-v0.simple.flow1000.cosine.lr1.0e-04.b128.gpus8.2603181503/ckpt_40000",
+ "env": "simple",
+ "task": "simple/G1WholebodyTabletopGraspMP-v0",
+ "body": "g1_simple",
+ "attempted": 20,
+ "successes": 20,
+ "success_rate": 1.0,
+ "wilson95": [
+  0.8388748398148705,
+  1.0
+ ],
+ "infeasible": 0,
+ "outcomes": {
+  "success": 20
+ },
+ "public_private_agreement": 0.0,
+ "policy_calls": 100,
+ "control_steps": 3392
+}
