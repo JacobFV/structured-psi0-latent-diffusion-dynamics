@@ -118,7 +118,9 @@ def test_every_humanoid_recipe_plans_and_its_config_paths_match_the_planned_outs
     pack = HE.load_packs(cfg, tmp_path)
     cells = HE.expand_cells(cfg)
     states = {HE.cell_key(c): HE.cell_state(cfg, c, tmp_path, pack)["status"] for c in cells}
-    assert {k for k, v in states.items() if v == "ready"} == {k for k in states if "|teacher|" in k}   # only the scripted teacher needs no run
+    # no run exists: only cells that need none are ready, i.e. the scripted teacher and (D-147, 10-03: `shared:morph_v2_ub` is installed) the
+    # Level-1 zero-shot cells of the shared tracker
+    assert {k for k, v in states.items() if v == "ready"} == {k for k in states if "|teacher|" in k or "|shared_morph_zeroshot|" in k}
     # a method whose run a stage of the recipe produces is pending (zero-shot) or unaccounted (no pack yet), never a silent miss: no missing_run
     assert "pending" in states.values() and "missing_run" not in states.values()
 
