@@ -1,0 +1,28 @@
+[13:30:14 10/02] INFO     | >> [*] Using device: cuda:0  serve_psi0_simple.py:50
+                 INFO     | >> [*] Serving psi0          serve_psi0_simple.py:51
+[legacy ckpt] run_config.json predates `model.final_layer_norm`; serving with final_layer_norm=False (the value it was trained with)
+[legacy ckpt] run_config.json predates `model.final_layer_norm`; serving with final_layer_norm=False (the value it was trained with)
+[13:30:48 10/02] INFO     | >>     |=> Parameters (in   serve_psi0_simple.py:104
+                          millions): 2629.052 Total                             
+{
+ "policy": "psi0_direct",
+ "source": "learned:artifacts/runs/psi0/psi0-tabletop/train_bc_s0/final.pt",
+ "env": "simple",
+ "task": "simple/G1WholebodyTabletopGraspMP-v0",
+ "body": "g1_simple",
+ "attempted": 20,
+ "successes": 19,
+ "success_rate": 0.95,
+ "wilson95": [
+  0.7638688045357189,
+  0.9911185512976646
+ ],
+ "infeasible": 0,
+ "outcomes": {
+  "success": 19,
+  "timeout": 1
+ },
+ "public_private_agreement": 0.05,
+ "policy_calls": 122,
+ "control_steps": 3875
+}

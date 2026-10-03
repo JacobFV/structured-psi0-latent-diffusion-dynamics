@@ -1,0 +1,92 @@
+{
+ "config_hash": "1bf4253dde99f409",
+ "episodes": [],
+ "finished": 1790974657.3712997,
+ "inputs": {
+  "checkpoint": [
+   {
+    "digest": "e42b116668d06f1f",
+    "path": "artifacts/runs/psi0/psi0-tabletop/train_bc_s0/final.pt"
+   }
+  ]
+ },
+ "manifest_hash": "57e52a3396dc2496",
+ "metrics": {
+  "success": "19/20"
+ },
+ "n_episodes": 0,
+ "name": "runs/psi0/psi0-tabletop/eval_r2-direct_s0",
+ "native_config": {
+  "checkpoint": "artifacts/runs/psi0/psi0-tabletop/train_bc_s0/final.pt",
+  "name": "psi0_psi0-tabletop_eval_r2-direct_s0",
+  "out_dir": "artifacts/runs/psi0/psi0-tabletop/eval_r2-direct_s0"
+ },
+ "outputs": {
+  "rows": {
+   "digest": "072eb54ed49c5bb8",
+   "path": "artifacts/runs/psi0/psi0-tabletop/eval_r2-direct_s0/direct.jsonl"
+  },
+  "summary": {
+   "digest": "3792767803f26fb6",
+   "path": "artifacts/runs/psi0/psi0-tabletop/eval_r2-direct_s0/direct.summary.json"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": true,
+   "git_sha": "8e2dd2e5f5f07f072e93d1be6c5b5c45f63e77e4",
+   "src_tree": "22b55ea21034e3a8d2bf44655c019bdd23304e5a",
+   "tree": "bc05062055c1dcbd9213ec1fccd29720324d0a4b"
+  },
+  "created_at": 1790974657.371076,
+  "featurizer_version": null,
+  "flags": {},
+  "legacy": false,
+  "notes": "pipeline psi0/eval_r2 runs/psi0/psi0-tabletop/eval_r2-direct_s0",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned:psi0-direct",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/psi0/psi0-tabletop/eval_r2-direct_s0",
+ "runconfig": {
+  "family": "psi0",
+  "flags": {
+   "contact_version": null,
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {
+   "checkpoint": "runs/psi0/psi0-tabletop/train_bc_s0:final.pt"
+  },
+  "legacy": null,
+  "lineage": "psi0-tabletop",
+  "note": "",
+  "options": {
+   "arm": "direct",
+   "batch": 2,
+   "seeds": "0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9",
+   "task": "G1WholebodyTabletopGraspMP-v0"
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 0,
+  "stage": "eval_r2",
+  "tag": "direct",
+  "track": "psi0",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1790972917.4248922,
+ "status_counts": {}
+}

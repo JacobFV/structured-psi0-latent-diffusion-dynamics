@@ -496,8 +496,19 @@ deployable observation); Stage A, direct head, structured head = learned (ours);
   | ORACLE route R(E(chunk)) (diagnostic, uses the demonstrated future) | 0.0175 | 0.0148 | 0.0039 | 0.0030 |
   Structured is lower than direct on all four groups (hand -53%, arm -51%); one seed, 8 episodes, no CI, so a point estimate only.
 - Closed-loop SIMPLE tabletop, 20 episodes (seeds 0-9 twice, batch 2): direct 19/20, Wilson95 [0.764, 0.991], one timeout.
-  Structured, released: NOT YET RUN (see blockers).
+  Structured (ours, D-141-fixed stage A + structured head, no RTC), 2026-10-03 (eval started 04:19 after the peer shm incident below): **7/20,
+  Wilson95 [0.181, 0.567]** (13 timeouts of 800 steps; successes at 158-518 steps), `eval_r2-structured_s0/structured.jsonl` (raw, committed).
+  Paired by (seed, repeat) vs direct: 13 discordant for direct, 1 for structured, McNemar exact p = 0.0018. Pre-fix structured was 0/20 (D-140 table).
+  So the D-141 fix moved structured from 0/20 to 7/20 but it is still clearly below direct (19/20); this is a result, not a verdict on structure
+  in general (one seed, one task). Released: NOT YET RUN (queued behind BendPickMP, p4 chain).
 - `probes_gen` (probes on the structured head's generated z) failed twice with exit -10 (host/peer memory-pressure watchdog `sustained_project_memory_psi`
   killed it; peak 4.7 GiB, i.e. the pressure came from other tracks). Not retried with changed settings; it is a diagnostic and can be rerun as is.
 - Blockers: eval_structured@s0 has waited 6 h + 6 h in broker admission (first "gpu owners 3 > slots 2", then "memory 147 GB > aggregate 114 GB"):
   other tracks hold the GPU slots and memory. Coordinator `camp-psi0-tt-p3b` keeps waiting.
+
+### 2026-10-03 T7 incident: peer watchdog crash loop (shm charged to rrp.slice)
+From ~03:58 the peer watchdog could not start (`Failed to create cgroup .../rrp-watchdog-peer.service: Cannot allocate memory`, 350+ restarts) and
+the broker refused every lease (`watchdog heartbeat missing or stale`). rrp.slice memory.current was 39.8 GB against MemoryMax 32 GiB, all
+shmem from /dev/shm job outputs. I archived my tabletop feature cache and direct head (6.5 GB) to `~/work/rrp-data/peer-archive/runs/psi0/` (sha256 tree equal,
+ARCHIVE_LOG.txt), deleted them on the peer, reported to the lead; slice fell to 19 GB, watchdog recovered, eval_structured was admitted. The p4 chain restores
+the feature cache only for `probes_gen` and removes it afterwards.
