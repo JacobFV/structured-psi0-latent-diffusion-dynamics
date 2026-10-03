@@ -751,3 +751,10 @@ broker refuses (6 h cap): instance override to 21600 s segments with retries 3 (
   The squat planner of the manipulation teachers (`SquatPlanner`, "no static squat within 0.25 m puts both palms on the box faces") finds no plan
   on g1 and h1 (it was developed on t1, U2/U3), and the h_reach static stance falls on g1 / h1: the manipulation teachers are t1-only today.
   Evidence: `artifacts/runs/humanoid/teacher-quality-<task>/eval_transfer-teacher-quality_s0/{results.jsonl,tables.json}` (peer store).
+- 2026-10-03 **T4 collection defect found and fixed** (35a8d6c3): the latent collector's `RecordingTracker` did not forward the direct-control
+  `legs` target (`session.tracker.pending`) to the wrapped slot, so every wholebody h_* collection executed the default stance (all recorded
+  actions 0) and fell at 1 s (h_walk `collect_src` 10-03 05:09: 0/300). The teacher-quality gate ran through `evaluate()` and is unaffected.
+  The bad collection is renamed `collect-src_s0.INVALID_pending_bug_20261003` (peer store) and is re-collected after the fix.
+- **T3 is on the critical path of the transfer test** (lead, 10-03): the sealed humanoid targets have no tracker, so `collect_sealed` and
+  every sealed cell need the shared `morph_v2_ub` tracker (zero-shot + Level-1 adaptation). T3 train (iter 2500 / 3000 at the 03:58 OOM)
+  waits for 64 GiB of peer memory (Psi0's eval holds 62 GiB); held T4 collect nodes start only after T3 is admitted (`camp-hum-after-t3`).
