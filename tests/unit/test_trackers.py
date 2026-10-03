@@ -110,7 +110,9 @@ def test_committed_registry_lists_the_installed_trackers_with_pins():
     assert T[("t1", "contact_v2")].sha256 == "36e9146792743115878c34e0bbf7cc46ccb5419417921358da3658c8377fc591"
     assert T[("anymal_c", "contact_v2")].sha256 == "2a16532bbd07f7abc662bdda10df6bfb70fca2ec11d59f9567142e92a2f22d95"
     assert ("t1", "contact_v1") in T and T[("anymal_c", "contact_v2_rejected_iter2499")].decision == "rejected"
-    assert all(e.extra_obs == "none" for e in T.values())         # nothing committed takes the scan yet
+    # D-147 (2026-10-03): the only committed scan-input tracker is h1:steps_ub_v1 (public terrain_scan; installed under the D-147 exception)
+    assert {k for k, e in T.items() if e.extra_obs != "none"} == {("h1", "steps_ub_v1")}
+    assert T[("h1", "steps_ub_v1")].extra_obs == "terrain_scan" and T[("h1", "steps_ub_v1")].decision == "accepted_d147_exception"
 
 
 # ---------------------------------------------------------------- the scan: constants and sensor model
