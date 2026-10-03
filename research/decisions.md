@@ -1740,3 +1740,17 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
   "no worse" is not claimed from overlapping CIs. No new hyperparameters, seeds or fixes are introduced between tasks; a structured-arm
   change is a new decision with its own pre-registration, never a re-run of a finished cell.
 - Held-out / sealed: none of these cells is sealed; no sealed or held-out-split decision is taken by the T7 owner (proposal to the lead only).
+
+### D-147 addendum 2026-10-03 (T9 owner, owner-approved re-plan "yes, re-plan T9 on the v8div recipe"): T9 halted result and v8div pre-registration
+- HALTED result (research/tracks/relations.md "T9 halted v3dart comparison"): geo vs base on the v3dart F0-only route = 0/360 vs 0/360
+  (0 discordant pairs; 78% of episodes fail at approach in both arms). A floor: uninformative about factors. Cause: the evaluated route was F0
+  with the un-refit stage-A system 0 (no DAgger / refits; the same F0 stage with the DAgger-refit system 0 was 99/120 in v6 semfix `prog20k`),
+  on the old v3dart data and without grasp_contact v2.1; ix F0 was never admitted (56 GiB declared per lease vs 2.0-2.5 GiB measured RSS).
+  Artifacts archived to `peer-archive/runs/relations-v3dart-halted` (sha256), peer copies and T9's v3dart pack copy removed.
+- RE-PLAN, PRE-REGISTERED before any run (same note, "T9 v8div pre-registration"): control = armdiv `arm8div-semfix` s1, s2 (read, not re-run);
+  treatments `relations8-{geo,ix,task}` s1, s2 extend `arm_lineage_v8div.yaml` unchanged and vary only the flow's factor set (flow-independent
+  prefix reused from the control, pinned); curriculum on F0 / Fft; dev seeds only (G3 source-body cells, 480 per set pooled; newarms
+  secondary). Criterion: HELPS / HURTS iff the Newcombe 95% interval of set - control on the pooled primary excludes 0 (headline also at
+  1 - 0.05/3), valid only if every scheduled factor reaches competence >= 0.5 at the end of Fft in both seeds. Gate: armdiv G3 lineage gate
+  PASS; G3 FAIL makes T9 on v8div moot. One GPU lease at a time; budget 80 GPU lease-hours; `all` combination only within 60 h.
+- Memory declarations from measured peaks (flows 14G + 2G GPU, refits 10G + 3G, collections 10G, relgen 3G, evals 8G); the old 40G + 16G F0 is gone.

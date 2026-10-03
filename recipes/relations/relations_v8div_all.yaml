@@ -1,0 +1,41 @@
+# T9 v8div, the COMBINATION set `all` = geo + ix + task on one flow (CONDITIONAL, research/tracks/relations.md "T9 v8div
+# pre-registration" item 7: runs only if the six single-set lineages of relations_v8div.yaml completed inside the T9 budget).
+# Same design as relations_v8div.yaml (which this file extends; control = armdiv arm8div-semfix, not re-run); only the
+# factor list, the scheduled factors and the relgen presets differ. share_max 0.1 per factor keeps the six scheduled
+# factors' total relgen share at most 0.6 x the single-set bound (curriculum renormalisation keeps it within the batch).
+#   rrp run-dag recipes/relations/relations_v8div_all.yaml --dry-run
+extends: relations_v8div.yaml
+name: relations_v8div_all
+schema: dag-1
+track: relations
+policy: latent
+env: mujoco/arm
+task: pick_place
+bodies: armdiv_pool_v1
+factors: [preset:arm, preset:geo, preset:ix, preset:task]
+matrix:
+  fset: [all]
+lists:
+  f_all: ['preset:arm', geo.pos3d, geo.depth3d, geo.orient, {name: geo.normal_align, source: probe}, geo.above, ix.contact, ix.support, ix.held_by, ix.force_flow, task.next_contact]
+  c_all: [geo.depth3d, geo.normal_align, ix.contact, ix.held_by, ix.support, task.next_contact]
+nodes:
+  relgen:
+    per:
+      fset:
+        all: {params: {factors: ['preset:geo', 'preset:ix', 'preset:task']}}
+  F0:
+    per:
+      fset:
+        all: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_all}, curriculum: {factors: $c_all, interval: 1000, ramp_steps: 20000, share_max: 0.1}}}
+  Fft:
+    per:
+      fset:
+        all: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_all}, curriculum: {factors: $c_all, interval: 1000, ramp_steps: 10000, share_max: 0.1}}}
+  Fgdag1:
+    per:
+      fset:
+        all: {params: {policy: {factors: $f_all}}}
+  Fgdag2h:
+    per:
+      fset:
+        all: {params: {policy: {factors: $f_all}}}

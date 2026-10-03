@@ -403,3 +403,28 @@ def test_suite_relations_compare_tables_depth_and_paired_interference(tmp_path, 
     assert pooled["stage_rank_delta"]["mean"] == 1.25 and abs(pooled["min_tcp_cube_m_delta"]["mean"] + 0.025) < 1e-9
     assert pooled["rate_set"] == 0.75 and pooled["rate_base"] == 0.5 and pooled["delta"]["mean"] == 0.25
     assert "competence by factor" in capsys.readouterr().out
+
+
+def test_suite_relations_compare_v8div_newcombe_and_preregistered_verdict(tmp_path):
+    root, ctl = tmp_path / "relations", tmp_path / "armdiv" / "arm8div-semfix"
+
+    def jl(path, rows):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+
+    def ev(base, d, ok):
+        jl(base / d / "bodyA" / "generated_x.jsonl", [{"seed": 10 + i, "privileged_success": bool(v), "failed_stage": None if v else "grasp",
+                                                      "min_tcp_cube_m": 0.05} for i, v in enumerate(ok)])
+    for d in ("eval_r2-final_s1", "heldout-final_s1"):
+        ev(ctl, d, [0] * 20)
+        ev(root / "relations8-geo", d, [1] * 20)
+        ev(root / "relations8-ix", d, [1] * 20)
+    jl(root / "relations8-geo" / "flow_ft-ft_s1" / "schedule.jsonl", [{"step": 0, "level": {"geo.depth3d": 1}, "signals": {"geo.depth3d": {"competence": 0.8}}}])
+    jl(root / "relations8-ix" / "flow_ft-ft_s1" / "schedule.jsonl", [{"step": 0, "level": {"ix.contact": 1}, "signals": {"ix.contact": {"competence": 0.1}}}])
+    curriculum_cli.compare_main(["--v8div", "--root", str(root), "--control", str(ctl), "--sets", "geo,ix", "--seeds", "1"])
+    t = json.loads((root / "tables" / "tables_v8div.json").read_text())
+    prim = [r for r in t["contrast"] if r["set"] == "geo" and r["group"] == "primary" and r["body"] == "pooled"][0]
+    assert prim["n"] == 40 and prim["k_set"] == 40 and prim["k_ctl"] == 0 and prim["newcombe95"][0] > 0.8
+    assert t["verdicts"]["geo"]["verdict"] == "helps (holds at 1-0.05/3)" and prim["newcombe_bonf3"][0] < prim["newcombe95"][0]
+    assert t["verdicts"]["ix"]["verdict"].startswith("helps (holds at 1-0.05/3) (INVALID") and "ix.contact@s1" in t["verdicts"]["ix"]["verdict"]
+    assert t["control_rates"][0] == {"group": "primary", "k": 0, "n": 40}

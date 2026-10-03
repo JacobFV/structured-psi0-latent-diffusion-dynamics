@@ -1,6 +1,50 @@
 # track: relations (open) — relation-factor experiments (D-144)
 
-State: **planned** — recipes render and plan dry; nothing has run (run T9).
+State: **planned** — T9 RE-PLANNED on the armdiv v8div lineage (D-147 addendum 2026-10-03, owner "yes, re-plan T9 on the v8div
+recipe"); pre-registration below ("T9 v8div pre-registration"), recipes `recipes/relations/relations_v8div{,_all,_smoke}.yaml`.
+Gated on the armdiv G3 lineage gate (v8div semfix >= 401/480 on dev seeds). The first T9 comparison (v3dart, F0-only route) was
+HALTED by the lead: geo vs base 0/360 vs 0/360 = floor, uninformative ("T9 halted v3dart comparison", below). Progress log:
+`~/work/rrp-data/campaign/logs/relations_progress.log`.
+
+## T9 halted v3dart comparison (2026-10-01..03; recorded 2026-10-03, failed_hypothesis of the DESIGN, not of the factors)
+
+What ran (`recipes/relations/relations_{geo,ix,task}.yaml` = `recipes/templates/relations_factor.yaml`, worktree
+`camp-relations`, code 15bf78da/3c84df9d): one shared stage A (v3dart pack `latent_pp_v3dart_s1_H16`, 13 bodies, 15,000 steps,
+probes: focused_on 1.0, held_by .997, visible .973), relgen shards for geo / ix / task (200 teacher episodes on parm6_pg2; task
+needed one code fix 16cd9bfe), then flow F0 (20,000 steps) for `base` (preset:arm) and `geo` x seeds 1, 2, evaluated as
+**F0 + the un-refit stage-A system 0** on the R2 dev bodies (parm6_tf3, panda_pg2; seeds 3,000,000/100, 30 each) and the two
+held-out bodies (parm5s_tf3, parm5l_pg2; 30 each). ix F0 was never admitted (below); task F0 never started.
+
+Result (`rrp suite relations-compare`, tables archived with the runs):
+
+| set | n (paired) | success | failed at approach / grasp / lift / transport | mean closest tcp-cube | final flow loss s1 / s2 |
+|---|---|---|---|---|---|
+| base | 360 | 0 | 272 / 70 / 17 / 1 | 0.055 m | 0.258 / 0.255 |
+| geo | 360 | 0 | 287 / 53 / 12 / 8 | 0.061 m | 0.271 / 0.257 |
+
+Paired geo - base: 0 discordant pairs (McNemar p = 1); furthest stage -0.017 [-0.083, 0.050]; closest tcp-cube +0.007 m
+[0.004, 0.009] (geo slightly farther). geo competence (scheduler EMA, depth 1): geo.depth3d 0.10, geo.normal_align 0.54.
+**Reading: a floor; it says nothing about factors.** Both arms fail the same way at the same stage, so the contrast has no room.
+
+Cause analysis (evidence, not a new experiment):
+1. Stage / route (main cause). The evaluated route was F0 with the stage-A system 0: no DAgger, no system-0 refits. The deployable
+   arm route of every competent lineage is the DAgger-refit chain (v6: F0 -> ... -> Fgdag2h + rzgendag3). In the archived v6 semfix
+   lineage the SAME F0 stage evaluated with the DAgger-refit system 0 (`prog20k` = F0 + rzgendag1, dev seed 3,000,000) reached
+   99/120 (s1 26/30 panda, 26/30 parm6; s2 17/30, 30/30) with 0-5 approach failures per 30
+   (`.old/research/tracks/ladder/armv6/summaries/arm6-semfix/eval_r2-prog20k_*`). T9's F0 with the un-refit system 0 failed at
+   approach in 78% of episodes (559/720): the policy hovers near the cube (closest 5.5-6 cm; final teacher phase `pregrasp`)
+   and never descends: the covariate-shift failure the DAgger refits exist to remove.
+2. Data. v3dart (13 bodies, the pre-v6 expert data) instead of the current v7div pack / v8div labeller; T9's evals also ran
+   without `grasp_contact: v2.1` (the v6 / v8div physics). Grasp-stage failures are 16-19% of the rest, so this is secondary, but it
+   makes the comparison off-protocol for the arm track.
+3. Approach failures dominate in BOTH arms and the paired outcomes are identical: no factor effect can be read at a floor.
+4. Resources: F0 declared 24G + 16G GPU, then 40G + 16G after one throttled resume, against measured RSS peaks of 1.96 - 2.51 GiB
+   (base s1, geo s1, base s2; the 19.2 / 25.6 GiB of geo s2 were the PSI-shed segment and its resume, page cache included);
+   two ix F0 leases at 56 GiB each exceeded the peer's aggregate admission limit (131 > 114 GB) for 6 h and were never admitted.
+Disposition: halted by the lead; coordinators `rrp-camp-relations-main*` stopped (units failed/inactive). Artifacts archived
+2026-10-03: peer `runs/relations` (190 files, 1.2 GB; checkpoints, evals, relgen shards, schedule logs) ->
+`~/work/rrp-data/peer-archive/runs/relations-v3dart-halted/` (sha256 tree equal, `SHA256SUMS`; host-side dag ledgers and tables in
+`host-side/`), removed from peer /dev/shm; T9's 24 GB peer copy of the v3dart pack removed (host original sha256-equal).
 
 The relation-factor registry (D-144, `docs/relations.md`, catalog `research/relations_catalog.md`) is built: token model,
 `FactorSite` in the shared attention block, `ReadoutProbe`, `relgen` labels / parts / transforms, curriculum scheduler,
@@ -11,7 +55,79 @@ Per-unit history of the build (R1-R21, rel-geo, sweep-flags, closures) is in `re
 addenda; the unit notes `research/tracks/rel-*.md` and `sweep-flags.md` are closed-track material (moved to `.old/research/tracks/` by P5).
 Their open items are collected below, so nothing needs the old notes.
 
-## recipes
+## T9 v8div pre-registration (written 2026-10-03 BEFORE any T9-v8div run; committed before the smoke and before G3)
+
+1. **Question.** On the competent arm route (v8div semfix lineage), does adding one relation-factor set to the flow, with its
+   probe supervision scheduled by the responsive curriculum (docs/relations.md 5.5), change deployable success at equal data
+   and updates? Sets: `geo`, `ix`, `task` (arm-buildable members, as before); `all` (their union) conditionally (item 8).
+2. **Control `none`** = the armdiv lineage `arm8div-semfix` seeds 1, 2 (`recipes/armdiv/arm_lineage_v8div.yaml`, FROZEN, T6;
+   default factor list = `preset:arm`, verified equal to the explicit `['preset:arm']`). It is the same recipe and seeds, so it is
+   read, not re-run (D-140): `artifacts/runs/armdiv/arm8div-semfix/`.
+3. **Treatments** `relations8-<set>` seeds 1, 2 (`recipes/relations/relations_v8div.yaml`, `extends` the v8div recipe).
+   - Varied: `params.policy.factors` = preset:arm + the set on F0, Fft, Fgdag1, Fgdag2h (the architecture must match for the
+     strict `init_from`); `inputs.relgen` + `params.curriculum` on F0 (ramp 20,000) and Fft (ramp 10,000) only (the pack-trained
+     flows; Fgdag2h has no pack rows, so a curriculum would be inert there; Fgdag1 carries the architecture only). Scheduled
+     factors: geo.depth3d, geo.normal_align (share_max 0.25); ix.contact, ix.held_by, ix.support (0.2); task.next_contact (0.25);
+     interval 1000. Relgen: 200 scripted-teacher episodes on parm6_pg2 (a pool body) under grasp_contact v2.1, seed_start
+     5,000,000 + 100,000 (seed - 1), a snapshot every 8 ticks, at most 6 per episode. Relgen labels are privileged teacher-snapshot
+     labels (StateView), training targets only; the deployed flow reads the same observation tokens as the control (deploy guard).
+   - Shared with the control (consumed by run id, the representations pinned by sha256; the DAgger buffers cannot be pinned and
+     their `pipeline_manifest.json` digests are recorded at launch): stage A, rzbcdag1long, rzbcdag2 representations and the
+     bc1 / bc2 / bc3 buffers. These nodes do not depend on the flow; reusing them makes the prefix identical, not merely matched.
+   - Matched: v7div pack (pinned), DAgger labeller bcv7div 1701 (pinned), every step count / batch / lr / seed / DAgger seed /
+     eval set / grasp_contact. `tests/unit/test_relations_v8div_recipe.py` asserts that each planned node equals the control node
+     except the factor list, curriculum, relgen input, pins and names. Data accounting: relgen rows REPLACE up to share_max of a
+     batch's main rows (equal optimizer updates and batch size; up to 20-25% fewer main rows on F0 / Fft), so the factor's data
+     cost is inside the contrast.
+   - Code: the control trains on the armdiv peer code (c41decde + resource-only changes); T9 trains on main at launch. Their
+     train / eval-path difference is the default-off compute block and warp eval backend (D-147 unit enable: nothing switched).
+     Every T9 node records its src_tree; a train-path change beyond those is reported as a caveat.
+4. **Evaluation (dev seeds only; no sealed target is touched).** PRIMARY = the G3 source-body cells: `finalevals` parm6_tf3 and
+   panda_pg2 x seed starts 3,000,000 / 3,000,100 / 3,000,200 x 30 + `heldout` parm5s_tf3 and parm5l_pg2 x 3,000,000 x 30 =
+   240 per seed, **480 per set pooled over seeds 1, 2**. SECONDARY = `newarms` (pa2s0_pg2, pa2s3_tf3, ur10e_pg2, vx300s_tf3 x 30 =
+   240 pooled). Success = the privileged evaluator's success (source: learned flow + learned system 0; labels in every table).
+5. **Metrics.** Success k/n with Wilson 95% per set, body and pooled; **contrast set - control with the Newcombe 95% interval**
+   (pooled primary = the test; per body and newarms descriptive) plus the Bonferroni (1 - 0.05/3) Newcombe interval for the
+   headline; paired McNemar (training seed x body x env seed) and graded paired deltas (furthest stage, closest tcp-cube) as
+   secondary; per-factor probe competence by composition depth from `schedule.jsonl` (F0 and Fft); interference table = per set
+   x body success / stage deltas against the control, plus the scheduler's within-set factor-pair interference where recorded;
+   final training record (flow loss, last 2000 steps) next to the control's. Command (one place, tested):
+   `rrp suite relations-compare --v8div --root artifacts/runs/relations --control artifacts/runs/armdiv/arm8div-semfix --sets geo,ix,task --seeds 1,2`.
+6. **Success criterion (per set, fixed now).**
+   - Validity: every scheduled factor's competence at the last Fft scheduler decision >= 0.5 in both seeds. Otherwise the set is
+     reported "factor not learned": its contrast is still reported but is not evidence about the factor's use.
+   - **HELPS** iff the Newcombe 95% lower bound of (pooled primary k/480 - control k/480) > 0; **HURTS** (interference) iff the
+     upper bound < 0; otherwise **NO DETECTABLE EFFECT** (the interval is the result; near the G3 level ~0.88 the design resolves
+     roughly +-0.045). A headline "factor set X improves the arm route" additionally needs the Bonferroni interval to exclude 0.
+   - Ceiling guard: if the control's pooled primary rate is > 0.95, the primary has no room and the newarms contrast is the
+     reading (same rules), decided now. The control floor is excluded by the G3 gate itself (>= 401/480).
+   - Probes / attention are diagnostics. The causal evidence is the matched contrast (the factor set is the only difference);
+     a deploy-time factor knockout needs code that does not exist and is NOT part of this pre-registration.
+7. **Gate, order, compute.** Starts only after the armdiv G3 lineage gate PASSES (`G3 PASS` in
+   `~/work/rrp-data/campaign/logs/armdiv_progress.log`); if G3 fails, T9 on v8div is moot (recorded, nothing runs). Peer only,
+   ONE GPU lease at a time (`--max-parallel-gpu 1`; the broker's shared non-humanoid slot), CPU nodes in parallel within broker
+   caps; order seed 1 geo, ix, task, then seed 2. A node cut at a lease segment end (`max_seconds_exceeded`, resumable from
+   `policy_last.pt`), an admission wait, or an infrastructure kill (watchdog shed, slice-level OOM) is resumed with
+   `--retry-failed` and unchanged settings (not an attempt); any other failure stops that lineage for review. Budget: six
+   lineage suffixes, estimated ~8 GPU-h each (~50 GPU-h); cap 80 GPU lease-hours including resumes; at the cap the remaining
+   cells are `budget_exhausted` and reported as such.
+8. **Combination `all`** (`relations_v8div_all.yaml`, share_max 0.1 per scheduled factor): runs only if the six single-set
+   lineages complete within 60 GPU lease-hours (then cap +20 h); otherwise it is not run and recorded so.
+9. **Memory declarations (D-117, >= 1.35 x measured peak; resources are not in any config hash).** Measured: T9 v3dart F0 RSS
+   1.96 - 2.51 GiB; v8div flow F0 7.2 GiB at the 9G declaration while throttled by memory.high (true peak unknown: page cache of
+   the 21 GB pack read through mmap); v8div refits 6.4 - 6.9 GiB at 8G (throttled); v8div bc collections 6.3 - 7.0 GiB at 22G
+   (unthrottled); T9 relgen 1.79 GiB; T9 dev evals 4.8 - 5.2 GiB; GPU: v6 flows 1.12 GiB. Declared: flows 14G + 2G GPU, refits
+   10G + 3G GPU, collections 10G (was 22G), relgen 3G, finalevals / heldout 8G, newarms 12G (armdiv's). The largest concurrent
+   T9 footprint is one GPU node (<= 16 GiB incl. GPU) plus CPU collections (10 GiB each), down from 56 GiB per F0. The CPU smoke
+   measures the flow / refit peaks on the v7div pack; before launch the flow declaration is set to max(14G, 1.35 x the largest
+   unthrottled v8div / smoke flow peak), recorded here (a resource change, not a protocol change).
+10. **Smoke (plumbing only, before G3).** `relations_v8div_smoke.yaml`: seed 1, all three sets, tiny steps, 4 bodies, CPU only
+   (no GPU lease), consuming the control's completed seed-1 outputs. Its outputs are not results and are deleted after the
+   check; a plumbing fix it forces is recorded here as an amendment before the real run.
+11. Pins: seed 1 filled 2026-10-03 (control nodes completed: train_rep_s1 108e09ab..., refit-bcdag1_long_s1 87beb0c2...,
+   refit-bcdag2_s1 78dbfb23...); seed 2 filled when those control nodes complete (a PENDING pin refuses the stage).
+
+## recipes (v3dart instances: HALTED, superseded by `relations_v8div*.yaml`; kept for the record)
 
 `recipes/templates/relations_factor.yaml`: one shared representation (stageA, semantic probes, trained once so every
 factor set sees the same input information) + probes read once, then per factor set (`fset` axis) x seed: flow `F0` with
@@ -34,7 +150,7 @@ Relgen reaches the trainer (R2 RG, below): per set the F0 node takes the `relgen
 (no `handover_pairs` label), so those two are not in the F0 lists (the full presets failed at model build, which no run had
 reached before; `time.same_track` is already out of `preset:task`, D-146 round 2). State: planned for the real recipes, smoke on the peer (R2 RG note).
 
-## resume
+## resume (v3dart instances, HALTED: do not run; T9 resume is in the pre-registration above)
 
 Host = git / editing / unit suite only. Everything below runs on the peer with `RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/relations`
 after `ops/bin/peer_sync.sh push`.

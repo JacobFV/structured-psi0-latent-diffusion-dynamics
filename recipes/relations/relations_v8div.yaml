@@ -1,0 +1,148 @@
+# T9 relation-factor experiment on the armdiv v8div lineage (D-147 T9 re-plan, PRE-REGISTERED in research/tracks/relations.md
+# "T9 v8div pre-registration" before any run). Replaces the halted v3dart instances (relations_{geo,ix,task}.yaml: F0-only
+# route on the old pack, 0/360 for both base and geo = floor, uninformative).
+#
+# Design: the v8div semfix lineage (recipes/armdiv/arm_lineage_v8div.yaml, FROZEN, extended here unchanged) with ONLY the flow's
+# factor set varied. The control `none` IS the armdiv lineage arm8div-semfix seeds 1, 2 (default factor list = preset:arm,
+# identical recipe, identical seeds): it is not re-run (D-140). Every node whose inputs do not depend on the flow is the
+# control's own output, consumed by run id and pinned by sha256 (stageA, rzbcdag1long, rzbcdag2 representations; the bc1 / bc2 /
+# bc3 DAgger buffers, which a pin cannot cover, are recorded by manifest digest at launch): stageA, bc1, rzbcdag1,
+# rzbcdag1long, bc2, bc3, rzbcdag2 are dropped below. Every flow-dependent node (F0, Fft, the gen / gdag collections, the
+# gendag refits, Fgdag1, Fgdag2h, the evaluations) runs per factor set with the control's exact config except:
+#   params.policy.factors   preset:arm + the set (F0, Fft, Fgdag1, Fgdag2h: the architecture must match for init_from)
+#   inputs.relgen + params.curriculum   F0 and Fft (the pack-trained flow stages; Fgdag2h has no pack rows, Fgdag1 none
+#                                      either by design: architecture only)
+#   params.name / policy.name / lineage / labels (identity only)
+# Same pack (v7div, pinned), same BC labeller (bcv7div 1701, pinned), same steps / batch / lr / seeds / DAgger seeds / eval sets.
+# Relgen rows REPLACE up to share_max of each batch's main rows (equal optimizer updates and batch size; the factor's data cost
+# is inside the contrast). Relgen labels are privileged teacher-snapshot labels (StateView), training targets only, never a
+# deployable input (deploy guard); the deployed flow reads the same observation tokens as the control.
+# Analysis: `rrp suite relations-compare --v8div` (research/tracks/relations.md). Gate: runs only after the armdiv G3 lineage
+# gate passes. Peer only, ONE GPU lease at a time (shared non-humanoid slot).
+#   rrp run-dag recipes/relations/relations_v8div.yaml --dry-run
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/camp-relations-b rrp run-dag recipes/relations/relations_v8div.yaml --max-parallel-gpu 1
+extends: ../armdiv/arm_lineage_v8div.yaml
+name: relations_v8div
+schema: dag-1
+track: relations
+policy: latent
+env: mujoco/arm
+task: pick_place
+bodies: armdiv_pool_v1
+factors: [preset:arm, preset:geo, preset:ix, preset:task]
+lineage: 'relations8-{fset}'
+label_prefix: 'r8{fset}{seed}'
+matrix:
+  variant: [semfix]
+  fset: [geo, ix, task]
+axis_vars:
+  # control-lineage pins (sha256 of the arm8div-semfix outputs this lineage consumes; filled when those nodes completed,
+  # verified by every consuming stage before compute; a PENDING value refuses the stage)
+  seed:
+    1: {pin_rep: 108e09ab60249bfe2e11dffa26ee123a66cafb2b049fcb8a6e08ccebd23a98a6, pin_rep_l: 87beb0c212c0ef746d36f36528834d39e5ada2870fe7fbbc4aebdc80a4fe7cf3, pin_rep_2: 78dbfb233c3e428982cbcdfc56628a9a447edec77ffd763890ea7af1a02ea49d}
+    2: {pin_rep: PENDING_arm8div_semfix_train_rep_s2, pin_rep_l: PENDING_arm8div_semfix_rzbcdag1long_s2, pin_rep_2: PENDING_arm8div_semfix_rzbcdag2_s2}
+vars:
+  pfx: 'rel8_{fset}_s{seed}'
+  ctl: 'runs/armdiv/arm8div-semfix'
+  rep_a: '{ctl}/train_rep_s{seed}:representation.pt'
+  rep_l: '{ctl}/refit-bcdag1_long_s{seed}:representation.pt'
+  rep_2: '{ctl}/refit-bcdag2_s{seed}:representation.pt'
+  d_bc1: '{ctl}/dagger_collect-bc1_s{seed}'
+  d_bc2: '{ctl}/dagger_collect-bc2_s{seed}'
+  d_bc3: '{ctl}/dagger_collect-bc3_s{seed}'
+lists:
+  # the arm family's buildable members of each preset (resolve(family="arm"): geo.normal_align only as `source: probe`,
+  # ix.handover has no arm label; time.same_track is not in preset:task, D-146 round 2)
+  f_geo: ['preset:arm', geo.pos3d, geo.depth3d, geo.orient, {name: geo.normal_align, source: probe}, geo.above]
+  f_ix: ['preset:arm', ix.contact, ix.support, ix.held_by, ix.force_flow]
+  f_task: ['preset:arm', task.next_contact]
+  # scheduled factors = the set's probe-sourced factors with a readout (the trainer refuses any other)
+  c_geo: [geo.depth3d, geo.normal_align]
+  c_ix: [ix.contact, ix.held_by, ix.support]
+  c_task: [task.next_contact]
+nodes:
+  # ---- reused from the control lineage arm8div-semfix (flow-independent): not planned here
+  stageA: null
+  bc1: null
+  rzbcdag1: null
+  rzbcdag1long: null
+  bc2: null
+  bc3: null
+  rzbcdag2: null
+  # ---- relgen shards: scripted-teacher snapshots on one pool body, labelled from StateView (privileged truth, training targets only)
+  relgen:
+    stage: relations_data
+    resources: {cpu: 3, mem: 3G, gpu: false, max_seconds: 7200}     # measured 1.79 GiB peak (v3dart T9 relgen, 200 episodes)
+    per:
+      fset:
+        geo: {params: {factors: ['preset:geo']}}
+        ix: {params: {factors: ['preset:ix']}}
+        task: {params: {factors: ['preset:task']}}
+    config:
+      options: {env: mujoco/arm, task: pick_place, body: parm6_pg2, n_episodes: 200, seed_start: '{5000000 + 100000 * (seed - 1)}', snapshot_every: 8, max_snapshots: 6, batch: 4, grasp_contact: v2.1}
+  # ---- flows: the set's factors on every flow node, the curriculum on the two pack-trained ones
+  F0:
+    resources: {mem: '14G', gpu_mem: '2G'}
+    per:
+      fset:
+        geo: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_geo}, curriculum: {factors: $c_geo, interval: 1000, ramp_steps: 20000, share_max: 0.25}}}
+        ix: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_ix}, curriculum: {factors: $c_ix, interval: 1000, ramp_steps: 20000, share_max: 0.2}}}
+        task: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_task}, curriculum: {factors: $c_task, interval: 1000, ramp_steps: 20000, share_max: 0.25}}}
+    config:
+      inputs: {representation: '{rep_a}'}
+      options: {pin_sha256: {representation: '{pin_rep}'}}
+  Fft:
+    resources: {mem: '14G', gpu_mem: '2G'}
+    per:
+      fset:
+        geo: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_geo}, curriculum: {factors: $c_geo, interval: 1000, ramp_steps: 10000, share_max: 0.25}}}
+        ix: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_ix}, curriculum: {factors: $c_ix, interval: 1000, ramp_steps: 10000, share_max: 0.2}}}
+        task: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_task}, curriculum: {factors: $c_task, interval: 1000, ramp_steps: 10000, share_max: 0.25}}}
+    config:
+      inputs: {representation: '{rep_a}'}
+      options: {pin_sha256: {representation: '{pin_rep}'}}
+  Fgdag1:
+    resources: {mem: '14G', gpu_mem: '2G'}
+    per:
+      fset:
+        geo: {params: {policy: {factors: $f_geo}}}
+        ix: {params: {policy: {factors: $f_ix}}}
+        task: {params: {policy: {factors: $f_task}}}
+    config:
+      inputs: {representation: '{rep_a}'}
+      options: {pin_sha256: {representation: '{pin_rep}'}}
+  Fgdag2h:
+    resources: {mem: '14G', gpu_mem: '2G'}
+    per:
+      fset:
+        geo: {params: {policy: {factors: $f_geo}}}
+        ix: {params: {policy: {factors: $f_ix}}}
+        task: {params: {policy: {factors: $f_task}}}
+    config:
+      inputs: {representation: '{rep_a}'}
+      options: {pin_sha256: {representation: '{pin_rep}'}}
+  # ---- flow-dependent DAgger collections / system-0 refits: control buffers and representations by run id
+  gen1:
+    resources: {mem: '10G'}                     # measured 6.3-7.0 GiB (v8div bc1-bc3 collections, 65 bodies x 5 episodes)
+    config:
+      inputs: {representation: '{rep_l}'}
+      options: {pin_sha256: {representation: '{pin_rep_l}'}}
+  gen2: {resources: {mem: '10G'}}
+  gen3: {resources: {mem: '10G'}}
+  gdag1: {resources: {mem: '10G'}}
+  gdag2: {resources: {mem: '10G'}}
+  rzgendag1:
+    resources: {mem: '10G', gpu_mem: '3G'}      # measured 6.4-6.9 GiB at the 8G declaration (throttled: memory.high), v8div refits
+    config:
+      inputs: {representation: '{rep_2}', dagger: [{runs: ['{d_bc1}', '{d_bc2}'], files: $npz}, {runs: ['@gen1'], files: $npz_gen1}, {runs: ['{d_bc3}'], files: $npz}]}
+      options: {pin_sha256: {representation: '{pin_rep_2}'}}
+  rzgendag2:
+    resources: {mem: '10G', gpu_mem: '3G'}
+    config:
+      inputs: {dagger: {runs: ['{d_bc1}', '{d_bc2}', '{d_bc3}', '@gen1', '@gen2']}}
+  rzgendag3:
+    resources: {mem: '10G', gpu_mem: '3G'}
+    config:
+      inputs: {dagger: {runs: ['{d_bc1}', '{d_bc2}', '{d_bc3}', '@gen1', '@gen2', '@gen3']}}
+  finalevals: {resources: {mem: '8G'}}         # measured 4.8-5.2 GiB (T9 v3dart dev evals, 2 bodies x 30)
+  heldout: {resources: {mem: '8G'}}

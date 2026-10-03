@@ -1,0 +1,44 @@
+# T9 v8div SMOKE (plumbing + memory measurement only; NOT a result): relations_v8div.yaml end to end at seed 1 with tiny step
+# counts, CPU only (no GPU lease: the shared non-humanoid GPU slot is not touched before the G3 gate), 1 DAgger episode per
+# body on 4 bodies (2 v6 + 2 new), 2-episode evaluations, 24 relgen episodes. Consumes the control lineage's completed seed-1
+# outputs (pinned). Checks: relgen under grasp_contact v2.1, factor flows with the curriculum on the v7div pack, strict
+# init_from across Fft / Fgdag1 / Fgdag2h with the factor architecture, gen collections and refits mixing control and own
+# DAgger buffers, and the eval nodes loading a factor checkpoint (deploy guard).
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/camp-relations-b rrp run-dag recipes/relations/relations_v8div_smoke.yaml --max-parallel 3
+extends: relations_v8div.yaml
+name: relations_v8div_smoke
+schema: dag-1
+track: relations
+policy: latent
+env: mujoco/arm
+task: pick_place
+bodies: armdiv_pool_v1
+factors: [preset:arm, preset:geo, preset:ix, preset:task]
+lineage: 'relations8-smoke-{fset}'
+label_prefix: 'r8s{fset}{seed}'
+matrix:
+  seed: [1]
+vars:
+  pfx: 'rel8smoke_{fset}_s{seed}'
+lists:
+  bodies: [panda_pg2, parm6_tf3, pa2s3_tf3, ur10e_pg2]
+  npz: [panda_pg2.npz, parm6_tf3.npz, pa2s3_tf3.npz, ur10e_pg2.npz]
+  npz_gen1: [panda_pg2.npz, parm6_tf3.npz, pa2s3_tf3.npz, ur10e_pg2.npz]
+  genctx: [panda_pg2.npz.genctx.pkl, parm6_tf3.npz.genctx.pkl, pa2s3_tf3.npz.genctx.pkl, ur10e_pg2.npz.genctx.pkl]
+nodes:
+  relgen: {config: {options: {n_episodes: 24}}}
+  F0: {resources: {gpu: false, gpu_mem: null, cpu: 4}, config: {params: {steps: 60, snapshot_every: 20, curriculum: {interval: 20, ramp_steps: 60}}, options: {final_snapshot_alias: snap_final_s20000.pt}}}
+  Fft: {resources: {gpu: false, gpu_mem: null, cpu: 4}, config: {params: {steps: 60, snapshot_every: 20, curriculum: {interval: 20, ramp_steps: 60}}}}
+  rzgendag1: {resources: {gpu: false, gpu_mem: null, cpu: 4}, config: {params: {steps: 40}}}
+  rzgendag2: {resources: {gpu: false, gpu_mem: null, cpu: 4}, config: {params: {steps: 40}}}
+  rzgendag3: {resources: {gpu: false, gpu_mem: null, cpu: 4}, config: {params: {steps: 40}}}
+  Fgdag1: {resources: {gpu: false, gpu_mem: null, cpu: 4}, config: {params: {steps: 40, snapshot_every: 20}}}
+  Fgdag2h: {resources: {gpu: false, gpu_mem: null, cpu: 4}, config: {params: {steps: 40, snapshot_every: 20}}}
+  gen1: {config: {options: {episodes: 1}}}
+  gen2: {config: {options: {episodes: 1}}}
+  gen3: {config: {options: {episodes: 1}}}
+  gdag1: {config: {options: {episodes: 1}}}
+  gdag2: {config: {options: {episodes: 1}}}
+  finalevals: {config: {options: {episodes: 2, seed_starts: [3000000]}}}
+  heldout: {config: {options: {episodes: 2}}}
+  newarms: {config: {options: {episodes: 2}}}
