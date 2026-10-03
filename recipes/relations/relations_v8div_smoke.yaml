@@ -27,7 +27,10 @@ lists:
   genctx: [panda_pg2.npz.genctx.pkl, parm6_tf3.npz.genctx.pkl, pa2s3_tf3.npz.genctx.pkl, ur10e_pg2.npz.genctx.pkl]
 nodes:
   relgen: {config: {options: {n_episodes: 24}}}
-  F0: {resources: {gpu: false, gpu_mem: null, cpu: 4}, config: {params: {steps: 60, snapshot_every: 20, curriculum: {interval: 20, ramp_steps: 60}}, options: {final_snapshot_alias: snap_final_s20000.pt}}}
+  F0:
+    resources: {gpu: false, gpu_mem: null, cpu: 4}
+    per: {fset: {geo: {params: {curriculum: {interval: 20, ramp_steps: 60}}}, ix: {params: {curriculum: {interval: 20, ramp_steps: 60}}}, task: {params: {curriculum: {interval: 20, ramp_steps: 60}}}}}
+    config: {params: {steps: 60, snapshot_every: 20}, options: {final_snapshot_alias: snap_final_s20000.pt}}
   Fft: {resources: {gpu: false, gpu_mem: null, cpu: 4}, config: {params: {steps: 60, snapshot_every: 20, curriculum: {interval: 20, ramp_steps: 60}}}}
   rzgendag1: {resources: {gpu: false, gpu_mem: null, cpu: 4}, config: {params: {steps: 40}}}
   rzgendag2: {resources: {gpu: false, gpu_mem: null, cpu: 4}, config: {params: {steps: 40}}}

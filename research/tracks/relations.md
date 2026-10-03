@@ -128,6 +128,16 @@ Their open items are collected below, so nothing needs the old notes.
 11. Pins: seed 1 filled 2026-10-03 (control nodes completed: train_rep_s1 108e09ab..., refit-bcdag1_long_s1 87beb0c2...,
    refit-bcdag2_s1 78dbfb23...); seed 2 filled when those control nodes complete (a PENDING pin refuses the stage).
 
+12. **Amendment A1 (2026-10-03, from the smoke, before any real run; plumbing, not protocol).** The CPU smoke's ix F0 (20-step
+   curriculum interval) failed: `RelationBatches.loss` raised because one drawn shard batch carried no valid `ix.support` label
+   (sparse pair labels). `estimates_loss` documents an absent label as "no term, never an error"; the guard meant to catch a
+   factor the net never writes an estimate for. Fix (`harness/data/mix.py`): a scheduled factor without a term is tolerated per
+   batch (logged `relgen_nolabel`; a batch with no term at all adds a zero factor loss); the error is raised only for a factor
+   that has NEVER produced a term after `SILENT_STEPS_MAX` = 20 active shard steps (test updated accordingly). Smoke otherwise
+   48/48 nodes (seven watchdog `live_limit_reduced` stops resumed with `--retry-failed`). Measured smoke peaks (CPU, v7div pack):
+   F0 4.5-5.2 GiB, other flows 1.5-2.9, refits 0.9-2.2, collections 3.3-3.5, evals 1.0-1.1, relgen 0.4-0.6 GiB; all within the
+   declarations above (flows 14G).
+
 ## recipes (v3dart instances: HALTED, superseded by `relations_v8div*.yaml`; kept for the record)
 
 `recipes/templates/relations_factor.yaml`: one shared representation (stageA, semantic probes, trained once so every

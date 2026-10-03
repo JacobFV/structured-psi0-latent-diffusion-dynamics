@@ -193,8 +193,9 @@ def test_flow_three_cpu_steps_shard_rows_enter_the_estimate_loss_only(world, sta
 
 def test_a_scheduled_factor_without_an_estimate_head_fails_loudly(world, monkeypatch, tmp_path):
     monkeypatch.setattr(latent_train, "evaluate_representation", lambda *a, **k: {})
+    from rrp.harness.data.mix import SILENT_STEPS_MAX         # a factor that NEVER writes a term fails after this many steps
     cfg = dict(latent=dict(LATENT, encoder_factors=["preset:arm", "geo.pos3d"]), packed_dir=str(world.pack), seed=1,
-               steps=2, batch_size=B_SIZE, zero_prev_action=True, relgen=str(world.relgen), curriculum=CUR)
+               steps=SILENT_STEPS_MAX + 2, batch_size=B_SIZE, zero_prev_action=True, relgen=str(world.relgen), curriculum=CUR)
     with pytest.raises(RelgenError, match="source: probe"):
         latent_train.train_representation(cfg, tmp_path)
 

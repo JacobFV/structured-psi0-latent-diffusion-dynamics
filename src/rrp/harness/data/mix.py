@@ -37,6 +37,7 @@ from rrp.harness.data.relgen import Label, Sample
 MANIFEST_SCHEMA = "relgen-shard-3"
 INPUT_KINDS = ("policy_input", "legged_batch")
 FACTOR_LOSS_SCALE = 0.2          # 0.1 x the unit-variance flow loss at init (2.0); `params.factor_loss_scale` overrides
+SILENT_STEPS_MAX = 20          # active shard steps a factor may go without any estimate term before it counts as never written
 
 
 class RelgenError(ValueError):
@@ -430,6 +431,8 @@ class RelationBatches:
         self._lines = past[-1]["steer_line"] if past else 0
         self._pending: list = []
         self._active: list = []
+        self._seen_term: set = set()           # factors that have produced an estimate term at least once
+        self._silent_steps: dict = {}          # factor -> active shard steps without a term
         self.step = start_step
         self._it = mixed_batches(itertools.repeat(()) if main is None else main, self.scheduler, pools,
                                  int(self.batch_size), lambda step: np.random.default_rng([seed, int(step), 0x52454C]),
@@ -515,8 +518,15 @@ class RelationBatches:
                 logs.update(lg)
                 terms.append((sp.name, l))
                 raw += float(l.detach())
+        self._seen_term.update(n for n, _ in terms)
         silent = [f for f in self._active if f"probe_{f}" not in logs]
+        for f in silent:                       # sparse labels: a drawn shard batch may carry no valid label of a factor
+            self._silent_steps[f] = self._silent_steps.get(f, 0) + 1
         if silent:
+            logs["relgen_nolabel"] = float(len(silent))
+        never = [f for f in silent if f not in self._seen_term and self._silent_steps[f] >= SILENT_STEPS_MAX]
+        if never:
+            silent = never
             raise RelgenError(f"step {step}: scheduled factor(s) {silent} added no term to the estimate loss: the net wrote "
                               "no estimate for them (a `given` source has no readout head: give the factor "
                               "`source: probe`) or the shard rows carry no label for them")
@@ -524,6 +534,9 @@ class RelationBatches:
         if fresh:
             self.loss_ref.update(fresh)
             self._save_calibration()
+        if not terms:                          # no factor of this batch had a valid label: no factor term this step
+            self.observe_estimates(step, metrics)
+            return next(iter(rc.sets.values())).mask.float().sum() * 0.0, dict(logs, relgen_raw=raw)
         el = self.factor_loss_scale * sum(l / self.loss_ref[n] for n, l in terms) / len(terms)
         self.observe_estimates(step, metrics)
         return el, dict(logs, relgen_raw=raw)
