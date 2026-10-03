@@ -721,3 +721,18 @@ broker refuses (6 h cap): instance override to 21600 s segments with retries 3 (
     sha 52c32349003e30d7, decision `accepted_d147_exception`, on host and peer stores.
   - Queue (dispatcher v2 `~/work/rrp-data/campaign/hum_jobs.txt`, first free GPU peer or host): t1 steps P2-fix retrain, round 2 (steps g1 / h1,
     gap t1 / h1), T3 shared morph_v2_ub (peer only), T2 steps_ub t1 / g1 / h1 (round-2 changes). Watcher `camp-hum-watch` -> `logs/hum_events.log`.
+- 2026-10-03 **T1 round 2 (pre-registered 0c269011)** — verdicts by `gates.tracker_verdict` (task gating trials), evals under the course budgets:
+  | tracker | warm start | curriculum max / end | D-112 failing | lab (gating) | task eval | verdict |
+  |---|---|---|---|---|---|---|
+  | t1 steps P2-fix (round-1 retrain) | scratch | 0.4 / 0.3 | force 4.22 (> 4.2), margin -0.009 | pass | 0/100 (all timeouts: lateral drift, min truth distance to goal 1.33 m; 0 falls) | fail |
+  | g1 steps r2 | g1 P2-fix | 0.2 / 0.2 | force 4.77, margin -0.135, falls (0.7) | fail | 0/100 (mostly falls) | fail |
+  | h1 steps r2 | h1 P2-fix | 0.9 / 0.9 | force 3.32, margin -0.032, falls (0.8) | fail | 0.10 L 13/20, 0.15 L 1/20, >= 0.20 L 0/20 (timeouts) | fail |
+  | t1 gap r2 | t1 v2ft4 gait | 0.8 / 0.0 | force 3.35, margin -0.019, falls (0.33) | fail | 10/20 (10 timeouts) | fail |
+  | h1 gap r2 | h1 gap v1 (T1 20/20) | 0.0 / 0.0 | CoT 2.46, force 4.46, margin -0.015, falls | fail | 0/20 (17 fell) | fail |
+  | t1 steps r2 | t1 v1 (rule: 2/100 vs 0/100) | running (peer, queued 04:33) | | | | pending |
+  The h_steps timeouts were checked for a judge / perception defect (public goal distance unavailable near the goal): no, the t1 P2-fix
+  drifts ~1.3 m sideways and never comes within 0.6 m of the goal (2-episode vibe check, 10-03). h1 gap r2 is worse than its warm start
+  (T1: eval 20/20): the round-2 reward / force terms broke a working gap policy.
+- 2026-10-03 **T2 steps `*_ub`** (round-2 recipe changes, scratch): t1 fail (CoT 3.13 > 2.5; force 3.44, margin -0.011; curriculum 0.7); g1 fail
+  (falls in every trial, curriculum 0.0); **h1 `exception`** (steps gating trials: no falls; force 3.04, margin -0.0087; curriculum 0.6).
+  T3 shared morph_v2_ub: train OOM-killed at 03:58 (the peer freeze), retry 1/3 running.

@@ -1,0 +1,105 @@
+{
+ "config_hash": "6ba380f359cf9a5e",
+ "episodes": [],
+ "finished": 1791003967.4243593,
+ "inputs": {
+  "actor": [
+   {
+    "digest": "8ce70b4291e100ba",
+    "path": "artifacts/runs/humanoid/trk-r2-gap_h1/train_tracker_s1/actor.pt"
+   }
+  ]
+ },
+ "manifest_hash": "977e7b92731c6f4b",
+ "metrics": {
+  "body": "h1",
+  "contact_gate": false,
+  "gate": {
+   "failed": [
+    "cot_forward=2.457196403902411 (threshold <= 2.0 (biped))",
+    "peak_foot_force_bw=4.460055814497482 (threshold <= 3.0 (biped; 20 ms moving average))",
+    "joint_limit_margin=-0.014912968427599677 (threshold >= 0.02)",
+    "no_fall_rate=0.2 (threshold >= 0.9)",
+    "robust_in_training_range=['mu_hi: no_fall 0.00, fwd 0.00', 'mass_lo: no_fall 0.50, fwd 0.02', 'mass_hi: no_fall 0.00, fwd 0.00', 'latency: no_fall 0.80, fwd 0.42', 'push: no_fall 0.00, fwd 0.00'] (threshold no-fall >= 0.9 and forward ratio >= nominal (-0.22) - 0.2 at ['latency', 'mass_hi', 'mass_lo', 'mu_hi', 'mu_lo', 'push'])"
+   ],
+   "not_evaluated": [],
+   "verdict": "fail"
+  },
+  "tracker_sha": "8ce70b4291e100ba",
+  "tracker_version": "learned_tracker:h1:iter1999:contact_v2"
+ },
+ "n_episodes": 0,
+ "name": "runs/humanoid/trk-r2-gap_h1/validate_tracker_s1",
+ "native_config": {
+  "actor": "artifacts/runs/humanoid/trk-r2-gap_h1/train_tracker_s1/actor.pt",
+  "name": "humanoid_trk-r2-gap_h1_validate_tracker_s1",
+  "out_dir": "artifacts/runs/humanoid/trk-r2-gap_h1/validate_tracker_s1"
+ },
+ "outputs": {
+  "validation": {
+   "digest": "175f219067b802c7",
+   "path": "artifacts/runs/humanoid/trk-r2-gap_h1/validate_tracker_s1/validation.json"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": false,
+   "git_sha": "d91d98c691a72879df317842301296b21e0e5eca",
+   "src_tree": "f13ecd77c17d660148f3c1c39a9aa1fc96a01cc3",
+   "tree": "81de4ceab71bf87a3687a06a275a73d679950061"
+  },
+  "created_at": 1791003967.4240997,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v2"
+  },
+  "legacy": false,
+  "notes": "pipeline legged/validate_tracker runs/humanoid/trk-r2-gap_h1/validate_tracker_s1",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned_tracker",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/humanoid/trk-r2-gap_h1/validate_tracker_s1",
+ "runconfig": {
+  "family": "legged",
+  "flags": {
+   "contact_version": "contact_v2",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {
+   "actor": "runs/humanoid/trk-r2-gap_h1/train_tracker_s1:actor.pt"
+  },
+  "legacy": null,
+  "lineage": "trk-r2-gap_h1",
+  "note": "",
+  "options": {
+   "body": "h1",
+   "gate": "report",
+   "kind": "learned",
+   "robust": true,
+   "seeds": 10
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 1,
+  "stage": "validate_tracker",
+  "tag": null,
+  "track": "humanoid",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1791003904.7692668,
+ "status_counts": {}
+}

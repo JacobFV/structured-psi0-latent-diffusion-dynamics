@@ -1,0 +1,2070 @@
+{
+ "body": "g1",
+ "tracker_kind": "learned",
+ "tracker_source": "learned_tracker",
+ "tracker_version": "learned_tracker:g1:iter1999:contact_v2",
+ "tracker_sha": "23d253c0f411220f",
+ "family": "humanoid",
+ "synthetic": false,
+ "seeds": 10,
+ "gate": {
+  "no_fall_rate": 0.0,
+  "forward_ratio": 0.0,
+  "turn_ratio": 0.0,
+  "stand_ok": false,
+  "arc_yaw_ratio": 0.0,
+  "turn_fast_ratio": null,
+  "passed": false,
+  "contact_gate": {
+   "slip_ratio": null,
+   "slip_ok": false,
+   "duty_min": null,
+   "duty_max": null,
+   "stepping_ok": false,
+   "swing_apex_m": 0.0,
+   "swing_target_m": 0.08,
+   "clearance_ok": false,
+   "passed": false
+  }
+ },
+ "summary": {
+  "stand": {
+   "fall_rate": 1.0,
+   "dist_m": 0.3373197666004781,
+   "mean_vx": null,
+   "mean_wz": null,
+   "slip_mps": 0.3071707249188133,
+   "cot": 1.0632108880364433,
+   "slip_cp_mps": null,
+   "body_speed_mps": null,
+   "slip_ratio": null,
+   "duty_min": null,
+   "duty_max": null,
+   "air_time_s": 0.0,
+   "swing_apex_m": 0.0,
+   "step_hz": 0.0,
+   "peak_force_bw": 2.9127561052880764,
+   "peak_force_raw_bw": 7.068489872267677,
+   "joint_limit_margin_min": -0.06949462423165845,
+   "cmd": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "forward": {
+   "fall_rate": 1.0,
+   "dist_m": 0.19670979901950197,
+   "mean_vx": null,
+   "mean_wz": null,
+   "slip_mps": 0.2927629808387632,
+   "cot": 3.35807304064995,
+   "slip_cp_mps": null,
+   "body_speed_mps": null,
+   "slip_ratio": null,
+   "duty_min": null,
+   "duty_max": null,
+   "air_time_s": 0.0,
+   "swing_apex_m": 0.0,
+   "step_hz": 0.0,
+   "peak_force_bw": 3.177281106580911,
+   "peak_force_raw_bw": 8.043472859539593,
+   "joint_limit_margin_min": -0.008077778786602052,
+   "cmd": [
+    0.48,
+    0.0,
+    0.0
+   ]
+  },
+  "turn": {
+   "fall_rate": 1.0,
+   "dist_m": 0.550220212014823,
+   "mean_vx": null,
+   "mean_wz": null,
+   "slip_mps": 0.031742173789852064,
+   "cot": 0.7785232119545945,
+   "slip_cp_mps": null,
+   "body_speed_mps": null,
+   "slip_ratio": null,
+   "duty_min": null,
+   "duty_max": null,
+   "air_time_s": 0.0,
+   "swing_apex_m": 0.0,
+   "step_hz": 0.0,
+   "peak_force_bw": 2.4120541649077105,
+   "peak_force_raw_bw": 5.06594059125302,
+   "joint_limit_margin_min": 0.027033500785069234,
+   "cmd": [
+    0.0,
+    0.0,
+    0.36
+   ]
+  },
+  "turn_fast": {
+   "fall_rate": 1.0,
+   "dist_m": 0.6116782763359783,
+   "mean_vx": null,
+   "mean_wz": null,
+   "slip_mps": 0.03313880905027772,
+   "cot": 0.7702321851128071,
+   "slip_cp_mps": null,
+   "body_speed_mps": null,
+   "slip_ratio": null,
+   "duty_min": null,
+   "duty_max": null,
+   "air_time_s": 0.0,
+   "swing_apex_m": 0.0,
+   "step_hz": 0.0,
+   "peak_force_bw": 2.4021708159336512,
+   "peak_force_raw_bw": 5.009764475133588,
+   "joint_limit_margin_min": 0.02762470741524138,
+   "cmd": [
+    0.0,
+    0.0,
+    0.48
+   ]
+  },
+  "arc": {
+   "fall_rate": 1.0,
+   "dist_m": 0.5073765736036704,
+   "mean_vx": null,
+   "mean_wz": null,
+   "slip_mps": 0.03820830989588806,
+   "cot": 0.8117050851911918,
+   "slip_cp_mps": null,
+   "body_speed_mps": null,
+   "slip_ratio": null,
+   "duty_min": null,
+   "duty_max": null,
+   "air_time_s": 0.0,
+   "swing_apex_m": 0.0,
+   "step_hz": 0.0,
+   "peak_force_bw": 2.326830320916254,
+   "peak_force_raw_bw": 4.595355496806531,
+   "joint_limit_margin_min": 0.02570820341151907,
+   "cmd": [
+    0.4,
+    0.0,
+    0.24
+   ]
+  },
+  "push_fwd": {
+   "fall_rate": 1.0,
+   "dist_m": 0.19670979901950197,
+   "mean_vx": null,
+   "mean_wz": null,
+   "slip_mps": 0.2927629808387632,
+   "cot": 3.35807304064995,
+   "slip_cp_mps": null,
+   "body_speed_mps": null,
+   "slip_ratio": null,
+   "duty_min": null,
+   "duty_max": null,
+   "air_time_s": 0.0,
+   "swing_apex_m": 0.0,
+   "step_hz": 0.0,
+   "peak_force_bw": 3.177281106580911,
+   "peak_force_raw_bw": 8.043472859539593,
+   "joint_limit_margin_min": -0.008077778786602052,
+   "cmd": [
+    0.48,
+    0.0,
+    0.0
+   ]
+  }
+ },
+ "episodes": {
+  "stand": [
+   {
+    "fell": true,
+    "fell_t": 0.66,
+    "dist_m": 0.4470971316823985,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.2863683827290722,
+    "cot": 1.0759552198436793,
+    "peak_force_bw": 1.7878021209152157,
+    "peak_force_raw_bw": 2.790990358415626,
+    "joint_limit_margin_min": -0.055314346716787095,
+    "cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.68,
+    "dist_m": 0.4661168376007007,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.2954799288974165,
+    "cot": 1.0406351943503216,
+    "peak_force_bw": 2.103886125667904,
+    "peak_force_raw_bw": 4.174006243645997,
+    "joint_limit_margin_min": -0.06949462423165845,
+    "cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.64,
+    "dist_m": 0.44788032132847067,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.28201927450611425,
+    "cot": 1.0731790981237825,
+    "peak_force_bw": 1.8157457512699815,
+    "peak_force_raw_bw": 2.933437468709267,
+    "joint_limit_margin_min": -0.05560432817663214,
+    "cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.66,
+    "dist_m": 0.4509021751194951,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.28128927308826607,
+    "cot": 1.0457198638103844,
+    "peak_force_bw": 1.8479738242308044,
+    "peak_force_raw_bw": 2.7576204403332567,
+    "joint_limit_margin_min": -0.06469774823252417,
+    "cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.68,
+    "dist_m": 0.46428282533513915,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.26970462775953785,
+    "cot": 0.9984336150237731,
+    "peak_force_bw": 1.8910163829074962,
+    "peak_force_raw_bw": 3.3059512768871624,
+    "joint_limit_margin_min": -0.063628294160084,
+    "cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.72,
+    "dist_m": 0.4625940077872659,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.2881679534335141,
+    "cot": 1.1453423370667193,
+    "peak_force_bw": 1.867016588643027,
+    "peak_force_raw_bw": 3.2761934263717567,
+    "joint_limit_margin_min": -0.05905251130110559,
+    "cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.54,
+    "dist_m": 0.1610555833021218,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.35481609983404444,
+    "cot": null,
+    "peak_force_bw": 2.9127561052880764,
+    "peak_force_raw_bw": 7.068489872267677,
+    "joint_limit_margin_min": -0.05503000541011149,
+    "cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.52,
+    "dist_m": 0.16591243993419572,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.3381271545408918,
+    "cot": null,
+    "peak_force_bw": 2.8818739891332497,
+    "peak_force_raw_bw": 5.795218619342868,
+    "joint_limit_margin_min": -0.05564766006363439,
+    "cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.5,
+    "dist_m": 0.15776912517191233,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.21811080737809357,
+    "cot": null,
+    "peak_force_bw": 2.002372777408733,
+    "peak_force_raw_bw": 4.020490802325422,
+    "joint_limit_margin_min": 0.012944062849900004,
+    "cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.5,
+    "dist_m": 0.14958721874308106,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.457623747021182,
+    "cot": null,
+    "peak_force_bw": 1.8916934562548275,
+    "peak_force_raw_bw": 3.1619643752601845,
+    "joint_limit_margin_min": 0.011757575719513426,
+    "cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   }
+  ],
+  "forward": [
+   {
+    "fell": true,
+    "fell_t": 0.5,
+    "dist_m": 0.19771823772376196,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.388935839221932,
+    "cot": null,
+    "peak_force_bw": 2.5777263724464077,
+    "peak_force_raw_bw": 6.802612970151026,
+    "joint_limit_margin_min": -0.0032389922484402406,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.56,
+    "dist_m": 0.1898395114391174,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.3137443887236159,
+    "cot": null,
+    "peak_force_bw": 3.177281106580911,
+    "peak_force_raw_bw": 6.878177977780352,
+    "joint_limit_margin_min": -0.006823848883657481,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.52,
+    "dist_m": 0.20651880532172767,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.2645904132188503,
+    "cot": 3.2666760585643746,
+    "peak_force_bw": 2.9121111081629403,
+    "peak_force_raw_bw": 7.633053991335502,
+    "joint_limit_margin_min": -0.006117324315217112,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.56,
+    "dist_m": 0.2003027501107396,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.22580248593022814,
+    "cot": 3.4589003833984604,
+    "peak_force_bw": 3.016891355927544,
+    "peak_force_raw_bw": 7.350269133753553,
+    "joint_limit_margin_min": -0.008077778786602052,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.56,
+    "dist_m": 0.19399884378959648,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.23518046848768404,
+    "cot": null,
+    "peak_force_bw": 3.1139983973305863,
+    "peak_force_raw_bw": 8.043472859539593,
+    "joint_limit_margin_min": -0.0038409340050905277,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.56,
+    "dist_m": 0.20327870629037348,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.31127688876794657,
+    "cot": 3.3657369700065067,
+    "peak_force_bw": 3.0664627235852384,
+    "peak_force_raw_bw": 6.819126309621225,
+    "joint_limit_margin_min": -0.005228368781799559,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.54,
+    "dist_m": 0.20340854157867816,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.21886175817705036,
+    "cot": 3.34097875063046,
+    "peak_force_bw": 2.8818505692355254,
+    "peak_force_raw_bw": 6.098056259290438,
+    "joint_limit_margin_min": -0.0038973242670593557,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.48,
+    "dist_m": 0.18842721844919386,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.42036730704728187,
+    "cot": null,
+    "peak_force_bw": 2.370409986308271,
+    "peak_force_raw_bw": 2.7996495477921606,
+    "joint_limit_margin_min": 8.624283305777418e-05,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.56,
+    "dist_m": 0.1940491059848817,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.2760212758321617,
+    "cot": null,
+    "peak_force_bw": 3.1097931217499224,
+    "peak_force_raw_bw": 7.3983775030519086,
+    "joint_limit_margin_min": -0.0034297287907356032,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.54,
+    "dist_m": 0.1895562695069495,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.27284898298088145,
+    "cot": null,
+    "peak_force_bw": 3.125903562514585,
+    "peak_force_raw_bw": 6.9930394409605245,
+    "joint_limit_margin_min": -0.00331733684724938,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   }
+  ],
+  "turn": [
+   {
+    "fell": true,
+    "fell_t": 0.96,
+    "dist_m": 0.5541842105496431,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.03195624060143877,
+    "cot": 0.7870890153118919,
+    "peak_force_bw": 2.079367993775379,
+    "peak_force_raw_bw": 4.892779096025077,
+    "joint_limit_margin_min": 0.027033500785069234,
+    "cmd": [
+     0.0,
+     0.0,
+     0.36
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.0,
+    "dist_m": 0.5373112578584096,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.04788004361608048,
+    "cot": 0.8009784669914062,
+    "peak_force_bw": 2.366127160279234,
+    "peak_force_raw_bw": 4.350684867576464,
+    "joint_limit_margin_min": 0.028774030288007613,
+    "cmd": [
+     0.0,
+     0.0,
+     0.36
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.92,
+    "dist_m": 0.5455418063223791,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.03520772574160371,
+    "cot": 0.757086663543031,
+    "peak_force_bw": 2.1242578930281075,
+    "peak_force_raw_bw": 5.06594059125302,
+    "joint_limit_margin_min": 0.0278357880518265,
+    "cmd": [
+     0.0,
+     0.0,
+     0.36
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.98,
+    "dist_m": 0.5382277303256676,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.029534373308184345,
+    "cot": 0.7874692835810302,
+    "peak_force_bw": 2.1448960603108715,
+    "peak_force_raw_bw": 4.807363956314927,
+    "joint_limit_margin_min": 0.028732540123592953,
+    "cmd": [
+     0.0,
+     0.0,
+     0.36
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.98,
+    "dist_m": 0.5333009447573881,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.029212368731821196,
+    "cot": 0.7947452264054538,
+    "peak_force_bw": 2.2043909731229863,
+    "peak_force_raw_bw": 4.245309855182456,
+    "joint_limit_margin_min": 0.028522267447405887,
+    "cmd": [
+     0.0,
+     0.0,
+     0.36
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.04,
+    "dist_m": 0.565129393600083,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.027513490279199058,
+    "cot": 0.7742246862799719,
+    "peak_force_bw": 2.3237774215468807,
+    "peak_force_raw_bw": 4.617470343452811,
+    "joint_limit_margin_min": 0.029992908898085573,
+    "cmd": [
+     0.0,
+     0.0,
+     0.36
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.0,
+    "dist_m": 0.5688669079216617,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.031060846650485415,
+    "cot": 0.755320664751516,
+    "peak_force_bw": 2.2667965610496843,
+    "peak_force_raw_bw": 4.002645319869636,
+    "joint_limit_margin_min": 0.02874169319897536,
+    "cmd": [
+     0.0,
+     0.0,
+     0.36
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.9400000000000001,
+    "dist_m": 0.5559893484733008,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.03093693812196962,
+    "cot": 0.7633924791286711,
+    "peak_force_bw": 2.1806109217379106,
+    "peak_force_raw_bw": 4.140881091126382,
+    "joint_limit_margin_min": 0.02754517600934828,
+    "cmd": [
+     0.0,
+     0.0,
+     0.36
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.02,
+    "dist_m": 0.5501901649079716,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.02633287340151582,
+    "cot": 0.7747926077224339,
+    "peak_force_bw": 2.4120541649077105,
+    "peak_force_raw_bw": 4.821092439517811,
+    "joint_limit_margin_min": 0.02979288661441106,
+    "cmd": [
+     0.0,
+     0.0,
+     0.36
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.0,
+    "dist_m": 0.5534603554317249,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.027786837446222235,
+    "cot": 0.7901330258305399,
+    "peak_force_bw": 2.322471181515684,
+    "peak_force_raw_bw": 4.283776862206368,
+    "joint_limit_margin_min": 0.029389920402266352,
+    "cmd": [
+     0.0,
+     0.0,
+     0.36
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   }
+  ],
+  "turn_fast": [
+   {
+    "fell": true,
+    "fell_t": 1.1400000000000001,
+    "dist_m": 0.6072061165328215,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.03073194507997717,
+    "cot": 0.7938965735500678,
+    "peak_force_bw": 2.1256809657600733,
+    "peak_force_raw_bw": 4.245222699185377,
+    "joint_limit_margin_min": 0.02762470741524138,
+    "cmd": [
+     0.0,
+     0.0,
+     0.48
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.2,
+    "dist_m": 0.5877128000148741,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.051727491441178275,
+    "cot": 0.8105880177370575,
+    "peak_force_bw": 2.3277552516582043,
+    "peak_force_raw_bw": 4.982918756264152,
+    "joint_limit_margin_min": 0.027886667902710223,
+    "cmd": [
+     0.0,
+     0.0,
+     0.48
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.08,
+    "dist_m": 0.5887383924581716,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.03731510107115117,
+    "cot": 0.7638099780859074,
+    "peak_force_bw": 2.16726445189482,
+    "peak_force_raw_bw": 4.741873408491601,
+    "joint_limit_margin_min": 0.029151211671420398,
+    "cmd": [
+     0.0,
+     0.0,
+     0.48
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.18,
+    "dist_m": 0.6032946740195357,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.03646058476819608,
+    "cot": 0.7807490820274762,
+    "peak_force_bw": 2.192690920541283,
+    "peak_force_raw_bw": 3.715764466582018,
+    "joint_limit_margin_min": 0.0284417661531359,
+    "cmd": [
+     0.0,
+     0.0,
+     0.48
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.16,
+    "dist_m": 0.5876555544774675,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.03314729101888866,
+    "cot": 0.7842216090554501,
+    "peak_force_bw": 2.39868730297078,
+    "peak_force_raw_bw": 5.009764475133588,
+    "joint_limit_margin_min": 0.027775816674025455,
+    "cmd": [
+     0.0,
+     0.0,
+     0.48
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.26,
+    "dist_m": 0.6734030997879848,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.026894643565010503,
+    "cot": 0.7287546671841961,
+    "peak_force_bw": 2.4021708159336512,
+    "peak_force_raw_bw": 4.860041583040112,
+    "joint_limit_margin_min": 0.029505352455635864,
+    "cmd": [
+     0.0,
+     0.0,
+     0.48
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.18,
+    "dist_m": 0.6335134721075459,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.02671566184941028,
+    "cot": 0.7458112076117542,
+    "peak_force_bw": 2.1671864126462146,
+    "peak_force_raw_bw": 3.7791458894511942,
+    "joint_limit_margin_min": 0.028705216949330342,
+    "cmd": [
+     0.0,
+     0.0,
+     0.48
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.1,
+    "dist_m": 0.6047678850979583,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.034115914948634835,
+    "cot": 0.7588797720676254,
+    "peak_force_bw": 2.0752552199862873,
+    "peak_force_raw_bw": 4.116538476251193,
+    "joint_limit_margin_min": 0.028251596053005076,
+    "cmd": [
+     0.0,
+     0.0,
+     0.48
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.2,
+    "dist_m": 0.619137478754761,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.02635506226596984,
+    "cot": 0.7527970582703496,
+    "peak_force_bw": 2.309775003943152,
+    "peak_force_raw_bw": 3.956785410049803,
+    "joint_limit_margin_min": 0.029454245295953026,
+    "cmd": [
+     0.0,
+     0.0,
+     0.48
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 1.18,
+    "dist_m": 0.6113532901086621,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.027924394494360356,
+    "cot": 0.7828138855381861,
+    "peak_force_bw": 2.237686109340903,
+    "peak_force_raw_bw": 4.473967129833279,
+    "joint_limit_margin_min": 0.028524284988451006,
+    "cmd": [
+     0.0,
+     0.0,
+     0.48
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   }
+  ],
+  "arc": [
+   {
+    "fell": true,
+    "fell_t": 0.8200000000000001,
+    "dist_m": 0.4981932628214924,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.036264744519069664,
+    "cot": 0.8343779921723942,
+    "peak_force_bw": 2.167488665716579,
+    "peak_force_raw_bw": 3.8644420906500083,
+    "joint_limit_margin_min": 0.028130224470015463,
+    "cmd": [
+     0.4,
+     0.0,
+     0.24
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.88,
+    "dist_m": 0.5030567065100122,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.07514477050053958,
+    "cot": 0.8257691669812764,
+    "peak_force_bw": 2.326830320916254,
+    "peak_force_raw_bw": 4.286348477258307,
+    "joint_limit_margin_min": 0.028002878710496802,
+    "cmd": [
+     0.4,
+     0.0,
+     0.24
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.8,
+    "dist_m": 0.506185910048465,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.04063224368975717,
+    "cot": 0.7802571095442273,
+    "peak_force_bw": 2.217838417919118,
+    "peak_force_raw_bw": 4.531512176910183,
+    "joint_limit_margin_min": 0.02570820341151907,
+    "cmd": [
+     0.4,
+     0.0,
+     0.24
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.84,
+    "dist_m": 0.48852754497859957,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.03498430981269023,
+    "cot": 0.8253301529869319,
+    "peak_force_bw": 2.091250476623194,
+    "peak_force_raw_bw": 3.9754102237809694,
+    "joint_limit_margin_min": 0.029184526631962384,
+    "cmd": [
+     0.4,
+     0.0,
+     0.24
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.86,
+    "dist_m": 0.4944927907174031,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.03390546297805526,
+    "cot": 0.8380876836369543,
+    "peak_force_bw": 2.2943479976154317,
+    "peak_force_raw_bw": 4.595355496806531,
+    "joint_limit_margin_min": 0.026795864516392914,
+    "cmd": [
+     0.4,
+     0.0,
+     0.24
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.92,
+    "dist_m": 0.5366059488324458,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.030818124155685956,
+    "cot": 0.7867760199929349,
+    "peak_force_bw": 2.2573253362091186,
+    "peak_force_raw_bw": 4.137932897954637,
+    "joint_limit_margin_min": 0.029080253268047234,
+    "cmd": [
+     0.4,
+     0.0,
+     0.24
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.86,
+    "dist_m": 0.513538748848798,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.034353355437069494,
+    "cot": 0.7948313858854967,
+    "peak_force_bw": 2.2099740569730724,
+    "peak_force_raw_bw": 3.4634238824810355,
+    "joint_limit_margin_min": 0.027395781139950556,
+    "cmd": [
+     0.4,
+     0.0,
+     0.24
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.8200000000000001,
+    "dist_m": 0.5119581417820253,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.035049267645643326,
+    "cot": 0.7998492571782845,
+    "peak_force_bw": 2.118086122357423,
+    "peak_force_raw_bw": 4.062718975789411,
+    "joint_limit_margin_min": 0.027640403663728195,
+    "cmd": [
+     0.4,
+     0.0,
+     0.24
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.9,
+    "dist_m": 0.5118186325320994,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.029401456463561664,
+    "cot": 0.8000155402605779,
+    "peak_force_bw": 2.323416429625327,
+    "peak_force_raw_bw": 4.500133931790206,
+    "joint_limit_margin_min": 0.027891793732021268,
+    "cmd": [
+     0.4,
+     0.0,
+     0.24
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.88,
+    "dist_m": 0.5093880489653633,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.031529363756808176,
+    "cot": 0.8317565432728412,
+    "peak_force_bw": 2.2816545183254853,
+    "peak_force_raw_bw": 4.085781071907699,
+    "joint_limit_margin_min": 0.029172076638824464,
+    "cmd": [
+     0.4,
+     0.0,
+     0.24
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   }
+  ],
+  "push_fwd": [
+   {
+    "fell": true,
+    "fell_t": 0.5,
+    "dist_m": 0.19771823772376196,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.388935839221932,
+    "cot": null,
+    "peak_force_bw": 2.5777263724464077,
+    "peak_force_raw_bw": 6.802612970151026,
+    "joint_limit_margin_min": -0.0032389922484402406,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.56,
+    "dist_m": 0.1898395114391174,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.3137443887236159,
+    "cot": null,
+    "peak_force_bw": 3.177281106580911,
+    "peak_force_raw_bw": 6.878177977780352,
+    "joint_limit_margin_min": -0.006823848883657481,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.52,
+    "dist_m": 0.20651880532172767,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.2645904132188503,
+    "cot": 3.2666760585643746,
+    "peak_force_bw": 2.9121111081629403,
+    "peak_force_raw_bw": 7.633053991335502,
+    "joint_limit_margin_min": -0.006117324315217112,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.56,
+    "dist_m": 0.2003027501107396,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.22580248593022814,
+    "cot": 3.4589003833984604,
+    "peak_force_bw": 3.016891355927544,
+    "peak_force_raw_bw": 7.350269133753553,
+    "joint_limit_margin_min": -0.008077778786602052,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.56,
+    "dist_m": 0.19399884378959648,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.23518046848768404,
+    "cot": null,
+    "peak_force_bw": 3.1139983973305863,
+    "peak_force_raw_bw": 8.043472859539593,
+    "joint_limit_margin_min": -0.0038409340050905277,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.56,
+    "dist_m": 0.20327870629037348,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.31127688876794657,
+    "cot": 3.3657369700065067,
+    "peak_force_bw": 3.0664627235852384,
+    "peak_force_raw_bw": 6.819126309621225,
+    "joint_limit_margin_min": -0.005228368781799559,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.54,
+    "dist_m": 0.20340854157867816,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.21886175817705036,
+    "cot": 3.34097875063046,
+    "peak_force_bw": 2.8818505692355254,
+    "peak_force_raw_bw": 6.098056259290438,
+    "joint_limit_margin_min": -0.0038973242670593557,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.48,
+    "dist_m": 0.18842721844919386,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.42036730704728187,
+    "cot": null,
+    "peak_force_bw": 2.370409986308271,
+    "peak_force_raw_bw": 2.7996495477921606,
+    "joint_limit_margin_min": 8.624283305777418e-05,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.56,
+    "dist_m": 0.1940491059848817,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.2760212758321617,
+    "cot": null,
+    "peak_force_bw": 3.1097931217499224,
+    "peak_force_raw_bw": 7.3983775030519086,
+    "joint_limit_margin_min": -0.0034297287907356032,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   },
+   {
+    "fell": true,
+    "fell_t": 0.54,
+    "dist_m": 0.1895562695069495,
+    "mean_vx": null,
+    "mean_wz": null,
+    "slip_mps": 0.27284898298088145,
+    "cot": null,
+    "peak_force_bw": 3.125903562514585,
+    "peak_force_raw_bw": 6.9930394409605245,
+    "joint_limit_margin_min": -0.00331733684724938,
+    "cmd": [
+     0.48,
+     0.0,
+     0.0
+    ],
+    "slip_cp_mps": null,
+    "body_speed_mps": null,
+    "slip_ratio": null,
+    "duty_factor": [
+     NaN,
+     NaN
+    ],
+    "duty_min": null,
+    "duty_max": null,
+    "air_time_s": 0.0,
+    "swing_apex_m": 0.0,
+    "step_hz": 0.0
+   }
+  ]
+ },
+ "wall_s": 2.8465538024902344,
+ "contact_model": "contact_v2",
+ "actuator": "v1",
+ "actuator_limits": "sourced_v1",
+ "tracker_actuator_limits": "sourced_v1",
+ "limits_mismatch_override": false,
+ "latency_ms": null,
+ "actuator_params": null,
+ "tracker_contact_model": "contact_v2",
+ "protocol": "rrp.control.tracker_validation/v2",
+ "mujoco": "3.14.0",
+ "robustness": {
+  "conditions": {
+   "mu_lo": {
+    "no_fall_rate": 0.0,
+    "forward_ratio": 0.0,
+    "slip_ratio": null,
+    "n": 10
+   },
+   "mu_hi": {
+    "no_fall_rate": 0.0,
+    "forward_ratio": 0.0,
+    "slip_ratio": null,
+    "n": 10
+   },
+   "mass_lo": {
+    "no_fall_rate": 0.0,
+    "forward_ratio": 0.0,
+    "slip_ratio": null,
+    "n": 10
+   },
+   "mass_hi": {
+    "no_fall_rate": 0.0,
+    "forward_ratio": 0.0,
+    "slip_ratio": null,
+    "n": 10
+   },
+   "latency": {
+    "no_fall_rate": 0.0,
+    "forward_ratio": 0.0,
+    "slip_ratio": null,
+    "n": 10
+   },
+   "push": {
+    "no_fall_rate": 0.0,
+    "forward_ratio": 0.0,
+    "slip_ratio": null,
+    "n": 10
+   }
+  },
+  "nominal_forward_ratio": 0.0,
+  "training_range": {
+   "contact": "v2",
+   "mu": [
+    0.45,
+    1.2
+   ],
+   "root_mass_scale": [
+    0.9,
+    1.1
+   ],
+   "latency_ms": 8.0,
+   "train_actuator": "v1",
+   "push_mps": 0.2
+  },
+  "protocol": "rrp.evaluation.tracker_validation.robust_check/v1 (W6, D-112)"
+ },
+ "w6_gate": {
+  "gate": "tracker",
+  "version": "rrp.evaluation.gates/v1 (D-112)",
+  "subject": {
+   "body": "g1",
+   "tracker_version": "learned_tracker:g1:iter1999:contact_v2",
+   "tracker_sha": "23d253c0f411220f",
+   "contact_model": "contact_v2",
+   "family": "humanoid"
+  },
+  "verdict": "fail",
+  "criteria": [
+   {
+    "name": "slip_ratio_forward",
+    "status": "not_evaluated",
+    "value": null,
+    "threshold": "< 0.15",
+    "note": ""
+   },
+   {
+    "name": "cot_forward",
+    "status": "fail",
+    "value": 3.35807304064995,
+    "threshold": "<= 2.0 (biped)",
+    "note": ""
+   },
+   {
+    "name": "peak_foot_force_bw",
+    "status": "fail",
+    "value": 3.177281106580911,
+    "threshold": "<= 3.0 (biped; 20 ms moving average)",
+    "note": "max over trials of the peak 20 ms moving-average contact normal force per foot / body weight; unfiltered per-step peak 8.04"
+   },
+   {
+    "name": "joint_limit_margin",
+    "status": "fail",
+    "value": -0.06949462423165845,
+    "threshold": ">= 0.02",
+    "note": "min over trials, ticks and joints"
+   },
+   {
+    "name": "no_fall_rate",
+    "status": "fail",
+    "value": 0.0,
+    "threshold": ">= 0.9",
+    "note": ""
+   },
+   {
+    "name": "robust_in_training_range",
+    "status": "fail",
+    "value": [
+     "mu_lo: no_fall 0.00, fwd 0.00",
+     "mu_hi: no_fall 0.00, fwd 0.00",
+     "mass_lo: no_fall 0.00, fwd 0.00",
+     "mass_hi: no_fall 0.00, fwd 0.00",
+     "latency: no_fall 0.00, fwd 0.00",
+     "push: no_fall 0.00, fwd 0.00"
+    ],
+    "threshold": "no-fall >= 0.9 and forward ratio >= nominal (0.00) - 0.2 at ['latency', 'mass_hi', 'mass_lo', 'mu_hi', 'mu_lo', 'push']",
+    "note": "training range: {'contact': 'v2', 'mu': [0.45, 1.2], 'root_mass_scale': [0.9, 1.1], 'latency_ms': 8.0, 'train_actuator': 'v1', 'push_mps': 0.2}"
+   }
+  ],
+  "failed": [
+   "cot_forward=3.35807304064995 (threshold <= 2.0 (biped))",
+   "peak_foot_force_bw=3.177281106580911 (threshold <= 3.0 (biped; 20 ms moving average))",
+   "joint_limit_margin=-0.06949462423165845 (threshold >= 0.02)",
+   "no_fall_rate=0.0 (threshold >= 0.9)",
+   "robust_in_training_range=['mu_lo: no_fall 0.00, fwd 0.00', 'mu_hi: no_fall 0.00, fwd 0.00', 'mass_lo: no_fall 0.00, fwd 0.00', 'mass_hi: no_fall 0.00, fwd 0.00', 'latency: no_fall 0.00, fwd 0.00', 'push: no_fall 0.00, fwd 0.00'] (threshold no-fall >= 0.9 and forward ratio >= nominal (0.00) - 0.2 at ['latency', 'mass_hi', 'mass_lo', 'mu_hi', 'mu_lo', 'push'])"
+  ],
+  "not_evaluated": [
+   "slip_ratio_forward"
+  ]
+ }
+}

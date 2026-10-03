@@ -1,0 +1,98 @@
+{
+ "config_hash": "b2f3fdcb2cd6a99b",
+ "episodes": [],
+ "finished": 1791005860.5692706,
+ "inputs": {
+  "actor": [
+   {
+    "digest": "0bd70702331000c7",
+    "path": "artifacts/runs/humanoid/trk-r2-gap_t1/train_tracker_s1/actor.pt"
+   }
+  ]
+ },
+ "manifest_hash": "3c962b4af0e891ad",
+ "metrics": {
+  "gap": {
+   "n": 20,
+   "source": "learned:rl_expert + scripted_teacher command",
+   "status": {
+    "success": 10,
+    "timeout": 10
+   },
+   "success": 10
+  }
+ },
+ "n_episodes": 0,
+ "name": "runs/humanoid/trk-r2-gap_t1/eval_tracker_s1",
+ "native_config": {
+  "actor": "artifacts/runs/humanoid/trk-r2-gap_t1/train_tracker_s1/actor.pt",
+  "name": "humanoid_trk-r2-gap_t1_eval_tracker_s1",
+  "out_dir": "artifacts/runs/humanoid/trk-r2-gap_t1/eval_tracker_s1"
+ },
+ "outputs": {
+  "gap": {
+   "digest": "a049dcee9f5cee1a",
+   "path": "artifacts/runs/humanoid/trk-r2-gap_t1/eval_tracker_s1/gap.json"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": false,
+   "git_sha": "d91d98c691a72879df317842301296b21e0e5eca",
+   "src_tree": "f13ecd77c17d660148f3c1c39a9aa1fc96a01cc3",
+   "tree": "81de4ceab71bf87a3687a06a275a73d679950061"
+  },
+  "created_at": 1791005860.569143,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v2"
+  },
+  "legacy": false,
+  "notes": "pipeline legged/eval_tracker runs/humanoid/trk-r2-gap_t1/eval_tracker_s1",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned_tracker",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/humanoid/trk-r2-gap_t1/eval_tracker_s1",
+ "runconfig": {
+  "family": "legged",
+  "flags": {
+   "contact_version": "contact_v2",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {
+   "actor": "runs/humanoid/trk-r2-gap_t1/train_tracker_s1:actor.pt"
+  },
+  "legacy": null,
+  "lineage": "trk-r2-gap_t1",
+  "note": "",
+  "options": {
+   "body": "t1",
+   "n": 20,
+   "seed0": 7200,
+   "task": "gap"
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 1,
+  "stage": "eval_tracker",
+  "tag": null,
+  "track": "humanoid",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1791005848.497573,
+ "status_counts": {}
+}
