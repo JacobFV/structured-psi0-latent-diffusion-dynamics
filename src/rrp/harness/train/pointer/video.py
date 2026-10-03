@@ -48,8 +48,14 @@ def cmd_video(a):
     from rrp.policies.base import make_policy
     name, _, kw = a.policy.partition("=")
     pol = make_policy(name, **(json.loads(kw) if kw else {}))
-    from rrp.cli.harness import _env_kw
-    env_kw = _env_kw(getattr(a, "env_kw", None)) or None
+    env_kw = {}
+    for it in getattr(a, "env_kw", None) or []:          # k=v, v as JSON when it parses (same rule as rrp eval --env-kw)
+        k, _, v = it.partition("=")
+        try:
+            env_kw[k] = json.loads(v)
+        except ValueError:
+            env_kw[k] = v
+    env_kw = env_kw or None
     frames, rows = [], []
     for task, seed in (x.split("@") for x in a.episodes):
         h = FrameHook(f"{pol.info.source.upper()}  {pol.info.name}  {pol.info.variant or ''}  {a.caption}")
