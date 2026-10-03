@@ -736,3 +736,18 @@ broker refuses (6 h cap): instance override to 21600 s segments with retries 3 (
 - 2026-10-03 **T2 steps `*_ub`** (round-2 recipe changes, scratch): t1 fail (CoT 3.13 > 2.5; force 3.44, margin -0.011; curriculum 0.7); g1 fail
   (falls in every trial, curriculum 0.0); **h1 `exception`** (steps gating trials: no falls; force 3.04, margin -0.0087; curriculum 0.6).
   T3 shared morph_v2_ub: train OOM-killed at 03:58 (the peer freeze), retry 1/3 running.
+- 2026-10-03 **T4 teacher-quality gate** (pre-registered; `recipes/humanoid/teacher_quality.yaml`; scripted teacher over `<body>:ub_v1`, dev scenes;
+  re-run after the h1 single-DoF ankle fix 68d7af5a; cells done before the fix were kept, error cells re-ran):
+  | task | t1 | g1 | h1 | pooled | gate |
+  |---|---|---|---|---|---|
+  | h_walk | 20/20 | 17/20 (fell 3) | 20/20 | 57/60 0.95 | pass -> T4 |
+  | h_turn | 20/20 | 20/20 | 20/20 | 60/60 1.00 | pass -> T4 |
+  | h_reach | 20/20 | 0/20 (fell 20) | 0/20 (fell 20) | 20/60 0.33 | held back |
+  | h_squat_pick | 20/20 | error: no static squat plan | error: same | 20/60 | held back |
+  | h_place | 20/20 | error: no static squat plan | error: same | 20/60 | held back |
+  | h_loco_pick | 3/20 (fell 14, no_grasp 1, timeout 2) | error: same | error: same | 3/60 | held back |
+  | h_carry (T2 check, 12 / body) | 11/12 (dropped 1) | error: same | error: same | - | blocked_external (every body >= 10/12 required) |
+  | h_steps_carry (h1:steps_ub_v1) | - | - | error: no static squat plan | - | stays out |
+  The squat planner of the manipulation teachers (`SquatPlanner`, "no static squat within 0.25 m puts both palms on the box faces") finds no plan
+  on g1 and h1 (it was developed on t1, U2/U3), and the h_reach static stance falls on g1 / h1: the manipulation teachers are t1-only today.
+  Evidence: `artifacts/runs/humanoid/teacher-quality-<task>/eval_transfer-teacher-quality_s0/{results.jsonl,tables.json}` (peer store).
