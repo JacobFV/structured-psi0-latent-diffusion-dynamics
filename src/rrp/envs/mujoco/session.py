@@ -553,13 +553,22 @@ class Session:
             except ControllerRejection as e:
                 rejected = e.code
                 r.controller.begin_step(self.data, None)
-        sched = np.empty((self.substeps, self.model.nu))
-        for k in range(self.substeps):
-            a = (k + 1) / self.substeps
-            for r in self.robots:
-                r.controller.apply_substep(self.data, a)
-            sched[k] = self.data.ctrl
-        yield Integrate(self.substeps, sched)
+        if any("apply_substep" in r.controller.__dict__ for r in self.robots):
+            # an instance-level apply_substep (perturb.install_arm: push / ctrl delay) reads data.time and writes
+            # xfrc_applied per substep: keep the original interleaving on CPU (yields nothing; never batched)
+            for k in range(self.substeps):
+                a = (k + 1) / self.substeps
+                for r in self.robots:
+                    r.controller.apply_substep(self.data, a)
+                mujoco.mj_step(self.model, self.data)
+        else:
+            sched = np.empty((self.substeps, self.model.nu))
+            for k in range(self.substeps):
+                a = (k + 1) / self.substeps
+                for r in self.robots:
+                    r.controller.apply_substep(self.data, a)
+                sched[k] = self.data.ctrl
+            yield Integrate(self.substeps, sched)
         if not np.isfinite(self.data.qpos).all():
             raise FloatingPointError("simulation diverged (non-finite state)")
         self.step_count += 1

@@ -99,6 +99,10 @@ Raw output: `artifacts/runs/compute/warpeval/{F1,F2}_warpcpu.json` (untracked; n
   `ops/bin/peer_run.sh --cpu 4 --mem 12G ... -- PY -m rrp.cli suite warp-parity --fixture F3w --device cpu --seeds 2`, then one GPU lease (<= 20 min, mem >= 1.35 x peak)
   with `--fixture F1|F2|F3w|F3t --device cuda:0 --bench 8,32,64`. The CUDA-graph capture path has never run on a GPU and is the main untested risk.
 - Not done: batching the tracker MLP across envs (per-env CPU forwards remain).
+- Review fix (2026-10-02): the generator `Session.step` called every `apply_substep` BEFORE integrating, so an arm `perturb.install_arm` push
+  (reads `data.time`, writes `xfrc_applied` per substep) was sampled once per control step on the DEFAULT cpu path (`push_applied_s` 0.004 s for a 0.1 s push).
+  Sessions with an instance-level `apply_substep` now keep the original interleaved CPU loop (they were already excluded from Warp batching);
+  guarded by `tests/unit/test_arm_perturb_substep.py` (green on c18101e8, red before the fix).
 - Ambient hook (after rebasing onto accel-prec): `rollout/evaluate(eval_backend=None)` read `core.compute.current().eval_backend`; an explicit argument or `--eval-backend` flag overrides it.
   `eval_backend` is stored in provenance and in run_matrix records only when not `cpu`.
 
