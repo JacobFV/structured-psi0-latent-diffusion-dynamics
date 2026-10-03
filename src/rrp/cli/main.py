@@ -251,6 +251,10 @@ def main(argv=None):
     handled, code = tools.dispatch(list(sys.argv[1:] if argv is None else argv))
     if handled:
         return code
+    raw = list(sys.argv[1:] if argv is None else argv)
+    if raw[:2] == ["train", "psi0"]:      # pass-through verbatim: argparse REMAINDER mis-splits a leading `--arm X` (D-147 stage_a)
+        from rrp.cli.train import cmd_train_psi0
+        return cmd_train_psi0(argparse.Namespace(args=raw[2:]))
     p = build_parser()
     a, extra = p.parse_known_args(argv)
     if extra:

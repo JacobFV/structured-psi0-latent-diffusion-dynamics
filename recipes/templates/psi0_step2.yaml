@@ -8,7 +8,8 @@
 # the node fails and `structured` never starts; structured depends on it) -> direct / structured -> heldout (the later model
 # comparison of all arms; its R(E(chunk)) route is an ORACLE)
 # -> probes_gen (probes on the generated packets) -> closed loop (eval_*): Isaac Sim through `rrp eval --env simple`,
-# seeds 0:10 x repeats via `batch`.
+# 10 SIMPLE eval configs x 2 repeats (the seed list repeats 0..9; batch 2 = two Isaac workers in lock-step). Eval declarations
+# (T7 smoke 2026-10-01, rrp path, batch 2: cgroup peak 28.6 GB; x1.35 -> 36G) are measured, not guessed.
 # Prerequisites (host/peer, once): ops/bin/psi0_ext.sh fetch-base / fetch-ckpt / fetch-data <TASK>. Run with the psi venv as
 # the peer python (research/tracks/psi0.md); RRP_PSI0_EXT locates the third-party stack.
 # D-141: the structured arm needs the training-constant-state-dims mask + forced packet use in Stage A before its closed
@@ -88,20 +89,20 @@ nodes:
   eval_released:
     stage: eval_r2
     tag: released
-    resources: {cpu: 2, mem: 17G, gpu: true, gpu_mem: 18G, max_seconds: 43200}
+    resources: {cpu: 3, mem: 36G, gpu: true, gpu_mem: 26G, max_seconds: 21600}
     config:
-      options: {task: '{task}', arm: released, seeds: '0:10', batch: 2}
+      options: {task: '{task}', arm: released, seeds: '0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9', batch: 2}
   eval_direct:
     stage: eval_r2
     tag: direct
-    resources: {cpu: 2, mem: 17G, gpu: true, gpu_mem: 18G, max_seconds: 43200}
+    resources: {cpu: 3, mem: 36G, gpu: true, gpu_mem: 26G, max_seconds: 21600}
     config:
       inputs: {checkpoint: '@direct:final.pt'}
-      options: {task: '{task}', arm: direct, seeds: '0:10', batch: 2}
+      options: {task: '{task}', arm: direct, seeds: '0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9', batch: 2}
   eval_structured:
     stage: eval_r2
     tag: structured
-    resources: {cpu: 2, mem: 17G, gpu: true, gpu_mem: 18G, max_seconds: 43200}
+    resources: {cpu: 3, mem: 36G, gpu: true, gpu_mem: 26G, max_seconds: 21600}
     config:
       inputs: {checkpoint: '@structured:final.pt', stage_a: '@stage_a:stage_a.pt'}
-      options: {task: '{task}', arm: structured, seeds: '0:10', batch: 2}
+      options: {task: '{task}', arm: structured, seeds: '0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9', batch: 2}

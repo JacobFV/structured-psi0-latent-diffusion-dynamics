@@ -31,7 +31,8 @@ def cmd_train_psi0(a):
     """Ψ₀ matched fine-tuning and its offline evaluations: rrp.policies.psi0.train (its own argument parser;
     `rrp train psi0 --arm direct ...`, `rrp train psi0 probes ...`, `rrp train psi0 heldout ...`)."""
     from rrp.policies.psi0.train import main
-    return main(a.args[1:] if a.args[:1] == ["--"] else a.args)
+    rc = main(a.args[1:] if a.args[:1] == ["--"] else a.args)
+    return rc if isinstance(rc, int) else 0     # `gate`/`heldout` return result dicts; sys.exit(dict) was exit 1 on a PASSED gate (D-147)
 
 
 def cmd_bench_compute(a):

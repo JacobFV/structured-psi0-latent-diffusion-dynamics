@@ -207,3 +207,22 @@ def test_gate_command_writes_what_the_stage_and_the_trainer_read(tmp_path, monke
             T.require_gate(out, ck)
     with pytest.raises(SystemExit, match="needs --stage-a and --gate"):
         T.train(["--arm", "structured", "--feat-dir", "x", "--run-dir", "y", "--stage-a", str(ck), "--out", str(tmp_path / "o")])
+
+
+def test_cli_train_psi0_passthrough_keeps_leading_arm(monkeypatch):
+    """D-147: `rrp train psi0 --arm stageA ...` lost its --arm value through argparse REMAINDER; argv must pass verbatim."""
+    import rrp.policies.psi0.train as T
+    import importlib; M = importlib.import_module("rrp.cli.main")
+    seen = {}
+    monkeypatch.setattr(T, "main", lambda argv=None: seen.setdefault("argv", list(argv)) and 0)
+    M.main(["train", "psi0", "--arm", "stageA", "--feat-dir", "f", "--seed", "0"])
+    assert seen["argv"] == ["--arm", "stageA", "--feat-dir", "f", "--seed", "0"]
+
+
+def test_cli_train_psi0_result_dict_is_exit_zero(monkeypatch):
+    """D-147: `train psi0 gate` returns its result dict; the CLI must turn that into exit code 0, not sys.exit(dict) == 1."""
+    import importlib
+    import rrp.policies.psi0.train as T
+    M = importlib.import_module("rrp.cli.main")
+    monkeypatch.setattr(T, "main", lambda argv=None: {"gate": {"passed": True}})
+    assert M.main(["train", "psi0", "gate", "--feat-dir", "f"]) == 0
