@@ -107,6 +107,46 @@ class UpperIK:
             idx = [i for i, j in enumerate(jid) if int(model.jnt_bodyid[j]) in chain[s] and int(model.jnt_bodyid[j]) not in other]
             self.arm[s] = np.array(idx, int)
         self.jp, self.jr = np.zeros((3, model.nv)), np.zeros((3, model.nv))
+        self._derive_bars(jid)
+
+    BAR_ASPECT = 1.5          # a palm geom whose longest local half-extent is this many times the next one IS the bar (t1 cylinder, h1 capsule)
+
+    def _derive_bars(self, jid):
+        """Per side, from the model at the default stance: `bar_local` = the palm bar's axis in the palm geom frame (the geom's long
+        axis; for a compact hand mesh (g1) the forearm direction = from the elbow anchor (the most distal arm joint at least half
+        the shoulder-to-palm distance from the palm) to the palm centre), `palm_r` = the bar's half-thickness (the smaller
+        cross-axis half-extent), `shoulder_j` = the most proximal arm joint. All derived, recorded by `record()`."""
+        m, b, d = self.m, self.b, self.d
+        b.set_default(d)
+        mujoco.mj_kinematics(m, d)
+        self.bar_local, self.palm_r, self.shoulder_j, self.bar_kind = {}, {}, {}, {}
+        for s, g in self.gid.items():
+            js = [jid[i] for i in self.arm[s]]
+            depth = [_depth(m, int(m.jnt_bodyid[j])) for j in js]
+            self.shoulder_j[s] = js[int(np.argmin(depth))]
+            h = np.asarray(m.geom_aabb[g, 3:], float)
+            order = np.argsort(h)[::-1]
+            if h[order[0]] >= self.BAR_ASPECT * h[order[1]]:
+                ax = np.eye(3)[order[0]]
+                self.bar_kind[s] = "geom_long_axis"
+                self.palm_r[s] = float(h[order[1]])
+            else:
+                pc = d.geom_xpos[g]
+                reach = float(np.linalg.norm(pc - d.xanchor[self.shoulder_j[s]]))
+                far = [(dp, j) for dp, j in zip(depth, js) if np.linalg.norm(pc - d.xanchor[j]) >= 0.5 * reach]
+                elbow = max(far)[1]
+                w = pc - d.xanchor[elbow]
+                ax = d.geom_xmat[g].reshape(3, 3).T @ (w / np.linalg.norm(w))
+                self.bar_kind[s] = "forearm"
+                self.palm_r[s] = float(np.min(h[np.argsort(np.abs(ax))[:2]]))
+            self.bar_local[s] = ax
+
+    def bar_axis(self, d, side: str) -> np.ndarray:
+        return d.geom_xmat[self.gid[side]].reshape(3, 3) @ self.bar_local[side]
+
+    def record(self) -> dict:
+        return {s: dict(bar=self.bar_kind[s], bar_local=[round(float(x), 3) for x in self.bar_local[s]], palm_r=round(self.palm_r[s], 4),
+                        shoulder=self.m.joint(self.shoulder_j[s]).name) for s in self.gid}
 
     def palm(self, side: str) -> np.ndarray:
         return self.d.geom_xpos[self.gid[side]].copy()
@@ -122,7 +162,7 @@ class UpperIK:
         return self.jp[:, b.held_dadr[ix]].T @ np.asarray(force, float) / np.asarray(kp, float)
 
     def solve(self, qpos, side: str, target, iters: int = 80, axis_w: float = 0.5, damping: float = 0.02,
-              max_step: float = 0.25, level_w: float = 0.0, axis_z: float = 0.0):
+              max_step: float = 0.25, level_w: float = 0.0, axis_z: float = 0.0, q_ref=None, posture_w: float = 0.0):
         m, b, d, ix = self.m, self.b, self.d, self.arm[side]
         d.qpos[:] = qpos
         qa, da = b.held_qadr[ix], b.held_dadr[ix]
@@ -134,7 +174,7 @@ class UpperIK:
             g = self.gid[side]
             mujoco.mj_jacGeom(m, d, self.jp, self.jr, g)
             err = target - d.geom_xpos[g]
-            axis = d.geom_xmat[g].reshape(3, 3)[:, 2]
+            axis = self.bar_axis(d, side)
             lat = d.xmat[b.root_bid].reshape(3, 3)[:, 1]                  # the trunk's lateral axis
             ja = lat @ np.cross(self.jr[:, da].T, axis).T
             rows, res = [self.jp[:, da], axis_w * ja[None]], [err, [-axis_w * float(lat @ axis)]]
@@ -142,6 +182,9 @@ class UpperIK:
                 up = np.array([0.0, 0.0, 1.0])
                 rows.append(level_w * (up @ np.cross(self.jr[:, da].T, axis).T)[None])
                 res.append([level_w * (axis_z - float(up @ axis))])
+            if posture_w > 0.0 and q_ref is not None:                    # posture rows: stay near the joint reference
+                rows.append(posture_w * np.eye(len(ix)))
+                res.append(posture_w * (np.asarray(q_ref, float) - d.qpos[qa]))
             J, e = np.vstack(rows), np.concatenate(res)
             dq = J.T @ np.linalg.solve(J @ J.T + damping ** 2 * np.eye(len(e)), e)
             n = float(np.max(np.abs(dq)))
@@ -152,6 +195,104 @@ class UpperIK:
                 break
         mujoco.mj_kinematics(m, d)
         return d.qpos[qa].copy(), float(np.linalg.norm(target - d.geom_xpos[self.gid[side]]))
+
+
+def _geom_world_box(model, data, g: int) -> tuple[np.ndarray, np.ndarray]:
+    """World-axis bounding box (lo, hi) of geom `g` from its local AABB (exact for boxes, conservative for round shapes)."""
+    c, h = model.geom_aabb[g, :3], model.geom_aabb[g, 3:]
+    r = data.geom_xmat[g].reshape(3, 3)
+    ctr = data.geom_xpos[g] + r @ c
+    ext = np.abs(r) @ h
+    return ctr - ext, ctr + ext
+
+
+class BodyStance:
+    """Morphology-derived support and ankle-balance parameters of a humanoid body at its default stance (the public body model:
+    every number below is computed from the compiled model, nothing is per body; `record()` lists them).
+
+    * soles: per foot body, the centre of the sole = the middle of the world-x / y extent of the foot body's contact geoms at the
+      lowest contact level, stored in the foot body's frame (the foot touch site is not the sole centre on every body: on g1 it is
+      one heel-corner contact sphere of four).
+    * ankle pitch joints: per leg, the most distal policy joint with a lateral axis (no joint-name rule; h1's single-DoF ankle and the
+      2-DoF ankles of t1 / g1 alike).
+    * ankle CoM-feedback gains: the ankle servos alone (kp K summed over both ankles) are below the gravity stiffness m g h of the
+      inverted pendulum on most humanoids, so the static-support teachers add u = KP e + KI int(e) + KD de/dt (e = CoM ahead of the
+      support centre, m) to both ankle targets. Closed-loop stiffness K (1 + KP h) = ALPHA m g h, damping ratio ZETA of the
+      point-mass pendulum (inertia m h^2, servo damping included), integral rate BETA x the closed-loop natural frequency. ALPHA,
+      ZETA, BETA are dimensionless; they are the values of the gains validated on t1 (U2: KP 8 rad/m, KI 2, KD 0.5, 20/20 per task),
+      so t1 keeps its gains (`tests/unit/test_humanoid_teacher_morph.py`) and the other bodies get the same closed loop."""
+    ALPHA, ZETA, BETA = 3.176, 0.2673, 0.0398
+    G = 9.81
+
+    def __init__(self, model: mujoco.MjModel, binding):
+        m, b = model, binding
+        d = mujoco.MjData(m)
+        b.set_default(d)
+        mujoco.mj_forward(m, d)
+        self.mass = float(m.body_subtreemass[b.root_bid])
+        self.com0 = d.subtree_com[b.root_bid].copy()
+        fb = [int(m.site_bodyid[s]) for s in b.foot_sids]
+        self.foot_body = fb
+        self.sole_local, self.sole_half_x = [], []
+        for f in fb:
+            gs = [g for g in range(m.ngeom) if int(m.geom_bodyid[g]) == f and (m.geom_contype[g] or m.geom_conaffinity[g])]
+            if not gs:
+                raise ValueError(f"foot body {m.body(f).name!r} has no contact geom")
+            boxes = [_geom_world_box(m, d, g) for g in gs]
+            zmin = min(lo[2] for lo, _ in boxes)
+            low = [(lo, hi) for lo, hi in boxes if lo[2] <= zmin + 0.01]          # the sole: contact geoms within 1 cm of the lowest
+            lo = np.min([x[0] for x in low], axis=0)
+            hi = np.max([x[1] for x in low], axis=0)
+            ctr = np.array([0.5 * (lo[0] + hi[0]), 0.5 * (lo[1] + hi[1]), lo[2]])
+            self.sole_local.append(d.xmat[f].reshape(3, 3).T @ (ctr - d.xpos[f]))
+            self.sole_half_x.append(0.5 * float(hi[0] - lo[0]))
+        self.support_x0 = float(np.mean([self._sole(d, i)[0] for i in range(len(fb))]))
+        # ankle pitch joints: per leg the most distal lateral-axis joint among the policy joints of that leg
+        jid = [int(m.actuator_trnid[a, 0]) for a in b.pol_act]
+        self.ankle_ix = []
+        for f in fb:
+            chain = _ancestors(m, f)
+            cand = [i for i, j in enumerate(jid) if int(m.jnt_bodyid[j]) in chain
+                    and abs(float((d.xaxis[j])[1])) > 0.9]
+            if not cand:
+                raise ValueError(f"no lateral-axis (pitch) joint in the leg of {m.body(f).name!r}")
+            self.ankle_ix.append(max(cand, key=lambda i: _depth(m, int(m.jnt_bodyid[jid[i]]))))
+        self.ankle_ix = np.array(self.ankle_ix, int)
+        acts = b.pol_act[self.ankle_ix]
+        aj = [jid[i] for i in self.ankle_ix]
+        self.K = float(np.sum(m.actuator_gainprm[acts, 0]))
+        self.kd = float(np.sum(-m.actuator_biasprm[acts, 2]) + np.sum(m.dof_damping[m.jnt_dofadr[aj]]))
+        anchors = np.array([d.xanchor[j] for j in aj])
+        self.h = float(self.com0[2] - anchors[:, 2].mean())
+        # dCoM_x / dq of an ankle with the foot planted: the body above turns by -dq about the joint axis through the anchor
+        dx = [-float(np.cross(d.xaxis[j], self.com0 - d.xanchor[j])[0]) for j in aj]
+        self.sign = -1.0 if np.mean(dx) < 0 else 1.0          # u is added as -sign * (...): a CoM ahead is pulled back
+        mgh, I = self.mass * self.G * self.h, self.mass * self.h ** 2
+        self.KP = max(0.0, (self.ALPHA * mgh / self.K - 1.0) / self.h)
+        k_net = self.K * (1.0 + self.KP * self.h) - mgh
+        self.omega = math.sqrt(max(k_net, 1e-9) / I)
+        self.KD = max(0.0, 2.0 * self.ZETA * math.sqrt(max(k_net, 1e-9) * I) - self.kd) / (self.K * self.h)
+        self.KI = self.BETA * self.KP * self.omega
+
+    def _sole(self, d, i: int) -> np.ndarray:
+        f = self.foot_body[i]
+        return d.xpos[f] + d.xmat[f].reshape(3, 3) @ self.sole_local[i]
+
+    def support_centre(self, d) -> np.ndarray:
+        """World position of the middle of the two soles (live state)."""
+        return np.mean([self._sole(d, i) for i in range(len(self.foot_body))], axis=0)
+
+    def record(self) -> dict:
+        return dict(mass=round(self.mass, 3), com_h=round(self.h, 4), ankle_K=self.K, ankle_kd=round(self.kd, 3),
+                    support_x0=round(self.support_x0, 4), sole_half_x=[round(x, 4) for x in self.sole_half_x],
+                    KP=round(self.KP, 3), KI=round(self.KI, 3), KD=round(self.KD, 3), sign=self.sign)
+
+
+def _depth(model, body: int) -> int:
+    n = 0
+    while body > 0:
+        n, body = n + 1, int(model.body_parentid[body])
+    return n
 
 
 def _rot_err(r_cur: np.ndarray, r_tgt: np.ndarray) -> np.ndarray:
@@ -183,8 +324,15 @@ class SquatPlanner:
         self.leg_ix = [np.array([k for k, j in enumerate(jid) if int(model.jnt_bodyid[j]) in c], int) for c in chain]
         assert sorted(sum((list(x) for x in self.leg_ix), [])) == list(range(len(jid))), "legs do not partition the policy joints"
         self.hip = np.mean([self.d.xanchor[jid[ix[0]]] for ix in self.leg_ix], axis=0)
-        self.com_ref_x = float(np.mean([self.d.site_xpos[s][0] for s in binding.foot_sids]))
+        self.stance = BodyStance(model, binding)
+        self.com_ref_x = self.stance.support_x0                 # the middle of the soles (not the foot touch sites: g1's is a heel corner)
+        # IK seed: the default leg pose moved IN_RANGE of each joint range inside its limits. A default pose on a limit (g1: straight
+        # knees, q = 0 next to the -0.087 stop) is a kinematic singularity of the foot-placement IK; t1 / h1 defaults are inside already.
+        span = binding.hi - binding.lo
+        self.q_seed = np.clip(binding.q0, binding.lo + self.IN_RANGE * span, binding.hi - self.IN_RANGE * span)
         self.jp, self.jr = np.zeros((3, model.nv)), np.zeros((3, model.nv))
+
+    IN_RANGE = 0.05
 
     def _root(self, dz: float, pitch: float, hx: float):
         R = np.array([[math.cos(pitch), 0, math.sin(pitch)], [0, 1, 0], [-math.sin(pitch), 0, math.cos(pitch)]])
@@ -217,6 +365,7 @@ class SquatPlanner:
     def pose(self, dz: float, pitch: float, com_tol: float = 0.005, foot_tol: float = 2e-3) -> dict:
         b, d = self.b, self.d
         q = self.q_default.copy()
+        q[b.pol_qadr] = self.q_seed
         hx, hist = 0.0, []
         for _ in range(12):
             pos, quat = self._root(dz, pitch, hx)
@@ -233,6 +382,42 @@ class SquatPlanner:
         return dict(ok=bool(err < foot_tol and abs(com) < com_tol and not at_limit), legs=q[b.pol_qadr].copy(), root_pos=pos,
                     root_quat=quat, foot_err=err, com_err=com, at_limit=at_limit, dz=dz, pitch=pitch)
 
+    def servo_targets(self, pose: dict) -> np.ndarray:
+        """Leg position-servo targets that HOLD `pose` statically: legs + tau / kp, tau = the static joint torques of the planned
+        configuration (gravity of the whole body carried by the two soles: vertical forces at the sole centres, split so that their
+        moment balances the CoM laterally; tau = qfrc_bias - J_sole^T F). Without it the servos sag under the body weight (g1 / h1
+        sink 5-10 cm below a deep squat plan and sit back off their heels). Derived from the model; clipped to the control range."""
+        m, b, d = self.m, self.b, self.d
+        d.qpos[:] = self.q_default
+        d.qpos[b.qa:b.qa + 3], d.qpos[b.qa + 3:b.qa + 7] = pose["root_pos"], pose["root_quat"]
+        d.qpos[b.pol_qadr] = pose["legs"]
+        d.qvel[:] = 0.0
+        mujoco.mj_forward(m, d)
+        st = self.stance
+        soles = [st._sole(d, i) for i in range(len(st.foot_body))]
+        W = st.mass * BodyStance.G
+        yc = float(d.subtree_com[b.root_bid][1])
+        (yl, yr) = soles[0][1], soles[1][1]
+        wl = float(np.clip((yc - yr) / (yl - yr), 0.0, 1.0)) if abs(yl - yr) > 1e-6 else 0.5
+        tau = d.qfrc_bias[b.pol_dadr].copy()
+        for i, (p, w) in enumerate(zip(soles, (wl, 1.0 - wl))):
+            mujoco.mj_jac(m, d, self.jp, self.jr, p, st.foot_body[i])
+            tau -= self.jp[:, b.pol_dadr].T @ np.array([0.0, 0.0, w * W])
+        kp = m.actuator_gainprm[b.pol_act, 0]
+        return np.clip(np.asarray(pose["legs"], float) + tau / kp, b.lo, b.hi)
+
+    def stance_pose(self) -> dict:
+        """The standing plan: the shallowest root drop (0 .. STANCE_DZ_L x L) whose pose is `ok`. Bodies whose default stance has
+        straight knees (g1) cannot slide the CoM over the sole centre without a small knee bend; t1 / h1 get dz = 0."""
+        L = float(self.b.L["nominal_height"])
+        for dz in np.linspace(0.0, self.STANCE_DZ_L * L, 9):
+            p = self.pose(float(dz), 0.0)
+            if p["ok"]:
+                return p
+        raise RuntimeError("no standing pose with the CoM over the soles within the joint limits")
+
+    STANCE_DZ_L = 0.05
+
 
 # ------------------------------------------------------------------ U2: whole-body scripted teachers (upper body IK + registered tracker legs)
 def _smooth(x: float) -> float:
@@ -245,6 +430,14 @@ def _wrap(a: float) -> float:
 
 
 _PLANS: dict = {}
+_STANCES: dict = {}
+
+
+def _stance(session) -> BodyStance:
+    key = session.scenario.robots[0].robot_spec.spec_hash
+    if key not in _STANCES:
+        _STANCES[key] = BodyStance(session.model, session.binding)
+    return _STANCES[key]
 
 
 class WholebodyTeacher:
@@ -257,7 +450,6 @@ class WholebodyTeacher:
     privileged = True
     name = "wholebody"
     legs = "rl_expert"                        # source of the `legs` group: the tracker actor; "planned_com" = the static plan + ankle feedback
-    COM_KP, COM_KI, COM_KD = 8.0, 2.0, 0.5    # rad per m (rad s per m, rad / (m/s)): ankle-pitch target vs the CoM x error
 
     def __init__(self, session):
         self.s, self.b, self.m = session, session.binding, session.model
@@ -268,12 +460,8 @@ class WholebodyTeacher:
         self.upper = self.b.q0_held.copy()
         self.r = session.robots[0].meta["legged"]["command_ranges"]
         self.sc = session.scenario.meta
-        jid = [int(self.m.actuator_trnid[a, 0]) for a in self.b.pol_act]
-        jn = [self.m.joint(j).name.lower() for j in jid]
-        self.ankle_ix = np.array([i for i, n in enumerate(jn) if "ankle" in n and "pitch" in n], int)
-        if len(self.ankle_ix) == 0:          # single-DoF ankles (h1 `left_ankle`): the ankle hinge about the lateral (y) axis is the pitch joint
-            self.ankle_ix = np.array([i for i, (j, n) in enumerate(zip(jid, jn))
-                                      if "ankle" in n and abs(float(self.m.jnt_axis[j][1])) > 0.9], int)
+        self.stance = _stance(session)                      # morphology-derived soles, ankle pitch joints, balance gains
+        self.ankle_ix = self.stance.ankle_ix                # per leg the most distal lateral-axis joint (h1: the single ankle hinge)
         if len(self.ankle_ix) != 2:
             raise ValueError(f"{self.name}: expected two ankle pitch joints among the policy joints, got {len(self.ankle_ix)}")
         self._com_prev, self._com_int = None, 0.0
@@ -296,13 +484,19 @@ class WholebodyTeacher:
         """`legs` (a planned static pose, both feet planted) plus an ankle-pitch feedback on the whole-body CoM x over the middle of the
         soles (P + I + D on the true CoM; the ankle servos alone (kp 50) sag and the open-loop plan topples). Static-support tasks use
         it instead of the tracker: the tracker's own standing height is 0.83 of the default, the plan's is 0.98."""
-        d, b = self.s.data, self.b
-        e = float(d.subtree_com[b.root_bid][0]) - float(np.mean([d.site_xpos[x][0] for x in b.foot_sids]))
+        d, b, st = self.s.data, self.b, self.stance
+        yaw = self._feet_yaw()
+        fwd = np.array([math.cos(yaw), math.sin(yaw)])
+        e = float(fwd @ (d.subtree_com[b.root_bid][:2] - st.support_centre(d)[:2]))      # CoM ahead of the sole centre (m)
         de = 0.0 if self._com_prev is None else (e - self._com_prev) / self.dt
         self._com_prev, self._com_int = e, float(np.clip(self._com_int + e * self.dt, -0.3, 0.3))
         legs = np.array(legs, float)
-        legs[self.ankle_ix] += self.COM_KP * e + self.COM_KI * self._com_int + self.COM_KD * de
+        legs[self.ankle_ix] += -st.sign * (st.KP * e + st.KI * self._com_int + st.KD * de)
         return legs
+
+    def _feet_yaw(self) -> float:
+        d = self.s.data
+        return float(np.mean([math.atan2(d.xmat[f][3], d.xmat[f][0]) for f in self.stance.foot_body]))
 
     def act(self) -> NativeCommand:
         legs = self.legs_command()
@@ -356,7 +550,8 @@ class ReachTeacher(WholebodyTeacher):
     def __init__(self, session):
         super().__init__(session)
         self.ik = UpperIK(self.m, self.b, session.palm_ids())
-        self.q_stand = SquatPlanner(self.m, self.b).pose(0.0, 0.0)["legs"]
+        pl = SquatPlanner(self.m, self.b)
+        self.q_stand = pl.servo_targets(pl.stance_pose())
         self.side = "left" if self.sc["side"] > 0 else "right"
         self.off = np.zeros(3)
         self.sol = self.b.q0_held[self.ik.arm[self.side]].copy()
@@ -391,11 +586,13 @@ class SquatPickTeacher(WholebodyTeacher):
     legs = "planned_com"
     T0, T_SQ, T_OPEN, T_CLOSE, T_HOLD, T_UP = 0.6, 3.0, 1.5, 1.5, 0.7, 3.0
     M_OPEN, F_SQ = 0.035, 15.0                # m: palm-centre offset outside the box faces when open; N: squeeze force per palm
-    PALM_R = 0.03
     I_MASK = np.array([1.0, 0.0, 1.0])
     LEAD = 0.01                                # m: the palms never rise further than this over the box centre
     LEVEL = dict(level_w=1.0, axis_z=0.0)      # the palm bars are held level from the approach on (a tilted bar pinches the box at its edges)
     PALM_DZ = 0.05                            # m: palm bar above the box centre (level bars reach that high from the squat; the pinch above the CoM hangs the box)
+    POSTURE_W = 0.1                           # opening path: weight (per rad, vs 1 per m of palm position) of the arm-posture rows that pull
+    #                                           the IK towards the joint-space blend hanging -> planned open pose (a redundant 7-DoF arm (g1)
+    #                                           otherwise wanders overhead on the way); negligible on the 4-DoF arms (t1, h1)
     Z_CLEAR = 0.06                            # m: height of the palm-bar centre over the box centre on the way in
     W_CARRY = 1.0                             # squat fraction while carrying (h_place lowers it)
 
@@ -410,10 +607,7 @@ class SquatPickTeacher(WholebodyTeacher):
         self.path_start = None
         self.dq_sq = {}
         self.axis_z0, self.sh0, self.rel0, self.yaw0 = {sd: 0.0 for sd in self.ik.gid}, {}, {}, 0.0
-        self.sh_jid = {}
-        for sd, ix in self.ik.arm.items():
-            js = [int(self.m.actuator_trnid[self.b.held_act[i], 0]) for i in ix]
-            self.sh_jid[sd] = next(j for j in js if "shoulder" in self.m.joint(j).name.lower() and "pitch" in self.m.joint(j).name.lower())
+        self.sh_jid = dict(self.ik.shoulder_j)            # the most proximal arm joint (no joint-name rule)
         self.tl = self._timeline()
 
     # -- timeline (times in s): each entry is the END of the phase
@@ -429,37 +623,82 @@ class SquatPickTeacher(WholebodyTeacher):
     def _palm_targets(self, margin: float) -> dict:
         bx, by = self.sc["box"]["xy"]
         hy, z = self.sc["box"]["half"][1], self.sc["box"]["z0"] + self.PALM_DZ
-        return {"left": np.array([bx, by + hy + self.PALM_R + margin, z]),
-                "right": np.array([bx, by - hy - self.PALM_R - margin, z])}
+        r = self.ik.palm_r
+        return {"left": np.array([bx, by + hy + r["left"] + margin, z]),
+                "right": np.array([bx, by - hy - r["right"] - margin, z])}
+
+    SQUAT_PITCH = 1.0                         # nominal trunk pitch per unit squat depth in leg lengths (rad per L; t1's U2 rule 1.5 rad/m x L 0.666 m)
+    DZ_MAX_L, DZ_STEP = 0.5, 0.0125           # squat search: root drop 0 .. 0.5 L in 12.5 mm steps
+    PITCH_DEV = np.arange(0.0, 1.0001, 0.05)  # rad: deviations from the nominal trunk pitch, tried in this order
+    PITCH_MAX = 1.2                           # rad
+    BAR_Z = (0.0, 0.2, -0.2, 0.4, -0.4, 0.6, -0.6)   # bar elevation (up . bar axis) tried in this order: level first
+    IK_TOL = 8e-3                             # m: arm IK residual accepted for the open and squeeze poses
 
     def _plan(self) -> dict:
+        """Search (bar elevation, trunk pitch, depth) for a static squat whose legs plan is `ok` (feet planted, CoM over the sole
+        centre, inside the joint limits) and from which the arm IK reaches the open and squeeze palm poses within IK_TOL, in the
+        order: level bars first (BAR_Z), then the trunk pitch closest to the nominal SQUAT_PITCH dz / L, then the shallowest depth.
+        Depth, pitch and bar elevation are thus derived from each body's leg / arm kinematics and joint limits: t1 keeps its U2
+        plan (level bars, nominal pitch); the bar stays in the sagittal plane, i.e. flat on the box face, at any elevation."""
         key = (self.s.scenario.robots[0].robot_spec.spec_hash, repr(self.sc["box"]), repr(self.sc["crate"]), self.M_OPEN)
         if key in _PLANS:
+            self.LEVEL = dict(level_w=1.0, axis_z=_PLANS[key]["axis_z"])
             return _PLANS[key]
-        pl, ik = self.planner, self.ik
+        pl, ik, L = self.planner, self.ik, float(self.sc["L"])
+        legs = {}
+
+        def leg_pose(dz, pitch):
+            k = (round(dz, 6), round(pitch, 6))
+            if k not in legs:
+                legs[k] = pl.pose(dz, pitch)
+            return legs[k]
+
         chosen = None
-        for dz in np.arange(0.0, 0.2501, 0.0125):
-            pose = pl.pose(float(dz), 1.5 * float(dz))
-            if not pose["ok"]:
-                continue
-            q = pl.q_default.copy()
-            q[self.b.qa:self.b.qa + 3], q[self.b.qa + 3:self.b.qa + 7] = pose["root_pos"], pose["root_quat"]
-            q[self.b.pol_qadr] = pose["legs"]
-            errs = [ik.solve(q, sd, tg, axis_w=0.5, **self.LEVEL)[1] for m in (self.M_OPEN, 0.0)
-                    for sd, tg in self._palm_targets(m).items()]
-            if max(errs) < 8e-3:
-                chosen = (float(dz), 1.5 * float(dz), max(errs))
+        dzs = [float(x) for x in np.arange(0.0, self.DZ_MAX_L * L + 1e-9, self.DZ_STEP)]
+        for az in self.BAR_Z:
+            for dev in self.PITCH_DEV:
+                for dz in dzs:
+                    nominal = self.SQUAT_PITCH * dz / L
+                    for pitch in sorted({nominal + dev, nominal - dev}, reverse=True):
+                        if not 0.0 <= pitch <= self.PITCH_MAX:
+                            continue
+                        pose = leg_pose(dz, float(pitch))
+                        if not pose["ok"]:
+                            continue
+                        q = pl.q_default.copy()
+                        q[self.b.qa:self.b.qa + 3], q[self.b.qa + 3:self.b.qa + 7] = pose["root_pos"], pose["root_quat"]
+                        q[self.b.pol_qadr] = pose["legs"]
+                        sols = {(m, sd): ik.solve(q, sd, tg, axis_w=0.5, level_w=1.0, axis_z=az) for m in (self.M_OPEN, 0.0)
+                                for sd, tg in self._palm_targets(m).items()}
+                        errs = [e for _, e in sols.values()]
+                        if max(errs) < self.IK_TOL:
+                            chosen = (dz, float(pitch), max(errs), az)
+                            arm_open = {sd: sols[(self.M_OPEN, sd)][0] for sd in ik.gid}
+                            break
+                    if chosen:
+                        break
+                if chosen:
+                    break
+            if chosen:
                 break
         if chosen is None:
-            raise RuntimeError(f"{self.name}: no static squat within 0.25 m puts both palms on the box faces (arm IK error > 8 mm "
-                               "or the squat leaves the joint limits / the support polygon)")
-        dz, pitch, err = chosen
+            raise RuntimeError(f"{self.name}: no static squat within {self.DZ_MAX_L} L puts both palms on the box faces (arm IK error > "
+                               f"{self.IK_TOL * 1e3:.0f} mm or the squat leaves the joint limits / the support polygon at every trunk pitch "
+                               "and bar elevation)")
+        dz, pitch, err, az = chosen
+        self.LEVEL = dict(level_w=1.0, axis_z=az)
         ws = np.linspace(0.0, 1.0, 9)
         poses = [pl.pose(dz * w, pitch * w) for w in ws]
-        _PLANS[key] = dict(dz=dz, pitch=pitch, ik_err=err, ws=ws, legs=np.array([p["legs"] for p in poses]),
+        _PLANS[key] = dict(dz=dz, pitch=pitch, ik_err=err, axis_z=az, arm_open=arm_open, ws=ws, legs=np.array([pl.servo_targets(p) for p in poses]),
                            root_pos=np.array([p["root_pos"] for p in poses]), root_quat=np.array([p["root_quat"] for p in poses]),
                            ok=[bool(p["ok"]) for p in poses])
         return _PLANS[key]
+
+    def derived(self) -> dict:
+        """The body-derived parameters this teacher runs with (recorded with the results)."""
+        return dict(stance=self.stance.record(), arms=self.ik.record(), squat=dict(dz=round(self.plan["dz"], 4),
+                    dz_L=round(self.plan["dz"] / float(self.sc["L"]), 4), pitch=round(self.plan["pitch"], 4), bar_z=self.plan["axis_z"],
+                    ik_err=round(self.plan["ik_err"], 5)))
 
     def _interp(self, name: str, w: float) -> np.ndarray:
         ws, arr = self.plan["ws"], self.plan[name]
@@ -482,14 +721,16 @@ class SquatPickTeacher(WholebodyTeacher):
     def twist(self) -> float:
         return 0.0
 
-    def _solve(self, targets: dict) -> dict:
+    def _solve(self, targets: dict, posture: dict | None = None) -> dict:
+        """Arm IK towards `targets` from the previous solution; `posture` = {side: joint reference} adds posture rows (POSTURE_W)."""
         d = self.s.data
         out = {}
         for sd, tg in targets.items():
             ix = self.ik.arm[sd]
             q = d.qpos.copy()
             q[self.b.held_qadr[ix]] = self.sol[sd]
-            self.sol[sd], _ = self.ik.solve(q, sd, tg + self.off[sd], iters=10, axis_w=0.5, **self.LEVEL)
+            kw = dict(q_ref=posture[sd], posture_w=self.POSTURE_W) if posture else {}
+            self.sol[sd], _ = self.ik.solve(q, sd, tg + self.off[sd], iters=10, axis_w=0.5, **self.LEVEL, **kw)
             out[sd] = self.sol[sd]
         return out
 
@@ -497,6 +738,11 @@ class SquatPickTeacher(WholebodyTeacher):
         for sd, tg in targets.items():
             e = (tg - self.s.data.geom_xpos[self.ik.gid[sd]]) * mask
             self.off[sd] = np.clip(self.off[sd] + 0.03 * e, -0.05, 0.05)
+
+    def _open_posture(self, f: float) -> dict:
+        """Joint-space reference of the opening path: hanging arm (q0) blended to the plan's open-pose IK solution."""
+        u = _smooth(f)
+        return {sd: (1.0 - u) * self.b.q0_held[self.ik.arm[sd]] + u * self.plan["arm_open"][sd] for sd in self.ik.gid}
 
     def _open_targets(self, f: float) -> dict:
         """Palm targets while the arms open (fraction f of the phase): from where the palms hang, up over the crate top beside the
@@ -532,7 +778,7 @@ class SquatPickTeacher(WholebodyTeacher):
         elif t < tl["open"]:
             f = (t - tl["squat"]) / self.T_OPEN
             tg = self._open_targets(f)
-            self._set_arms(self._solve(tg), up)
+            self._set_arms(self._solve(tg, posture=self._open_posture(f)), up)
             if f > 0.9:
                 self._integrate(tg)
             self.q_open = up.copy()
@@ -569,7 +815,7 @@ class SquatPickTeacher(WholebodyTeacher):
         bid = self.m.body("box").id
         r = self.s.data.xmat[bid].reshape(3, 3)
         sg = 1.0 if sd == "left" else -1.0
-        return self.s.data.xpos[bid] + sg * (self.sc["box"]["half"][1] + self.PALM_R) * r[:, 1] + np.array([0.0, 0.0, self.PALM_DZ])
+        return self.s.data.xpos[bid] + sg * (self.sc["box"]["half"][1] + self.ik.palm_r[sd]) * r[:, 1] + np.array([0.0, 0.0, self.PALM_DZ])
 
     def _note_grasp(self):
         d = self.s.data
