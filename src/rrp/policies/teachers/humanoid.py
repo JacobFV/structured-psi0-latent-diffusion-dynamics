@@ -252,6 +252,7 @@ class BodyStance:
             self.sole_local.append(d.xmat[f].reshape(3, 3).T @ (ctr - d.xpos[f]))
             self.sole_half_x.append(0.5 * float(hi[0] - lo[0]))
         self.support_x0 = float(np.mean([self._sole(d, i)[0] for i in range(len(fb))]))
+        self.width0 = float(abs(self._sole(d, 0)[1] - self._sole(d, 1)[1]))           # default lateral sole spacing
         # ankle pitch joints: per leg the most distal lateral-axis joint among the policy joints of that leg
         jid = [int(m.actuator_trnid[a, 0]) for a in b.pol_act]
         self.ankle_ix = []
@@ -720,6 +721,14 @@ class SquatPickTeacher(WholebodyTeacher):
                 legs[k] = pl.pose(dz, pitch)
             return legs[k]
 
+        free = {}
+
+        def reach_ok(dz, pitch, q):
+            k = (round(dz, 6), round(pitch, 6))
+            if k not in free:
+                free[k] = max(ik.solve(q, sd, tg, axis_w=0.0)[1] for m in (self.M_OPEN, 0.0) for sd, tg in self._palm_targets(m).items())
+            return free[k] < self.IK_TOL
+
         chosen = None
         dzs = [float(x) for x in np.arange(0.0, self.DZ_MAX_L * L + 1e-9, self.DZ_STEP)]
         for az in self.BAR_Z:
@@ -735,6 +744,8 @@ class SquatPickTeacher(WholebodyTeacher):
                         q = pl.q_default.copy()
                         q[self.b.qa:self.b.qa + 3], q[self.b.qa + 3:self.b.qa + 7] = pose["root_pos"], pose["root_quat"]
                         q[self.b.pol_qadr] = pose["legs"]
+                        if not reach_ok(dz, float(pitch), q):              # bound: not even a free-orientation palm reaches the box
+                            continue
                         sols = {(m, sd): ik.solve(q, sd, tg, axis_w=0.5, level_w=1.0, axis_z=az) for m in (self.M_OPEN, 0.0)
                                 for sd, tg in self._palm_targets(m).items()}
                         errs = [e for _, e in sols.values()]
@@ -1111,6 +1122,9 @@ class LocoPickTeacher(SquatPickTeacher):
         else:
             vx = 0.0
         fy = self._feet_yaw()                            # square the FEET to the crate (g1's gait leaves them 0.4 rad off the pelvis heading)
+        if abs(ex_b) <= self.X_TOL and abs(-s_ * ex + c * ey) <= self.X_TOL and abs(fy) <= self.YAW_TOL:
+            return np.zeros(3)                           # dead band: an exact zero lets the tracker stop stepping (small commands keep
+        #                                                  g1's gait stepping in place with the feet swinging +-0.5 rad)
         return np.array([vx, vy, float(np.clip(-1.5 * fy, -0.3, 0.3))])
 
     V_FRAC = 0.6
@@ -1126,6 +1140,7 @@ class LocoPickTeacher(SquatPickTeacher):
         ex, ey = self._feet_err()
         return (abs(ex) <= self.X_SETTLE and abs(ey) <= self.Y_TOL and abs(self._feet_yaw()) <= self.YAW_TOL
                 and self.s.truth_predicate("base_speed", ["body"]) < 0.08)
+
 
     YAW_TOL = 0.15
 
@@ -1152,12 +1167,20 @@ class LocoPickTeacher(SquatPickTeacher):
     def _replan_at_feet(self):
         """The leg trajectory of the pick re-planned for the feet where the walk left them (same depth / pitch as the cached plan;
         the arm IK works on the true box pose anyway)."""
-        x, y, yaw = self.s.base_pose_truth()
-        pl = self.planner.at_feet(self.s.data, (x, y), yaw)       # the pelvis keeps its heading (the arms plan is in its frame)
-        poses = [pl.pose(self.plan["dz"] * w, self.plan["pitch"] * w) for w in self.plan["ws"]]
+        x, y, _ = self.s.base_pose_truth()
+        pl = self.planner.at_feet(self.s.data, (x, y), self._feet_yaw())   # the pelvis is squared to the feet, which the approach
+        #                                                                   squared to the crate (a gait leaves pelvis and feet 0.4 rad apart)
+        dz, pitch = self.plan["dz"], self.plan["pitch"]
+        for dev in self.PITCH_DEV:                       # a staggered stance can put the planned depth past a joint limit (g1: ankle
+            cands = [c for c in (pitch + dev, pitch - dev) if 0.0 <= c <= self.PITCH_MAX]          # stop): nearest feasible pitch
+            ok = [c for c in cands if pl.pose(dz, c)["ok"]]
+            if ok:
+                pitch = ok[0]
+                break
+        poses = [pl.pose(dz * w, pitch * w) for w in self.plan["ws"]]
         self.plan = {**self.plan, "legs": np.array([pl.servo_targets(p) for p in poses]), "sway": np.array([pl.sway(p) for p in poses]),
                      "root_pos": np.array([p["root_pos"] for p in poses]), "root_quat": np.array([p["root_quat"] for p in poses]),
-                     "ok": [bool(p["ok"]) for p in poses], "replanned_at_feet": True}
+                     "ok": [bool(p["ok"]) for p in poses], "pitch": pitch, "replanned_at_feet": True}
 
     @property
     def approach_s(self) -> float:
