@@ -223,10 +223,17 @@ def test_ppo_budget_that_is_not_a_whole_number_of_iterations_is_refused():
         HA.adapt_ppo_plan(dict(task="h_steps", body="h1", budget=1_000_000, mode="scratch"), {}, out="o")      # 4096 * 24 per iteration
 
 
-@pytest.mark.parametrize("opt", ["iters", "groups", "init_shared", "body", "out", "resume"])
+@pytest.mark.parametrize("opt", ["iters", "init_shared", "body", "out", "resume"])
 def test_ppo_options_owned_by_the_stage_are_refused(opt):
     with pytest.raises(ValueError, match="set by the stage"):
         HA.adapt_ppo_plan(dict(task="h_steps", body="h1", budget=98_304, mode="scratch"), {opt: 1}, out="o")
+
+
+def test_ppo_groups_other_than_the_adapted_body_are_refused():
+    """D-147 (2026-10-03): `groups` is allowed only as one group of exactly the adapted body (shared-tracker fine-tune)."""
+    for g in (1, '[[["t1"], 4096]]', '[[["h1"], 2048], [["t1"], 2048]]'):
+        with pytest.raises(ValueError, match="not a per-body budget"):
+            HA.adapt_ppo_plan(dict(task="h_steps", body="h1", budget=98_304, mode="scratch"), {"groups": g}, out="o")
 
 
 def test_ppo_on_a_sealed_body_passes_only_an_adaptation_seed():

@@ -238,12 +238,19 @@ def main(argv=None):
     ap.add_argument("--task", default="waypoint_contact", help="a registered mujoco/legged task with a scripted teacher")
     ap.add_argument("--tracker", default="auto")
     ap.add_argument("--tracker-id", default=None, help="registered actor <body>:<version> (default: the body's actor)")
+    ap.add_argument("--tracker-actor", default=None, help="an actor.pt FILE registered for this process (<body>:file_<sha12>, sha pinned, "
+                    "decision `unregistered`; D-147: sealed-body adaptation, whose trackers cannot pass the install gate)")
     ap.add_argument("--max-steps", type=int, default=None, help="control steps; default TaskSpec.max_steps, else 1300")
     ap.add_argument("--sigmas", default="0,0.1,0.2,0.3", help="DART sigma cycled over seeds (action units)")
     ap.add_argument("--arc-only", action="store_true")
     ap.add_argument("--out", required=True)
     ap.add_argument("--shard", default=None)
     a = ap.parse_args(argv)
+    if a.tracker_actor:
+        if a.tracker_id:
+            raise SystemExit("--tracker-actor and --tracker-id are exclusive")
+        from rrp.harness.eval.humanoid_eval import resolve_actor
+        a.tracker_id = resolve_actor(a.body, a.tracker_actor)
     sig = [float(x) for x in a.sigmas.split(",")]
     out = Path(a.out) / a.body
     seeds = parse_seed_spec(a.seeds)

@@ -112,6 +112,8 @@ def collect(ctx: StageContext) -> dict:
                     "--sigmas", str(o.get("sigmas", "0,0.1,0.2,0.3"))]
             if trackers.get(b):
                 argv += ["--tracker-id", trackers[b]]
+            elif ctx.inp("tracker", required=False):        # D-147: an unregistered actor input (sealed-body adaptation check)
+                argv += ["--tracker-actor", str(ctx.root / ctx.inp("tracker"))]
             if o.get("max_steps"):
                 argv += ["--max-steps", str(o["max_steps"])]
             jobs.append((argv, physics_env(ctx, OMP_NUM_THREADS=1, CUDA_VISIBLE_DEVICES=""), ctx.root / out / b / f"log_s{s}.txt"))
@@ -305,7 +307,10 @@ def adapt_ppo(ctx: StageContext) -> dict:
         args["recipe"] = o["recipe"]
     plan = adapt_ppo_plan(a, args, out=ctx.rc.out, init=init, resume=bool(o.get("resume", True)))
     cid = _sealed_adapt_guard(ctx, a, [plan["seed"]], plan["seed"])
-    ctx.run(["-m", "rrp.cli", "train", "tracker-warp", *plan["argv"]], env=physics_env(ctx, OMP_NUM_THREADS=1))
+    env = physics_env(ctx, OMP_NUM_THREADS=1)
+    if o.get("pythonpath"):                               # the isolated Warp install (as train_tracker)
+        env["PYTHONPATH"] = ":".join([str(Path(p).expanduser()) for p in o["pythonpath"]] + [env.get("PYTHONPATH", "")])
+    ctx.run(["-m", "rrp.cli", "train", "tracker-warp", *plan["argv"]], env=env)
     actor = ctx.out / "actor.pt"
     if not actor.exists():
         raise StageError(f"{actor} missing after training")

@@ -412,3 +412,19 @@ def test_held_out_control_checkpoints_are_the_h_carry_control_arm_outs(task):
         for v in (m.get("kw") or {}).values():
             if m["level"] == 2:
                 assert HE.fmt(v, seed=0).rsplit("/", 1)[0] in outs, v
+
+
+def test_adapt_ppo_finetunes_the_shared_tracker_on_one_sealed_body_only():
+    """D-147 (2026-10-03, owner): Level-1 adaptation of shared:morph_v2_ub = the shared recipe restricted to ONE group of the adapted body;
+    budget 1e7 = 400 iterations x 1000 worlds x 25 steps; any other groups run is refused; the trainer seed must be an adaptation seed."""
+    import pytest
+    from rrp.harness.train.humanoid_adapt import adapt_ppo_plan
+    a = dict(task="h_walk", body="n1", budget=10_000_000, mode="finetune")
+    p = adapt_ppo_plan(a, dict(recipe="shared_morph_ub", groups='[[["n1"], 1000]]', horizon=25, seed=1000000),
+                       out="x", init="artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt")
+    assert (p["iters"], p["nworld"], p["samples_per_iter"]) == (400, 1000, 25_000)
+    with pytest.raises(ValueError, match="not a per-body budget"):
+        adapt_ppo_plan(a, dict(recipe="shared_morph_ub", groups='[[["n1"], 500], [["t1"], 500]]', horizon=25, seed=1000000),
+                       out="x", init="a.pt")
+    with pytest.raises(Exception):                     # a non-adaptation seed on a sealed body
+        adapt_ppo_plan(a, dict(recipe="shared_morph_ub", groups='[[["n1"], 1000]]', horizon=25, seed=7), out="x", init="a.pt")

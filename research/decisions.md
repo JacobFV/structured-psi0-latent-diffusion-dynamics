@@ -1795,3 +1795,23 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
    **Rule:** per (body, task) teacher success >= 16/20 (0.8); a (body, task) below it is excluded from that task's sealed cells; a body that fails every
    T4 task is `blocked_external` and excluded. Source label of every cell: scripted_teacher (privileged) over learned_tracker shared:morph_v2_ub
    (D-147 owner exception).
+
+### D-147 addendum 2026-10-03 (owner, via lead): adapt the shared tracker, then test; leave-one-out dev transfer — PRE-REGISTERED before any run
+1. **Level-1 adaptation of `shared:morph_v2_ub`** (sha 6fd9c187e574a151). Bodies: the sealed humanoids with an upper body that the split allows for
+   h_walk / h_turn: **n1** (S2), **toddlerbot_2xc** and **toddlerbot_2xm** (S4; the split gives S2 / S4 no task restriction). g1_hands (S1:
+   manipulation only) and berkeley (S3: legs-only; the owner did not choose morph_v1) stay out. Per body ONE fine-tune run (`adapt_ppo`, mode
+   finetune, init = the T3 actor): the shared_morph_ub recipe (same reward, ramp, clock gate, target band, landing term) restricted to ONE group
+   = that body; budget **1e7 env samples** (the transfer recipes' larger `ppo_ft` budget) = 400 iterations x 1000 worlds x 25 steps; trainer
+   seed 1000000 (a target-adaptation seed; `SealedSplit` guards it). No sealed scene is used. No from-scratch arm: the h_walk / h_turn recipes
+   pre-register none. The stage change this needs (adapt_ppo accepts `groups` only when it is exactly one group of exactly the adapted body;
+   budget = iters x horizon x that group's worlds) lands with this addendum. A Warp smoke per body (<= 10 min) runs first; a body whose Warp
+   model does not build is `blocked_external` for this reason.
+2. **Re-check** with the adapted tracker of each body: the same pre-registered sealed-body teacher check (h_walk, h_turn; 20 target-adaptation
+   seeds [1000000, 1000020); >= 16/20 per (body, task)). A (body, task) that passes gets its sealed cells, each run ONCE (sealed_log); toddlerbot_2xm
+   is not in the h_walk / h_turn recipes' `sealed_bodies` and gets cells only through a recipe edit recorded here first. A body that fails is
+   `blocked_external`. The adapted trackers are installed per body as `<body>:morph_v2_ub_ft` (labelled with the T3 exception + their own check).
+3. **Leave-one-out dev transfer** among t1 / g1 / h1 (no sealed body): for each held-out body X, the latent stack (rep -> flow, `preset:legged`
+   and `legged-none`) and BC train on the T4 SOURCE demos of the other two bodies only (h_walk, h_turn; matched data: the same demos for every
+   method), seeds 0 and 1, and are evaluated zero-shot on X on development scenes [3000000, +100); Level-2 table per task: method x held-out body
+   (Wilson CI; Newcombe method - BC). Teacher reference on X from the same scenes. Recipe `transfer_loo` (implemented next; dry-run before any
+   GPU), run after T5's own nodes for the same task.

@@ -1,0 +1,47 @@
+# D-147 Level-1 adaptation of the shared tracker (pre-registered in the D-147 addendum "adapt the shared tracker, then test", 2026-10-03):
+# fine-tune shared:morph_v2_ub (sha 6fd9c187e574a151) on ONE sealed body (the shared_morph_ub recipe restricted to one group of that body),
+# budget 1e7 env samples = 400 iterations x 1000 worlds x 25 steps, trainer seed 1000000 (target-adaptation seed; SealedSplit-guarded),
+# then the sealed-body teacher check of h_walk / h_turn with the adapted tracker (stage collect on 20 adaptation seeds; gate >= 16/20).
+# The adapted actor is passed to the check as an unregistered file (collector --tracker-actor; sealed bodies cannot pass the install gate).
+name: humanoid_sealed_adapt_template
+schema: dag-1
+family: humanoid
+track: humanoid
+lineage: 'sealed-adapt-{body}'
+label_prefix: 'hsa_{body}'
+global_label_prefix: 'hsa'
+vars: {body: SET_IN_CHILD_DAG, warp_path: '~/work/ext/pylibs/mjwarp'}
+defaults:
+  placement: peer
+  retries: 3
+  max_parallel: 2
+  resources: {cpu: 4, mem: 8G, gpu: true, gpu_mem: 8G, max_seconds: 21600}
+base:
+  flags: {contact_version: contact_v2}
+nodes:
+  adapt:
+    stage: adapt_ppo
+    tag: ft-n10000000
+    config:
+      inputs: {init: 'artifacts/trackers/shared/morph_v2_ub/actor.pt'}
+      options:
+        adapt: {task: h_walk, body: '{body}', budget: 10000000, mode: finetune}
+        recipe: shared_morph_ub
+        args: {groups: '[[["{body}"], 1000]]', horizon: 25, seed: 1000000}
+        pythonpath: ['{warp_path}']
+  check_walk:
+    stage: collect
+    tag: sealed-check-walk
+    resources: {cpu: 2, mem: 6G, gpu: false, max_seconds: 14400}
+    retries: 1
+    config:
+      inputs: {tracker: '@adapt:actor.pt'}
+      options: {task: h_walk, bodies: ['{body}'], seeds: '1000000-1000019', workers: 2}
+  check_turn:
+    stage: collect
+    tag: sealed-check-turn
+    resources: {cpu: 2, mem: 6G, gpu: false, max_seconds: 14400}
+    retries: 1
+    config:
+      inputs: {tracker: '@adapt:actor.pt'}
+      options: {task: h_turn, bodies: ['{body}'], seeds: '1000000-1000019', workers: 2}

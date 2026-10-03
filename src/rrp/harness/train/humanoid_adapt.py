@@ -226,7 +226,7 @@ def adapt_ppo_plan(adapt: dict, args: dict, *, out: str, init: str | None = None
     if mode == "scratch" and init:
         raise ValueError("adapt_ppo scratch starts from no actor (drop `init`)")
     args = dict(args)
-    for k in ("iters", "body", "out", "init_shared", "groups", "resume"):
+    for k in ("iters", "body", "out", "init_shared", "resume"):            # `groups`: one group of the adapted body only (checked below)
         if k in args:
             raise ValueError(f"adapt_ppo: option {k!r} is set by the stage (iters from the budget), not by options.args")
     argv = ["--body", body, "--out", out]
@@ -241,17 +241,23 @@ def adapt_ppo_plan(adapt: dict, args: dict, *, out: str, init: str | None = None
     if init:
         argv += ["--init-shared", str(init)]
     eff = build_args(argv)                                    # recipe + flags merged: the trainer's own effective values
+    nworld = int(eff.nworld)
     if eff.groups:
-        raise ValueError("adapt_ppo: a shared-tracker run (groups) is not a per-body budget; use one body")
+        # D-147 (2026-10-03): a shared (morph) tracker fine-tunes on ONE body as exactly one group of exactly that body; any other
+        # groups run is not a per-body budget
+        gr = json.loads(eff.groups) if isinstance(eff.groups, str) else eff.groups
+        if not (isinstance(gr, list) and len(gr) == 1 and list(gr[0][0]) == [body]):
+            raise ValueError(f"adapt_ppo: groups {gr} is not a per-body budget; use exactly one group [[[{body!r}], nworld]]")
+        nworld = int(gr[0][1])
     from rrp.core.sealed import SealedSplit
     SealedSplit.load().assert_train_allowed([body], [int(eff.seed)], what=f"adapt_ppo {adapt.get('task')}/{mode}")
-    per_iter = int(eff.nworld) * int(eff.horizon)
+    per_iter = nworld * int(eff.horizon)
     if budget <= 0 or budget % per_iter:
         raise ValueError(f"adapt_ppo: budget {budget} env samples is not a multiple of horizon*nworld = {eff.horizon}*{eff.nworld} = "
                          f"{per_iter} (one PPO iteration); choose nworld / horizon that divide it")
     iters = budget // per_iter
     argv += ["--iters", str(iters)] + (["--resume"] if resume else [])
-    return dict(argv=argv, iters=iters, nworld=int(eff.nworld), horizon=int(eff.horizon), samples_per_iter=per_iter,
+    return dict(argv=argv, iters=iters, nworld=nworld, horizon=int(eff.horizon), samples_per_iter=per_iter,
                 task=adapt.get("task"), body=body, budget=budget, mode=mode, train_task=eff.task, seed=int(eff.seed))
 
 
