@@ -6,7 +6,7 @@ loader that builds the models and loads the weights strictly:
   arm representation      -> rrp.policies.bundles.load_representation
   arm latent flow         -> rrp.policies.latent.LatentPolicy.from_checkpoint
   arm direct/codec policy -> rrp.policies.bc.LearnedPolicy.from_checkpoint
-  legged representation   -> rrp.policies.bundles.load_rep
+  legged representation   -> rrp.policies.legged.load_legged_rep (factor-stamped nets; bundles.load_rep builds them without factors)
   legged flow / refit R   -> rrp.policies.legged.LatentLeggedController
   legged BC               -> rrp.policies.nets.legged_bc.load_bc
 Training-resume states, trackers and probes are loaded with torch.load only (no rrp classes are pickled in any of them).
@@ -108,9 +108,9 @@ def load_one(path: Path) -> dict:
             prov = checkpoint_provenance(st, path)
             row["provenance"] = dict(legacy=prov.legacy, notes=prov.notes)
             if kind == "legged_representation":
-                from rrp.policies.bundles import load_rep
-                load_rep(path, "cpu")
-                row["loaded"] = "load_rep"
+                from rrp.policies.legged import load_legged_rep       # rebuilds the nets on the checkpoint's own factor stamp (HL)
+                load_legged_rep(path, "cpu")
+                row["loaded"] = "load_legged_rep"
             elif kind == "legged_flow":
                 from rrp.policies.legged import LatentLeggedController
                 c = LatentLeggedController(path, "cpu")
