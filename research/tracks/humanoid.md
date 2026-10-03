@@ -758,3 +758,28 @@ broker refuses (6 h cap): instance override to 21600 s segments with retries 3 (
 - **T3 is on the critical path of the transfer test** (lead, 10-03): the sealed humanoid targets have no tracker, so `collect_sealed` and
   every sealed cell need the shared `morph_v2_ub` tracker (zero-shot + Level-1 adaptation). T3 train (iter 2500 / 3000 at the 03:58 OOM)
   waits for 64 GiB of peer memory (Psi0's eval holds 62 GiB); held T4 collect nodes start only after T3 is admitted (`camp-hum-after-t3`).
+
+### hum-teachers (D-147, 2026-10-03): body-general manipulation teachers (code only, no training; owner decision via the lead)
+Diagnosis of the T4 teacher-quality failures (scripted teacher over `<body>:ub_v1`, dev scenes):
+- **h_reach g1 / h1 fell (0/20)**: the ankle CoM feedback used t1's gains (KP 8 rad/m) and a reference at the foot touch sites. g1's touch site is one
+  heel-corner contact sphere of four (x -0.05; sole -0.05..0.12), so the loop drove the CoM onto the heel; h1 (51 kg, ankle kp 2 x 40) gets a closed-loop
+  stiffness ratio of 1.4 with t1's KP (t1: 3.2) and overshot forward.
+- **"no static squat plan" g1 / h1**: g1's default stance has straight knees (q = 0 next to the -0.087 stop) -> the foot-placement IK is singular and
+  diverged (foot error 1.2 m) at every depth; h1's legs plan was fine but the depth search was absolute (<= 0.25 m, tuned on t1), h1 needs ~0.3 L, and its
+  -0.87 ankle stop needs more trunk pitch than the 1.5 rad/m rule; h1's palms are its forearm capsules (4-DoF arm) and cannot hold a LEVEL bar at the box.
+- **g1 / h1 squat physics**: position servos sag 5-10 cm under the body weight in a deep squat (no gravity feed-forward) and sit back; g1's 7-DoF arm
+  IK jumped branches (1.2 rad target steps) and flung the box; h_place: the grip rotated the palms with the PELVIS yaw (g1 / h1 root) not the torso.
+- **h_loco_pick t1 14/20 fell (teacher bug)**: the default-stance squat was forced onto the feet where the walk left them (pelvis twisted 0.8 rad at
+  the hand-over), sometimes from a swing foot; no back-up after an overshoot.
+Changes (`policies/teachers/humanoid.py`; every number from the model, recorded by `teacher.derived()`): `BodyStance` (sole centre from the foot contact
+geoms, ankle pitch joint = most distal lateral-axis leg joint, ankle gains from mass / CoM height / ankle kp at t1's dimensionless closed loop ALPHA 3.176,
+ZETA 0.267, BETA 0.040 -> t1 8.0 / 2.0 / 0.5 unchanged, g1 11.4 / 2.6 / 0.75, h1 19.0 / 3.6 / 1.45); `SquatPlanner` IK seed 5 % inside the joint
+ranges, `stance_pose`, `servo_targets` (legs + static tau / kp), `sway` (lateral pelvis-shift direction; lateral CoM PID 1.0 / 1.0 / 0.2), `at_feet`
+(re-plan at the current feet), free foot roll for < 6-DoF legs; squat search over bar elevation x trunk pitch x depth (<= 0.5 L, pitch <= tilt_limit -
+0.15): t1 0.225 m / 0.338 rad / level (= U2), g1 0.275 / 0.347 / level, h1 0.30 / 0.489 / bar_z 0.6; `UpperIK` palm-bar axis (geom long axis, or the
+forearm for a compact hand mesh: g1), palm radius, chest = common ancestor of the shoulders; opening IK with posture rows; upper targets rate-limited
+4 rad/s; h_place arms also shift the box onto the mark; loco-pick approach on the feet (sole centre, feet yaw, back-up, exact-zero dead band, lateral
+tolerance = M_OPEN), hand-over in double support from the measured stance, full re-plan at the actual feet. Trackers and the gate rule untouched.
+Tests `tests/unit/test_humanoid_teacher_morph.py` (red on the t1-only code, green now). Smoke (host leases, dev seeds 3000000-3000009, NOT the gate):
+see the table in the merge commit / `~/work/rrp-data/campaign/logs/hum_teachers.log`. Not fixed: h1 h_loco_pick / h_carry (box dropped while
+standing up / turning with forearm-palm grip), h1 h_place ~half.
