@@ -512,3 +512,23 @@ the broker refused every lease (`watchdog heartbeat missing or stale`). rrp.slic
 shmem from /dev/shm job outputs. I archived my tabletop feature cache and direct head (6.5 GB) to `~/work/rrp-data/peer-archive/runs/psi0/` (sha256 tree equal,
 ARCHIVE_LOG.txt), deleted them on the peer, reported to the lead; slice fell to 19 GB, watchdog recovered, eval_structured was admitted. The p4 chain restores
 the feature cache only for `probes_gen` and removes it afterwards.
+
+### 2026-10-03 D-147 T7 tabletop: closed-loop structured eval (seed 0, D-141-fixed arm) -- stage-A/gate/heads as in the interim above
+Eval node `eval_structured@s0` (lease 1791026340_7ef076, peer, 04:19-05:44 PDT; cgroup peak 25.0 GB, declared 36G + 26G GPU; admitted only after a peer outage,
+see "incidents"). Same 10 SIMPLE eval configs x 2 repeats, same seeds, render, batch 2 as the direct arm. Source of every row below: `learned:` (ours) unless marked.
+| arm | source | successes | Wilson 95% | note |
+|---|---|---|---|---|
+| released Ψ₀ ckpt_40000 | upstream weights (not ours; psi1z recording, D-140 table above) | 20/20 | [0.84, 1.00] | `eval_released` of this recipe is queued last |
+| Ψ₀ direct (ours, rrp path) | `learned:psi0-tabletop/train_bc_s0/final.pt` | 19/20 | [0.76, 0.99] | one timeout |
+| Ψ₀ + structure (ours, D-141 fix, generated packet, rrp path) | `learned:psi0-tabletop/train_flow_s0/final.pt` (+ stage A sha 039edb43e73f9d8c) | **7/20** | [0.18, 0.57] | 13 timeouts (800 steps); the 7 successes take 158-518 steps (median 172) |
+Direct - structured: +0.60, Newcombe 95% [0.31, 0.77]; paired by config/repeat, discordant 13 (direct only) vs 1 (structured only), McNemar exact p = 0.0018.
+Reading: the D-141 fix (state mask + forced packet use) moved the structured arm from 0/20 (old arm, psi1z path) to 7/20, which supports the diagnosis that
+the 0/20 was an integration bug; but structure does NOT match direct on this task (one seed, one task, 20 episodes). The open-loop held-out L1 advantage of
+structured over direct (hand -53%, arm -51%, previous section) does not translate into closed-loop success: report both, no conflation. Outcome vocabulary:
+timeout = 800 control steps without the SIMPLE success predicate (`success_privileged`); no falls/infeasible recorded (`infeasible` 0).
+Raw: `artifacts/runs/psi0/psi0-tabletop/eval_r2-{direct,structured}_s0/{direct,structured}.jsonl` (peer shm; archived to `~/work/rrp-data/peer-archive/runs/psi0/psi0-tabletop/`).
+Incidents (infra, not protocol): (a) eval_structured waited 01:24-04:19 for broker admission: first memory (others held 75-80 of 106-114 GB), then the peer watchdog
+was crash-looping from ~03:58 ("Failed to create cgroup ... Cannot allocate memory") because /dev/shm job outputs charged to `rrp.slice` (39.8 GB shmem vs MemoryMax
+32 GiB) -- my share (tabletop feature cache 4.6 G + direct head 1.9 G) was archived to the host (sha256 tree equal, ARCHIVE_LOG) and deleted; the watchdog recovered
+and the lease was admitted immediately; the lead was messaged. (b) `probes_gen` (diagnostic) failed twice on peer-wide memory PSI (exit -10), not retried with changes; it
+runs again from the chain with the feature cache restored from the archive.
