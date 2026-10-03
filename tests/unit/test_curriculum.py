@@ -420,11 +420,13 @@ def test_suite_relations_compare_v8div_newcombe_and_preregistered_verdict(tmp_pa
         ev(root / "relations8-geo", d, [1] * 20)
         ev(root / "relations8-ix", d, [1] * 20)
     jl(root / "relations8-geo" / "flow_ft-ft_s1" / "schedule.jsonl", [{"step": 0, "level": {"geo.depth3d": 1}, "signals": {"geo.depth3d": {"competence": 0.8}}}])
-    jl(root / "relations8-ix" / "flow_ft-ft_s1" / "schedule.jsonl", [{"step": 0, "level": {"ix.contact": 1}, "signals": {"ix.contact": {"competence": 0.1}}}])
+    jl(root / "relations8-ix" / "flow_ft-ft_s1" / "schedule.jsonl", [{"step": 0, "level": {"ix.contact": 1}, "share": {"ix.contact": 0.2, "ix.support": 0.2},
+                                                                        "signals": {"ix.contact": {"competence": 0.1}}}])
     curriculum_cli.compare_main(["--v8div", "--root", str(root), "--control", str(ctl), "--sets", "geo,ix", "--seeds", "1"])
     t = json.loads((root / "tables" / "tables_v8div.json").read_text())
     prim = [r for r in t["contrast"] if r["set"] == "geo" and r["group"] == "primary" and r["body"] == "pooled"][0]
     assert prim["n"] == 40 and prim["k_set"] == 40 and prim["k_ctl"] == 0 and prim["newcombe95"][0] > 0.8
     assert t["verdicts"]["geo"]["verdict"] == "helps (holds at 1-0.05/3)" and prim["newcombe_bonf3"][0] < prim["newcombe95"][0]
     assert t["verdicts"]["ix"]["verdict"].startswith("helps (holds at 1-0.05/3) (INVALID") and "ix.contact@s1" in t["verdicts"]["ix"]["verdict"]
+    assert "ix.support@s1" in t["verdicts"]["ix"]["verdict"]                # scheduled but never observed: not learned
     assert t["control_rates"][0] == {"group": "primary", "k": 0, "n": 40}

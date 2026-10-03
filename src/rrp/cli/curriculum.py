@@ -294,9 +294,14 @@ def _contrast_rows(ev: dict, s: str, ctl: str, seeds: list[int]) -> list[dict]:
 
 
 def _final_competence(run: Path) -> dict[str, float]:
-    """Per scheduled factor, the competence signal at the run's last scheduler decision."""
-    last = _read_jsonl(run / "schedule.jsonl")[-1:] or [{}]
-    return {f: v.get("competence") for f, v in (last[0].get("signals") or {}).items() if isinstance(v, dict)}
+    """Per scheduled factor (the keys of the last decision's `share`), the competence signal at the run's last scheduler
+    decision; None when that decision carries no signal for it (never observed: counts as not learned). {"<run>": None}
+    when the run has no schedule at all."""
+    last = (_read_jsonl(run / "schedule.jsonl")[-1:] or [None])[0]
+    if last is None:
+        return {"<no schedule>": None}
+    sig = last.get("signals") or {}
+    return {f: (sig.get(f) or {}).get("competence") for f in (last.get("share") or sig)}
 
 
 def _verdict(primary: dict | None, comp: dict) -> str:

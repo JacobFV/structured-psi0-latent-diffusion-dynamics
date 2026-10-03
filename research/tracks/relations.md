@@ -136,7 +136,12 @@ Their open items are collected below, so nothing needs the old notes.
    that has NEVER produced a term after `SILENT_STEPS_MAX` = 20 active shard steps (test updated accordingly). Smoke otherwise
    48/48 nodes (seven watchdog `live_limit_reduced` stops resumed with `--retry-failed`). Measured smoke peaks (CPU, v7div pack):
    F0 4.5-5.2 GiB, other flows 1.5-2.9, refits 0.9-2.2, collections 3.3-3.5, evals 1.0-1.1, relgen 0.4-0.6 GiB; all within the
-   declarations above (flows 14G).
+   declarations above (flows 14G). Re-run of the smoke F0s with a 20-step interval: schedule records carry competence and the
+   shares respond (ix at step 40: contact 0.92, held_by 0.95, support 0.99 -> shares 0.20 / 0.16 / 0.07; geo depth3d 0.06,
+   normal_align 0.34; task next_contact 1.00). CAVEAT on the validity gate (criterion unchanged): for the pair / class factors
+   (ix.*, task.next_contact) competence is a hit rate on imbalanced labels and is near 1 after 40 steps, so the >= 0.5 gate is
+   weak for them; the raw per-factor losses (`probe_<f>` in the training logs) are reported next to it. The analysis tool now
+   also counts a scheduled factor that was never observed as not learned (a tested fix found on the smoke layout).
 
 ## recipes (v3dart instances: HALTED, superseded by `relations_v8div*.yaml`; kept for the record)
 
