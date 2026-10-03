@@ -74,7 +74,7 @@ All `planned`; nothing starts before the final integration check is green. Order
 | T6 | armdiv: BC 1702 / 1701 pins, v6 reference evals, G4 signature, v8div lineages | planned | `recipes/armdiv/` |
 | T7 | Psi0: labels, stage A, packet-use gate, structured head, eval | planned | `recipes/psi0/` |
 | T8 | pointer v2 lineages, dev tables | planned | `recipes/pointer/` |
-| T9 | relation-factor experiments on the v8div lineage (geo / ix / task vs arm8div-semfix), interference table; v3dart attempt halted (floor) | planned (gated on armdiv G3) | `recipes/relations/relations_v8div*.yaml` |
+| T9 | relation-factor experiments on the v8div lineage (geo / ix / task vs arm8div-semfix), interference table; gated on the armdiv G3 lineage gate; v3dart attempt halted (floor) | planned | `recipes/relations/relations_v8div*.yaml` |
 
 ## known open code gaps (not owned by any merged unit)
 - `LearnedTracker` cannot yet load the shared `morph_v2` tracker checkpoint; T3's gate needs it. State: planned.
