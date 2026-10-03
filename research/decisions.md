@@ -1703,3 +1703,15 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
   logged; threshold crossings and "still high, excess is anon of running jobs" go to ALERTS.txt, which the lead's host watcher forwards.
   First pass at 04:20: slice 35 GB = anon 19.5 + shmem 15.7 + page cache. `armexpert/v4dart/pack-v4dart_s1_H16_s1` is a dangling symlink (that
   pack was archived to the host on 09-29); the guard copies links as links.
+
+### D-147 addendum 2026-10-03 (lead): terrain closes for this campaign; the humanoid chain proceeds on the installed gait trackers
+1. Pre-registered rule applied (no new tuning): **h_gap is excluded from T4** (`blocked_external`: both bodies failed round 2, table in
+   research/tracks/humanoid.md "T1 round 2"). **h_steps** waits only for t1 steps r2; if it fails, h_steps is excluded too. No round 3 for terrain
+   trackers in D-147: terrain locomotion becomes a separate future track (docs/experiments_roadmap.md, backlog "Training / RL", with the round-1 / 2 evidence).
+2. The rest of the humanoid chain does not wait on terrain: with the installed gait trackers `t1:ub_v1`, `g1:ub_v1`, `h1:ub_v1` (D-147 exception
+   labels), run the T2 teacher check of h_carry (>= 10/12 on BOTH sides) and the teacher-quality gate (>= 0.8) of every other flat / manipulation h_*
+   task, then T4 collection for every task that passes, then T5 (`preset:legged` vs `legged-none`, >= 2 seeds) and the dev transfer tables.
+   h_steps_carry stays out unless the h1 steps `*_ub` tracker (D-147 exception on the tracker gate) passes its teacher check (>= 8/10); that check runs too.
+3. T3 shared morph_v2_ub keeps its retry; it feeds the Level-1 cells and blocks neither T4 nor T5's per-body cells.
+4. Monitoring: the lead model waits on a background waiter that blocks until a new line appears in `hum_events.log` (bounded) and re-arms it every
+   time it fires; never a turn without one armed.

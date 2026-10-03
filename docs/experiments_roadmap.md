@@ -151,6 +151,7 @@ Two things to know first:
 ### backlog: Training / RL
 | item | source | status | evidence | size | blocks |
 |---|---|---|---|---|---|
+| **Terrain locomotion track (humanoid steps / gap trackers)** — split out of the D-147 campaign | D-147 addendum 2026-10-03 | **future track** (no round 3 in D-147; h_gap excluded from T4, h_steps pending t1 steps r2) | T1 round 1 + round 2 (research/tracks/humanoid.md, "T1 results" / "T1 round 2" tables): curriculum stalls (steps level 0.2-0.4 for t1 / g1, gap level ending at 0.0), peak foot force 3.3-4.8 BW and joint-limit margin down to -0.15 against the 3.0 BW / 0.02 gate, lateral drift (t1 P2-fix 1.3 m off the goal, 0 falls, all timeouts), and the round-2 force / margin terms broke the one working gap policy (h1 gap 20/20 -> 0/20). Start from: a turn / halt aware command mix for the experts, a per-body force term schedule, curriculum that cannot fall back to level 0 | L | h_steps / h_gap / h_steps_carry / h_gap_cart in the humanoid transfer matrix |
 | Arm GRPO with anchor evals | W7; §4.6 | code implemented (D-126 arm; experiment pending) | `harness/train/latent_grpo.py` and `grpo.py` have no anchor or forgetting eval. There is no grpo pipeline stage or DAG, and the only run was on a 0/64 base | M–L | W7 gate |
 | Chunk-boundary blending (BC and system 0) | D-102(4) | code implemented (D-126 arm; experiment pending) | blending exists only inside the teacher (`arm_smooth.py`); `motion_quality` only flags steps above 1.5 rad/s | M | learned-policy smoothness |
 
