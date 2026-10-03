@@ -104,7 +104,7 @@ def run_arm(a) -> None:
                  f"{a.task}  seed {row['seed']}  (new rollout; outcome: {outcome}, {row.get('steps')} steps)",
                  "camera: policy head_stereo_left; success judged by privileged SIMPLE predicate"]
         step = max(1, len(fr) // 400)
-        with imageio.get_writer(str(Path(a.out) / name), fps=max(1, 50 // step // 2), codec="libx264", quality=7,
+        with imageio.get_writer(str(Path(a.out) / name), fps=max(1, 50 // step // 2), codec="libx264", quality=4,   # tracked videos must stay < 4 MB (test_layout)
                                 macro_block_size=8) as w:
             for i, f in enumerate(fr[::step]):
                 w.append_data(_strip(f, lines + [f"t = {i * step} control steps"]))

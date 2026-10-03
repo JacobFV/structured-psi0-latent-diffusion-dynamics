@@ -532,3 +532,26 @@ was crash-looping from ~03:58 ("Failed to create cgroup ... Cannot allocate memo
 32 GiB) -- my share (tabletop feature cache 4.6 G + direct head 1.9 G) was archived to the host (sha256 tree equal, ARCHIVE_LOG) and deleted; the watchdog recovered
 and the lease was admitted immediately; the lead was messaged. (b) `probes_gen` (diagnostic) failed twice on peer-wide memory PSI (exit -10), not retried with changes; it
 runs again from the chain with the feature cache restored from the archive.
+
+### 2026-10-03 T7 tabletop: DIAGNOSIS (not a result) -- why structured (7/20) trails direct (19/20)
+Inputs: recorded eval rows (20 + 20), training/val logs, heldout.json, gate, and 4 NEW labelled rollouts (`rrp video psi0`, lease 1791042739_5874a1,
+peak 19.5 G) with a per-step PRIVILEGED sim-truth log (`*.diag.json`, source `privileged:sim`, diagnostic labels, never a policy input). Videos:
+`artifacts/video/2026-10-03_psi0_tabletop_*.mp4`, diag logs + rows `artifacts/runs/psi0/psi0-tabletop/video_diag_20261003/` (head camera = the policy's own input; caption marks LEARNED direct / LEARNED structured). One seed, 2 configs, n=4:
+a vibe check, not a table. In these new rollouts: direct s2 success 127 steps, s9 success 152; structured s2 success 349 (slow), s9 timeout 800 -- same
+pattern as the recorded rows (structured s2 success x2, s9 timeout x2).
+- Not the packet-use bug of D-141: the gate passes (R(z_mean) error 14x R(E(a))), and the GENERATED packet's held-out open-loop L1 is close to the
+  oracle route (hand 0.022 vs 0.0175, arm 0.023 vs 0.015) and half of direct's. System 0 reads the packet and system i's packet is good on demo states.
+- Not cadence: chunk executions per step are equal (timeouts: 31 chunks / 800 steps for both arms).
+- Bimodal: structured successes are fast when they happen (158-177 steps for 4 of 7, like direct's 128-216); the rest are full 800-step timeouts.
+- Failure modes seen in the privileged log + video (structured): (1) both hands engage the object (s2 left contact @88, right @95; s9 right contact at
+  start, left @96), while direct's rollouts touch with the right hand only; (2) the first grasp lifts a few mm (reward 0.27 / 0.12) and then
+  loses it (s2 drops at ~170, re-grasps, succeeds at 349; s9 never recovers); in s9 the hand pushes the can and rotates it; (3) after the lost
+  grasp the robot drifts away from the table (s9: palm-target distance 0.25 -> 0.7 m from step ~600; the last frames show the table receding),
+  i.e. the whole-body/base part of the action leaves the demonstrated state manifold and nothing brings it back.
+- Reading (hypotheses to test, ranked): (a) closed-loop covariate shift: the structured route acts through R(z, state); once the state leaves the
+  demo manifold (failed grasp, rotated can) neither the packet nor R has data there, while the direct head (VLM features -> actions end to end)
+  recovers; open-loop L1 on demo states cannot show this. (b) hand-choice inconsistency between chunks: z is re-sampled each chunk and active-hand
+  decoding from z is weak (probe acc 0.74 vs metadata control 0.76; zhat active_hand val CE 0.93), consistent with the two-hand contacts.
+  (c) overfit of system i (val/train flow ratio 12x) -- but direct overfits too (70x) and works, so this alone does not explain it.
+- Not produced: probes on the generated packet (`probes_gen`: three infra kills, memory PSI x2 then GPU thermal x1); a per-chunk packet log
+  (which hand z encodes per chunk) would directly test (b) and is the cheapest next diagnostic.
