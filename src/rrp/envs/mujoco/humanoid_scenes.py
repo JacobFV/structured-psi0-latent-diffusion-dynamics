@@ -580,7 +580,7 @@ class HumanoidSession(LeggedSession):
 
     # ------------------------------------------------------------------ geometry constants (from the public body model)
     def _geom(self) -> dict:
-        if self._geo is not None:
+        if getattr(self, "_geo", None) is not None:      # _capabilities() may ask during the base __init__
             return self._geo
         m, b = self.model, self.binding
         d = mujoco.MjData(m)
@@ -588,12 +588,26 @@ class HumanoidSession(LeggedSession):
         mujoco.mj_kinematics(m, d)
         palms = {}
         for hb in b.payload_bodies():
-            gid = next(g for g in range(m.ngeom) if m.geom_bodyid[g] == hb and m.geom_contype[g])
-            palms["left" if d.xpos[hb][1] > d.xpos[b.root_bid][1] else "right"] = int(gid)
+            # the hand link's own contact geom, else the first one in its subtree; a hand without any contact geom (toddlerbot) has
+            # no palm: that side is absent (D-147: sealed-body teacher check), so `arm_roles` is not offered
+            sub = {int(hb)} | {x for x in range(m.nbody) if hb in self._ancestors(m, x)}
+            gid = next((g for g in range(m.ngeom) if m.geom_bodyid[g] == hb and m.geom_contype[g]), None)
+            if gid is None:
+                gid = next((g for g in range(m.ngeom) if int(m.geom_bodyid[g]) in sub and m.geom_contype[g]), None)
+            if gid is not None:
+                palms["left" if d.xpos[hb][1] > d.xpos[b.root_bid][1] else "right"] = int(gid)
         z_site = min(float(d.site_xpos[s][2]) for s in b.foot_sids)          # foot site height over the floor at the default stance
         self._geo = dict(palm_gid=palms, site_z=z_site, stand_h0=float(d.qpos[b.qa + 2]) - z_site)
         self._fk = mujoco.MjData(m)
         return self._geo
+
+    @staticmethod
+    def _ancestors(m, x: int) -> set:
+        out = set()
+        while x > 0:
+            x = int(m.body_parentid[x])
+            out.add(x)
+        return out
 
     def _capabilities(self) -> list[str]:
         """`arm_roles`: two hand links (`LeggedBinding.payload_bodies`). Tasks that need arms declare it in `TaskSpec.needs`, so `negotiate`
@@ -837,7 +851,11 @@ def make_humanoid_session(*, task: str, body: str, seed: int = 0, scene: dict | 
     HumanoidSession (h_walk, h_turn, h_reach, h_squat_pick, h_place, U3: h_carry, h_loco_pick, h_steps_carry, h_gap_cart; control defaults
     to "wholebody"); `kw` go to the session."""
     if task in MANIP_TASKS + CARRY_TASKS + HELD_OUT_TASKS:
-        kw.setdefault("control", default_control(task))
+        from rrp.bodies.legged import legged_body
+        legs_only = not (legged_body(body).meta["legged"].get("held_actuators") if isinstance(body, str) else True)
+        # D-147: a body without an upper group (S3 berkeley) runs the legs-only tasks (h_walk, h_turn) under "legs" control; tasks that
+        # need arms stay n/a through TaskSpec.needs
+        kw.setdefault("control", "legs" if legs_only else default_control(task))
         return HumanoidSession(build_h_manip(body, seed, task, **(scene or {})), seed=seed, **kw)
     builder = {"h_steps": build_h_steps, "h_gap": build_h_gap}[task]
     return LeggedSession(builder(body, seed, **(scene or {})), seed=seed, **kw)

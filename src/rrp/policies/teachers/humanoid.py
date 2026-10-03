@@ -580,8 +580,10 @@ class WholebodyTeacher:
             up = prev + np.clip(up - prev, -step, step)
         self._up_prev = up.copy()
         self.k += 1
-        return NativeCommand(controller_version=self.s.controller_version(),
-                             groups={"legs": legs.tolist(), "upper": up.tolist()}, source="scripted_teacher")
+        groups = {"legs": legs.tolist()}
+        if self.s.control == "wholebody":            # a legs-only body (D-147) runs under "legs" control: no upper group
+            groups["upper"] = up.tolist()
+        return NativeCommand(controller_version=self.s.controller_version(), groups=groups, source="scripted_teacher")
 
 
 class WalkTeacher(WholebodyTeacher):
