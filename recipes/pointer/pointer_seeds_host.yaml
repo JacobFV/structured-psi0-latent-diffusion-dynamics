@@ -1,0 +1,13 @@
+# T8 nodes of pointer_seeds.yaml placed on the HOST GPU (owner opened the host GPU to all tracks, 2026-10-03; lead: thin placement:host recipe,
+# own ledger). Same nodes, options, config hashes and outputs as the peer instance; outputs are copied to the peer store (sha256) so the
+# peer coordinator adopts them. One T8 GPU lease at a time across peer + host (bin/gpu_race.sh). Declarations as the peer recipe (>= 1.35 x).
+extends: pointer_seeds.yaml
+name: pointer_seeds_host
+schema: dag-1
+track: pointer
+policy: pointer_latent
+env: computerworld
+task: cw/*
+bodies: cw_pointer
+factors: [semfix, nosem]
+defaults: {placement: host}
