@@ -1725,3 +1725,18 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
 - h_steps_carry (held out): `transfer_h_steps_carry.yaml` node `teacher_check` with `h1:steps_ub_v1` (installed 10-03 under the D-147 exception, sha
   2de53dcbab23ed7c; t1 / g1 steps_ub failed their gate, so their cells report a missing tracker). Passes iff h1 >= 8/10; otherwise h_steps_carry stays out.
 - h_gap_cart (held out) stays out with h_gap (blocked_external).
+
+### D-147 addendum 2026-10-03 (T7 Ψ₀ owner): tabletop step 2 recorded; BendPickMP / HandoverTeleop read by the same rule (written before either result)
+- Tabletop (G1WholebodyTabletopGraspMP-v0, seed 0, recipe `psi0_tabletop_step2.yaml`, D-141-fixed arm): packet-use gate PASSED (gap 0.0782 >= 0.05,
+  stage A sha 039edb43e73f9d8c). Closed loop, 20 episodes (10 SIMPLE eval configs x 2): direct (ours) 19/20 Wilson95 [0.76, 0.99]; structured
+  (ours, generated packet) 7/20 [0.18, 0.57]; paired McNemar p = 0.0018 (13 vs 1 discordant). Pre-fix structured was 0/20. Open-loop held-out L1
+  favours structured (hand -53%, arm -51% vs direct) and does not predict closed loop. Released on this recipe: queued (p4 chain, last node).
+  Verdict for this task: structure does NOT match direct; the D-141 fix was an integration fix that worked partially (0 -> 7/20). Details and
+  raw rows: research/tracks/psi0.md "2026-10-03 D-147 T7 tabletop"; registry `psi0_T7_tabletop_eval_structured_s0`.
+- BendPickMP (`psi0_bendpick_step2.yaml`, running in `camp-psi0-p4d`) and then HandoverTeleop (`psi0_handover_step2.yaml`, new instance of the same
+  template; the older psi1z v1 Handover arms are not reused) run the template UNCHANGED (same steps 8000, batch 32, w_sem 0.1, gate margin 0.05,
+  seed 0, 20 episodes, batch 2). Reading rule, fixed now: per task, gate fail -> `failed_hypothesis` for that task and no structured head;
+  gate pass -> report structured vs direct with Wilson95 + paired McNemar; "structure helps" only if structured > direct with McNemar p < 0.05;
+  "no worse" is not claimed from overlapping CIs. No new hyperparameters, seeds or fixes are introduced between tasks; a structured-arm
+  change is a new decision with its own pre-registration, never a re-run of a finished cell.
+- Held-out / sealed: none of these cells is sealed; no sealed or held-out-split decision is taken by the T7 owner (proposal to the lead only).
