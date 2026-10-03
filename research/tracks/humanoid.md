@@ -783,3 +783,9 @@ tolerance = M_OPEN), hand-over in double support from the measured stance, full 
 Tests `tests/unit/test_humanoid_teacher_morph.py` (red on the t1-only code, green now). Smoke (host leases, dev seeds 3000000-3000009, NOT the gate):
 see the table in the merge commit / `~/work/rrp-data/campaign/logs/hum_teachers.log`. Not fixed: h1 h_loco_pick / h_carry (box dropped while
 standing up / turning with forearm-palm grip), h1 h_place ~half.
+- 2026-10-03 **t1 steps r2** (warm start t1 v1): D-147 verdict `exception` on the tracker gate (only joint margin 0.0052), curriculum max 0.6 /
+  end 0.0, but the h_steps eval is 0/100 (98 timeouts, 2 falls at 0.30 L) -> fails the T1 accept line. Per the lead's rule **h_steps is excluded
+  from T4** (`blocked_external`); terrain locomotion moves to the future track (docs/experiments_roadmap.md).
+- 2026-10-03 **T3 shared:morph_v2_ub** installed (owner exception; see D-147 addendum); sealed-body teacher check running (recipe sealed_check.yaml).
+- 2026-10-03 T4: h_turn collect + pack done (06:36); h_walk collect_tgt was shed at 06:26 (`live_limit_reduced`, the peer's live memory limit
+  dropped below the declared total) and re-launched 09:14.
