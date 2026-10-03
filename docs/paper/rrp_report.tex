@@ -411,8 +411,9 @@ The evidence is narrow. (i) \emph{No cross-body transfer claim.} Zero-shot trans
 \section{Relation tables (generated)}\label{app:relations}
 Both tables are written by \code{make\_figures.py table\_relations} from the live registries and the candidate catalog; nothing about an implemented factor is typed by hand.
 \relfull
-Fig.~\ref{fig:tiles} draws every row of Table~\ref{tab:relations} as one tile: the factor's term for one query token on a real simulator or environment state, computed by the same operator and label code the model uses, with hand-set coefficients where the model learns them. It extends Fig.~\ref{fig:fig2} from eight panels to all implemented factors and, like it, shows no trained attention. Badges separate public (given) terms from probe-sourced ones, whose tiles show the simulator-truth label that trains the probe (training-only); the deployed term is the estimated-probe value. Tiles marked illustrative are not fully computable from shipped code or data; the caption of Fig.~\ref{fig:tiles} says why for each.
+Fig.~\ref{fig:tiles} draws every row of Table~\ref{tab:relations} as one tile: the factor's term for one query token on a real simulator or environment state, computed by the same operator and label code the model uses, with hand-set coefficients where the model learns them. It extends Fig.~\ref{fig:fig2} from eight panels to all implemented factors and, like it, shows no trained attention. Badges separate public (given) terms from probe-sourced ones, whose tiles show the simulator-truth label that trains the probe (training-only); the deployed term is the estimated-probe value. Tiles marked illustrative are not fully computable from shipped code or data; Appendix~\ref{app:tiledesc} gives each tile's full description and, for illustrative tiles, the reason.
 \tilegrid
+\tiledescriptions
 \relplanned
 
 \section{Embodiment count (generated)}\label{app:embodiments}

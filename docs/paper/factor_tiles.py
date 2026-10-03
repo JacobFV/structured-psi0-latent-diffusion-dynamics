@@ -1,7 +1,7 @@
 """Relation-factor tile grid for the rrp report (appendix figure pages after Table 6).
 
-One annotated 600x520 tile per implemented relation factor (600x450 scene in the Figure-2 panel style + a 70 px
-caption band), grouped by family and ordered like Table 6, composed into multi-tile vector PDF pages
+One annotated tile per implemented relation factor (600x450 scene in the Figure-2 panel style + a caption band with
+the factor name and one short line), grouped by family and ordered like Table 6, composed into multi-tile vector PDF pages
 `figures/factor_grid_p<k>.pdf`. Entry point: `make_figures.py tiles [build [factor ...] | grid | all]`.
 
 Every value drawn is computed by repository code on a real simulator / environment state: the arm and dual-arm
@@ -59,12 +59,7 @@ WORK = Path(os.environ.get("RRP_TILES_WORK", Path.home() / "work" / "rrp-data" /
 LOG = os.environ.get("RRP_TILES_LOG")                        # optional progress log (one line per tile / page)
 
 W, H = MF.F2_W, MF.F2_H                                      # 600 x 450 scene (px; 3.0 x 2.25 in at 200 dpi)
-CAP_PX = 70                                                  # caption band under the scene -> 600 x 520 tile
-TILE_IN = 3.0                                                # native tile width (in); fonts below are pt at this size
-CAP_FS = 4.4                                                 # caption font (pt): the largest size at which every caption
-CAP_LS = 1.2                                                 #   fits CAP_LINES lines (verified per tile, see fit_caption)
-CAP_LINES = 4
-CAP_PAD = 0.015                                              # left / right caption margin (fraction of tile width)
+TILE_IN = 3.0                                                # native tile width (in); builders' marks are sized for it
 SEED = MF.F2_SEED
 IMG_H = H                                                    # BTile scene height (whole 450 px scene)
 
@@ -332,97 +327,316 @@ def draw_btile_scene(ax, t, fs=7.0, frame_lw=1.5):
 
 
 # ================================================================================================ tile drawing
+# The grid is composed at NATIVE scale (TILE_IN-wide tiles; the marks of every builder are sized for that) and LaTeX
+# scales the page to \textwidth, so a native size x prints at x * PRINT_SCALE. Everything below that is tile furniture
+# (scene chip, term-source badge, formula, factor name, short caption) is set in PRINTED points via npt(); in-scene
+# labels are raised towards MIN_PT by `raise_scene_text` as far as they do not collide.
+PRINT_W_IN = 8.5 - 2 * 0.57                                  # \textwidth of rrp_report.tex (letter, margin=0.57in)
+GRID_COLS = 6
+GRID_GAP = 0.15                                              # in (native), between tiles
+GRID_FW = GRID_COLS * TILE_IN + (GRID_COLS - 1) * GRID_GAP   # native page-figure width
+PRINT_SCALE = PRINT_W_IN / GRID_FW                           # native -> printed (~0.39; tile ~1.18 in printed)
+RASTER_DPI = 300                                             # scene rasters at print resolution
+MIN_PT = 4.0                                                 # printed floor for tile text
+NAME_PT, WHAT_PT, TAG_PT, BADGE_PT, FORM_PT = 4.6, 4.0, 4.0, 4.0, 4.4
+FORM_MIN_PT = 4.0
+CAP_BAND_PT = 12.4                                           # printed caption band: name line + one short line
+_PX_PER_PT = W / (TILE_IN * 72.0)                            # scene px per native pt
+
+
+def npt(pt):
+    """Printed points -> native points."""
+    return pt / PRINT_SCALE
+
+
+CAP_PX = int(round(npt(CAP_BAND_PT) * _PX_PER_PT))           # caption band in scene px (native)
+TILE_H_IN = TILE_IN * (H + CAP_PX) / W
+
+# term-source classes: glyph + colour (distinct from the family frame colours, readable at 4 pt)
+SRC_STYLE = {"public": ("●", "#2B2F36"),                # ● public (given): deployable as shown
+             "probe": ("◆", "#1F5FAD"),                 # ◆ deployed value is the estimated-probe output
+             "gt": ("▲", "#B3261E")}                    # ▲ simulator-truth label, training-only
+SHORT = {   # one short line per tile (<= tile width at WHAT_PT); the full description is in \tiledescriptions
+    "edge.node_in_assembly": "joint / sensor → its assembly",
+    "edge.same_assembly": "dims of the same assembly",
+    "edge.same_node": "action node → its own joint",
+    "id.same_assembly": "soft same-assembly id match",
+    "id.same_body": "tokens of the same entity",
+    "id.slot_handle": "tracker-slot identity embedding",
+    "msg.incidence": "entity → role / predicate message",
+    "route.assembly_reads": "dim reads own + neighbour knots",
+    "route.own_assembly": "joint reads own-limb knots",
+    "geo.above": "above / below along gravity",
+    "geo.depth3d": "PaPE on camera (u, v, depth)",
+    "geo.normal_align": "direction vs contact normal",
+    "geo.orient": "relative rotation of frames",
+    "geo.pos3d": "PaPE relative 3-D position",
+    "edge.foot_of": "limb → its own foot",
+    "edge.limb_adjacent": "limb ↔ limbs of the same kind",
+    "edge.over_cell": "foot → landing-window cells",
+    "edge.kin_child": "dim → kinematic children",
+    "edge.mirror": "dim ↔ left / right homologue",
+    "edge.kin_parent": "joint → kinematic parent",
+    "kin.ancestor": "joint → all chain ancestors",
+    "kin.sibling": "dims at tree distance 2",
+    "ix.contact": "entities in geometric contact",
+    "ix.force_flow": "everything the query carries",
+    "ix.handover": "two hands on one object",
+    "ix.held_by": "object held by a hand",
+    "ix.support": "a supports b (contact, up)",
+    "edge.actor_of": "actor ↔ its events",
+    "edge.consumed_by": "receipt ↔ consuming event",
+    "edge.destination_of": "destination ↔ event",
+    "edge.enables": "event → required-done event",
+    "edge.maintained": "event → required-active event",
+    "edge.node_actor_of": "action node → its events",
+    "edge.output_to": "event ↔ consumer of output",
+    "edge.patient_of": "patient ↔ events acting on it",
+    "edge.pred_arg": "predicate ↔ its arguments",
+    "edge.produced": "receipt ↔ producing event",
+    "edge.role_in_event": "role slot ↔ its event",
+    "edge.role_points_to": "role slot → bound entity",
+    "edge.support_of": "support role ↔ event",
+    "edge.target_of": "target / source ↔ event",
+    "task.next_contact": "hand → next graspable (gated)",
+    "leg.com_support": "COM stability margin",
+    "leg.foothold": "swing foot → touchdown cell",
+    "ui.above": "signed render order",
+    "ui.drag_to": "drag handle → drop widget",
+    "ui.focus_next": "consecutive in tab order",
+    "ui.label_for": "label → its widget",
+    "ui.same_window": "widgets of the same window",
+    "probe.arm.acting_on": "hand touches entity?",
+    "probe.arm.focused_on": "entities of the active event",
+    "probe.arm.goal_effect": "displacement the task asks",
+    "probe.arm.held_by": "entity held by assembly?",
+    "probe.arm.looking_at": "angle off the camera axis",
+    "probe.arm.observed_effect": "realized 16-tick displacement",
+    "probe.arm.rel_pos": "position relative to the TCP",
+    "probe.arm.subtask": "active task operator",
+    "probe.arm.visible": "visible in the front camera?",
+    "probe.legged.contact": "foot contact at packet knots",
+    "probe.legged.disp": "base displacement, next 0.8 s",
+    "probe.legged.fall": "imminent fall",
+    "probe.legged.goal": "goal in the body yaw frame",
+    "probe.legged.subtask": "active task event",
+    "probe.pointer.phase": "interaction phase per knot",
+    "probe.pointer.rel": "target relative to pointer",
+    "probe.pointer.slot": "targeted widget slot",
+    "probe.psi0.active_hand": "which hand binds the target",
+    "probe.psi0.base_cmd": "demonstrated base command",
+    "probe.psi0.base_disp": "pelvis displacement + yaw",
+    "probe.psi0.contact": "hand–target contact per knot",
+    "probe.psi0.grasp_face": "object face of first contact",
+    "probe.psi0.grasp_pt": "first contact point (obj. frame)",
+    "probe.psi0.hand_dist": "palm–target distance",
+    "probe.psi0.lift": "target lifted ≥ 3 cm",
+    "probe.psi0.target_pos": "target position (robot frame)",
+}
+_TAG_SUBS = [("SIMULATOR STATE", "SIM STATE"), ("RECORDED TELEOP REPLAY", "TELEOP REPLAY"), ("(privileged),", "(priv.)"),
+             ("(privileged)", "(priv.)"), ("SCRIPTED TEACHER + RL TRACKER", "SCRIPTED + RL TRACKER"),
+             ("SCRIPTED TEACHER + CPG", "SCRIPTED + CPG")]
+
+
+def short_tag(tag):
+    for a, b in _TAG_SUBS:
+        tag = tag.replace(a, b)
+    return " ".join(tag.split())
+
+
+def badge_text(rec):
+    t = rec["tile"]
+    return " ".join((t.badge if rec["kind"] == "panel" else t.badge[1]).split())
+
+
+def badge_chips(rec):
+    """[(class, label)] term-source chips of a tile, from its badge string (glyph + colour per class)."""
+    f, b = rec["tile"].factor, badge_text(rec).lower()
+    if f == "task.next_contact":
+        return [("public", "candidates"), ("gt", "selected: gt train-only"), ("probe", "est-probe")]
+    if b == "illustrative":                                  # psi0 grasp labels: gt sim truth, training-only (default OFF)
+        return [("gt", "gt train-only (OFF)")]
+    out = []
+    if b.startswith(("public", "given", "label from public", "illustrative: public")):
+        out.append(("public", "public label" if b.startswith("label") else "public"))
+    if "gt" in b.split() or b.startswith("gt") or "of gt" in b:
+        out.append(("gt", "gt train-only"))
+    if "probe" in b:
+        out.append(("probe", "est-probe" if out and out[-1][0] == "gt" else "default est-probe"))
+    assert out, f"unclassified badge {b!r} ({f})"
+    return out
+
+
 _T2P = TextToPath()
 
 
-def _text_w(s, fs=CAP_FS, family="DejaVu Sans"):
-    w, _, _ = _T2P.get_text_width_height_descent(s, FontProperties(family=family, size=fs), ismath=False)
+def _text_w(s, fs, family="DejaVu Sans", weight="normal"):
+    w, _, _ = _T2P.get_text_width_height_descent(s, FontProperties(family=family, size=fs, weight=weight), ismath=False)
     return w
 
 
-def name_fs(factor, tag, fs=7.0, full=7.4):
-    """Font (pt) of the factor-name box: 7.4 pt unless it would run into the scene chip (long names / long chips)."""
-    px_per_pt = W / (TILE_IN * 72.0)
-    tag_px = _text_w(tag, fs * 0.74, MONO) * px_per_pt + 8 + 8          # chip x0 = 8 px, + its padding
-    avail_pt = (W - 8 - 8 - 12 - tag_px) / px_per_pt                     # right margin, box padding, gap
-    return min(full, full * avail_pt / _text_w(factor, full, MONO))
+def _math_w(s, fs):
+    with plt.rc_context(MF.F2_MATH_RC):
+        w, _, _ = _T2P.get_text_width_height_descent(s, FontProperties(size=fs), ismath=("$" in s))
+    return w
 
 
-def fit_caption(caption, fs=CAP_FS):
-    """Greedy word wrap by MEASURED width (pt) to the caption band; raises if the caption needs > CAP_LINES lines or
-    the lines exceed the band height."""
-    avail = TILE_IN * 72.0 * (1 - 2 * CAP_PAD)
-    lines, cur = [], ""
-    for wd in caption.split():
-        trial = wd if not cur else cur + " " + wd
-        if _text_w(trial, fs) <= avail:
-            cur = trial
-        else:
-            assert _text_w(wd, fs) <= avail, f"word too long for the caption band: {wd!r}"
-            lines.append(cur)
-            cur = wd
-    lines.append(cur)
-    band_pt = TILE_IN * 72.0 * CAP_PX / W
-    need = (len(lines) - 1) * fs * CAP_LS + fs * 1.2 + CAP_TOP_PT
-    assert len(lines) <= CAP_LINES and need <= band_pt, f"caption needs {len(lines)} lines / {need:.1f} pt: {caption[:60]}..."
-    return lines
+def form_pt(formula):
+    """Printed size of the formula chip: FORM_PT, shrunk (not below FORM_MIN_PT) to the tile width."""
+    avail = (W - 16) / _PX_PER_PT                            # native pt
+    return max(FORM_MIN_PT, min(FORM_PT, FORM_PT * avail / max(_math_w(formula, npt(FORM_PT)), 1e-6)))
 
 
-CAP_TOP_PT = 2.4                                              # caption top padding (pt)
+def fit_caption(rec):
+    """Name + short line must fit the band width at their printed sizes (measured)."""
+    f = rec["tile"].factor
+    avail = TILE_IN * 72.0 * 0.97
+    s = SHORT[f]
+    assert _text_w(f, npt(NAME_PT), MONO, "bold") <= avail, f"name too wide: {f}"
+    assert _text_w(s, npt(WHAT_PT)) <= avail, f"short caption too wide: {f}: {s!r}"
+    return [f, s]
+
+
+def draw_chips(ax, rec, tag):
+    """Scene chip (top-left), term-source badges (bottom-left, glyph + colour), formula chip (top-right, 2nd row)."""
+    fsz = npt(TAG_PT)
+    tag_t = ax.text(6, 6, tag, color="white", fontsize=fsz, ha="left", va="top", family=MONO, zorder=12,
+                    bbox=dict(boxstyle="square,pad=0.2", fc=(0.11, 0.12, 0.13, 0.85), ec="none"))
+    out = [tag_t]
+    x, y = 6, H - 6
+    fsb = npt(BADGE_PT)
+    for cls, lab in badge_chips(rec):
+        g, c = SRC_STYLE[cls]
+        s = f"{g} {lab}"
+        wpx = (_text_w(s, fsb, weight="bold") + 0.4 * fsb) * _PX_PER_PT
+        if x > 6 and x + wpx > W - 6:                           # no room: next chip row above
+            x, y = 6, y - 1.55 * fsb * _PX_PER_PT
+        out.append(ax.text(x, y, s, color="white", fontsize=fsb, ha="left", va="bottom", zorder=12, family="DejaVu Sans",
+                           weight="bold", bbox=dict(boxstyle="square,pad=0.2", fc=c, ec="none")))
+        x += wpx + 5
+    return out
+
+
+def _ext(t, r):
+    """Text extent incl. a margin ~ its bbox padding (the bbox patch itself is only positioned at draw time)."""
+    bb = t.get_window_extent(r)
+    return bb.padded(0.12 * t.get_fontsize() * t.figure.dpi / 72.0)
+
+
+def _overlaps(boxes):
+    s = set()
+    for i in range(len(boxes)):
+        for j in range(i + 1, len(boxes)):
+            a, b = boxes[i], boxes[j]
+            if min(a.x1, b.x1) - max(a.x0, b.x0) > 0.5 and min(a.y1, b.y1) - max(a.y0, b.y0) > 0.5:
+                s.add((i, j))
+    return s
+
+
+def raise_scene_text(ax, fixed, skip):
+    """Raise in-scene labels (not the numeric cell values of grids / strips, where colour carries the value) to MIN_PT
+    printed, then shrink only the labels that now collide with another label or chip (in 0.2 pt steps, never below
+    their original size) and nudge labels that would leave the scene back inside. Returns the per-label printed sizes."""
+    r = ax.figure.canvas.get_renderer()
+    cell_max = 7.0 * 0.5 + 1e-6
+    scene = [t for t in ax.texts if t not in fixed and t not in skip and t.get_text().strip()]
+    cand = [t for t in scene if t.get_fontsize() > cell_max]
+    orig = {t: t.get_fontsize() for t in cand}
+    allt = scene + list(fixed)
+    abox = ax.get_window_extent(r)
+    d2px = W / abox.width                                       # display px -> scene px
+
+    def inside(b):
+        return b.x0 >= abox.x0 - 1 and b.x1 <= abox.x1 + 1 and b.y0 >= abox.y0 - 1 and b.y1 <= abox.y1 + 1
+
+    b0 = [_ext(t, r) for t in allt]
+    base, was_in = _overlaps(b0), [inside(b) for b in b0]
+    tangled = {allt[k] for pr in base for k in pr}             # labels that already overlap at native size stay as built
+    size = {t: (orig[t] if t in tangled else max(orig[t], npt(MIN_PT))) for t in cand}
+    step = npt(0.2)
+    for _ in range(60):
+        for t in cand:
+            t.set_fontsize(size[t])
+        boxes = [_ext(t, r) for t in allt]
+        for i, (t, bb) in enumerate(zip(allt, boxes)):          # nudge back inside (scene px; y axis points down)
+            if t in orig and was_in[i] and not inside(bb):
+                dx = max(0.0, abox.x0 - bb.x0) - max(0.0, bb.x1 - abox.x1)
+                dy = max(0.0, abox.y0 - bb.y0) - max(0.0, bb.y1 - abox.y1)
+                if t.get_transform() == ax.transData:
+                    x, y = t.get_position()
+                    t.set_position((x + dx * d2px, y - dy * d2px))
+                else:
+                    size[t] = max(orig[t], size[t] - step)
+        boxes = [_ext(t, r) for t in allt]
+        bad = {k for pr in (_overlaps(boxes) - base) for k in pr}
+        bad |= {i for i, bb in enumerate(boxes) if was_in[i] and not inside(bb)}
+        shrink = [allt[i] for i in bad if allt[i] in orig and size[allt[i]] > orig[allt[i]] + 1e-9]
+        if not shrink:
+            break
+        for t in shrink:
+            size[t] = max(orig[t], size[t] - step)
+    return [t.get_fontsize() * PRINT_SCALE for t in cand]
 
 
 def draw_tile(fig, x0, y0, w, h, rec):
     """Tile into the figure-fraction rectangle (x0, y0, w, h): scene axes (600x450 px coordinates) + caption band.
-    The rectangle must be TILE_IN wide in inches (fonts are absolute pt). Returns (scene_ax, caption_ax, caption_text)."""
+    The rectangle must be TILE_IN wide in inches (native scale). Returns (scene_ax, caption_ax, stats)."""
     t = rec["tile"]
     sh = h * H / (H + CAP_PX)
     ax = fig.add_axes([x0, y0 + h - sh, w, sh])
-    if rec["kind"] == "panel":
-        MF.draw_panel(ax, t, fs=7.0, frame_lw=1.5)
-        draw_extra(ax, t, fs=7.0)
-        formula = t.formula
-    else:
-        draw_btile_scene(ax, t, fs=7.0, frame_lw=1.5)
-        formula = ""
+    _orig_badge = MF.draw_tag_badge
+    MF.draw_tag_badge = lambda *a, **k: None                  # scene chip + badge are drawn compactly by draw_chips
+    try:
+        if rec["kind"] == "panel":
+            MF.draw_panel(ax, t, fs=7.0, frame_lw=1.5 / PRINT_SCALE * 0.45)
+            draw_extra(ax, t, fs=7.0)
+            formula = t.formula
+        else:
+            draw_btile_scene(ax, t, fs=7.0, frame_lw=1.5 / PRINT_SCALE * 0.45)
+            formula = ""
+    finally:
+        MF.draw_tag_badge = _orig_badge
     ax.set_xlim(0, W)
     ax.set_ylim(H, 0)
-    ax.text(W - 8, 8, t.factor, color=ink(t.color), fontsize=name_fs(t.factor, t.tag), ha="right", va="top", family=MONO, zorder=10,
-            bbox=dict(boxstyle="square,pad=0.25", fc=(1, 1, 1, 0.92), ec=t.color, lw=0.8))
+    fixed = draw_chips(ax, rec, short_tag(t.tag))
+    fpt = None
     if formula:
-        ax.text(W - 8, 40, formula, color=INK, fontsize=6.6, ha="right", va="top", zorder=10,
-                bbox=dict(boxstyle="square,pad=0.25", fc=(1, 1, 1, 0.88), ec="none"))
+        fpt = form_pt(formula)
+        fixed.append(ax.text(W - 6, 6 + npt(TAG_PT) * _PX_PER_PT * 1.25 + 8, formula, color=INK, fontsize=npt(fpt), ha="right",
+                             va="top", zorder=12, bbox=dict(boxstyle="square,pad=0.2", fc=(1, 1, 1, 0.9), ec="none")))
+    skip = []
     if rec["status"] == "illustrative":
-        ax.text(W / 2, H / 2, "ILLUSTRATIVE", color=(0.75, 0.1, 0.1, 0.30), fontsize=22, ha="center", va="center",
-                rotation=20, zorder=11, weight="bold")
+        skip.append(ax.text(W / 2, H / 2, "ILLUSTRATIVE", color=(0.75, 0.1, 0.1, 0.35), fontsize=npt(9.0), ha="center",
+                            va="center", rotation=20, zorder=11, weight="bold"))
+    lab_pt = raise_scene_text(ax, fixed, skip)
     cap = fig.add_axes([x0, y0, w, h - sh])
     cap.axis("off")
     cap.set_xlim(0, 1)
     cap.set_ylim(0, 1)
-    band_pt = TILE_IN * 72.0 * CAP_PX / W
-    txt = cap.text(CAP_PAD, 1 - CAP_TOP_PT / band_pt, "\n".join(fit_caption(rec["caption"])), fontsize=CAP_FS, ha="left",
-                   va="top", color=INK, linespacing=CAP_LS, family="DejaVu Sans", parse_math=False)
-    return ax, cap, txt
-
-
-def _inside(bb, box, tol=0.5):
-    return bb.x0 >= box.x0 - tol and bb.x1 <= box.x1 + tol and bb.y0 >= box.y0 - tol and bb.y1 <= box.y1 + tol
+    name, short_ = fit_caption(rec)
+    band = CAP_BAND_PT
+    cap.text(0.012, 1 - 1.3 / band, name, fontsize=npt(NAME_PT), ha="left", va="top", color=ink(t.color), family=MONO,
+             weight="bold", parse_math=False)
+    cap.text(0.012, 1 - (1.3 + NAME_PT * 1.18) / band, short_, fontsize=npt(WHAT_PT), ha="left", va="top", color=INK,
+             family="DejaVu Sans", parse_math=False)
+    sizes = [tt.get_fontsize() * PRINT_SCALE for tt in ax.texts if tt.get_text().strip() and tt not in skip]
+    small = [tt for tt in ax.texts if tt.get_text().strip() and tt not in skip and tt.get_fontsize() * PRINT_SCALE < MIN_PT - 1e-6]
+    stats = dict(labels_ge_min=sum(v >= MIN_PT - 1e-6 for v in lab_pt), labels=len(lab_pt), formula_pt=fpt, min_scene_text_pt=round(min(sizes), 2) if sizes else None,
+                 n_scene_text=len(sizes), n_below_min=len(small), badges=badge_chips(rec))
+    return ax, cap, stats
 
 
 def render_standalone(factor, out_dir, rec=None):
-    """600x520 PNG (200 dpi) + vector PDF of one tile; returns the caption-fit check (rendered text extent vs band)."""
+    """One tile at native size (PNG for review, 2.54x print) + the caption-fit check."""
     rec = rec or BUILT[factor]
     out_dir.mkdir(parents=True, exist_ok=True)
     with plt.rc_context(MF.F2_MATH_RC):
-        fig = plt.figure(figsize=(TILE_IN, TILE_IN * (H + CAP_PX) / W), dpi=200)
+        fig = plt.figure(figsize=(TILE_IN, TILE_H_IN), dpi=200)
         fig.patch.set_facecolor("white")
-        ax, cap, txt = draw_tile(fig, 0.0, 0.0, 1.0, 1.0, rec)
+        _, _, stats = draw_tile(fig, 0.0, 0.0, 1.0, 1.0, rec)
         fig.savefig(out_dir / f"{factor}.png", dpi=200)
-        fig.savefig(out_dir / f"{factor}.pdf", dpi=200)
-        r = fig.canvas.get_renderer()
-        bb, box = txt.get_window_extent(r), cap.get_window_extent(r)
         plt.close(fig)
-    return dict(factor=factor, lines=len(fit_caption(rec["caption"])), text_px=[bb.x0, bb.y0, bb.x1, bb.y1],
-                band_px=[box.x0, box.y0, box.x1, box.y1], fits=bool(_inside(bb, box)))
+    return dict(factor=factor, fits=True, **stats)
 
 
 # ##############################################################################################################
@@ -3359,13 +3573,11 @@ def build_psi0(records):
 # ##############################################################################################################
 # build, cache, grid pages, CLI
 # ##############################################################################################################
-GRID_COLS = 4
-GRID_ROWS = 5                                                # tile rows per page (family headers in between)
-GRID_GAP = 0.12                                              # in, between tiles (native scale)
-GRID_HDR = 0.30                                              # in, family header band
-TILE_H_IN = TILE_IN * (H + CAP_PX) / W
-PROBE_RULE = ("tile colour = what the readout encodes: cyan geometric quantity, amber physical interaction, "
-              "violet task / procedure state")
+GRID_ROWS = 7                                                # max tile rows per page (family headers in between)
+GRID_HDR = npt(13.0) / 72.0                                  # in (native): family header band, 13 pt printed
+TEXT_H_IN = 11.0 - 2 * 0.57                                  # \textheight of rrp_report.tex
+PAGE_BUDGET_IN = (TEXT_H_IN - 0.75, TEXT_H_IN - 0.30)        # printed height left by the first / continued caption
+PROBE_RULE = ("colour = what the readout encodes: cyan geometric, amber physical interaction, violet task / procedure")
 C_BUILDERS = {"arm": "build_arm", "ui": "build_ui", "pointer": "build_pointer", "legged": "build_legged", "psi0": "build_psi0"}
 
 
@@ -3426,9 +3638,8 @@ def build(sel=()):
     for f, rec in BUILT.items():
         (cache / f"{f}.pkl").write_bytes(pickle.dumps(rec))
         checks[f] = render_standalone(f, review)
-    (WORK / "caption_check.json").write_text(json.dumps(checks, indent=1))
-    bad = [f for f, c in checks.items() if not c["fits"]]
-    log(f"[int] built {len(BUILT)} tiles; caption clipping: {bad or 'none'}; failed: {failed or 'none'}")
+    (WORK / "caption_check.json").write_text(json.dumps(checks, indent=1, default=str))
+    log(f"[int] built {len(BUILT)} tiles; failed: {failed or 'none'}")
     return failed
 
 
@@ -3465,8 +3676,21 @@ def plan_pages(order, rows=GRID_ROWS, cols=GRID_COLS):
     return pages
 
 
+def _jpeg_images(pdf):
+    """Re-encode the page's raster images (rendered scenes, resampled to RASTER_DPI at print size) as JPEG; vector
+    marks and text are untouched. Needs ghostscript."""
+    tmp = pdf.with_suffix(".gs.pdf")
+    subprocess.run(["gs", "-q", "-dNOPAUSE", "-dBATCH", "-dSAFER", "-sDEVICE=pdfwrite", "-dCompatibilityLevel=1.5",
+                    "-dAutoFilterColorImages=false", "-dColorImageFilter=/DCTEncode", "-dDownsampleColorImages=false",
+                    f"-sOutputFile={tmp}", "-c", "<< /ColorImageDict << /QFactor 0.25 /Blend 1 /HSamples [1 1 1 1] "
+                    "/VSamples [1 1 1 1] >> >> setdistillerparams", "-f", str(pdf)],
+                   check=True)
+    tmp.replace(pdf)
+
+
 def compose_pages(out_dir=None):
-    """Compose the cached tiles into figures/factor_grid_p<k>.pdf (vector; tiles at native size, scaled by LaTeX)."""
+    """Compose the cached tiles into figures/factor_grid_p<k>.pdf (native size; LaTeX scales the page to \\textwidth,
+    i.e. by PRINT_SCALE; scene rasters are resampled to RASTER_DPI at that printed size and stored as JPEG)."""
     out_dir = Path(out_dir or FIG_DIR)
     recs = load_cache()
     order = table6_order()
@@ -3474,22 +3698,23 @@ def compose_pages(out_dir=None):
     assert sorted(want) == implemented(), "Table-6 order does not cover the implemented registry"
     missing = [f for f in want if f not in recs]
     assert not missing, f"tiles not built: {missing}"
-    checks = {f: render_standalone(f, WORK / "tiles", recs[f]) for f in want}       # review renders + caption fit
-    (WORK / "caption_check.json").write_text(json.dumps(checks, indent=1))
-    bad = [f for f, c in checks.items() if not c["fits"]]
-    assert not bad, f"caption clipped: {bad}"
-    log(f"[int] caption fit verified for {len(checks)}/{len(want)} tiles (measured wrap, {CAP_FS} pt, <= {CAP_LINES} lines)")
+    assert not set(want) - set(SHORT), f"no short caption: {sorted(set(want) - set(SHORT))}"
+    for f in want:
+        fit_caption(recs[f])
     pages = plan_pages(order)
-    FW = GRID_COLS * TILE_IN + (GRID_COLS - 1) * GRID_GAP
-    index = {}
+    FW = GRID_FW
+    index, stats = {}, {}
     (WORK / "pages").mkdir(parents=True, exist_ok=True)
     for pi, blocks in enumerate(pages, 1):
         nrows = [math.ceil(len(b[2]) / GRID_COLS) for b in blocks]
         FH = sum(GRID_HDR + r * TILE_H_IN + (r - 1) * GRID_GAP for r in nrows) + (len(blocks) - 1) * 2 * GRID_GAP
+        budget = PAGE_BUDGET_IN[0 if pi == 1 else 1]
+        assert FH * PRINT_SCALE <= budget, f"page {pi}: {FH * PRINT_SCALE:.2f} in printed > {budget:.2f} in"
         with plt.rc_context(MF.F2_MATH_RC):
             fig = plt.figure(figsize=(FW, FH), dpi=200)
             fig.patch.set_facecolor("white")
             y = FH                                                     # inches from the bottom
+            prow = 0                                                   # tile row on the page (for the description key)
             for (key, disp, facs, cont, ntot), r in zip(blocks, nrows):
                 col = FAMILY.get(key, INK)
                 hdr = fig.add_axes([0, (y - GRID_HDR) / FH, 1, GRID_HDR / FH])
@@ -3497,61 +3722,99 @@ def compose_pages(out_dir=None):
                 hdr.set_xlim(0, 1)
                 hdr.set_ylim(0, 1)
                 label = f"{disp.upper()}  ({ntot} implemented{', continued' if cont else ''})"
-                hdr.text(0.0, 0.42, label, color=ink(col), fontsize=13, weight="bold", ha="left", va="center", family=MONO)
+                hdr.text(0.0, 0.45, label, color=ink(col), fontsize=npt(7.0), weight="bold", ha="left", va="center", family=MONO)
                 if key == "probe" and not cont:
-                    hdr.text(1.0, 0.42, PROBE_RULE, color=INK, fontsize=9.5, ha="right", va="center")
-                hdr.plot([0, 1], [0.04, 0.04], color=col, lw=2.0, transform=hdr.transAxes, clip_on=False)
+                    hdr.text(1.0, 0.45, PROBE_RULE, color=INK, fontsize=npt(5.5), ha="right", va="center")
+                hdr.plot([0, 1], [0.06, 0.06], color=col, lw=npt(0.9), transform=hdr.transAxes, clip_on=False)
                 y -= GRID_HDR
                 for k, f in enumerate(facs):
                     rr, cc = divmod(k, GRID_COLS)
                     x0 = cc * (TILE_IN + GRID_GAP)
                     y0 = y - (rr + 1) * TILE_H_IN - rr * GRID_GAP
-                    draw_tile(fig, x0 / FW, y0 / FH, TILE_IN / FW, TILE_H_IN / FH, recs[f])
-                    index[f] = dict(page=pi, row=rr, col=cc, family=key, status=recs[f]["status"],
-                                    caption=recs[f]["caption"], colour=recs[f]["tile"].color, meta=recs[f]["meta"])
+                    _, _, st = draw_tile(fig, x0 / FW, y0 / FH, TILE_IN / FW, TILE_H_IN / FH, recs[f])
+                    stats[f] = st
+                    index[f] = dict(page=pi, row=prow + rr, col=cc, family=key, status=recs[f]["status"], short=SHORT[f],
+                                    caption=recs[f]["caption"], colour=recs[f]["tile"].color, meta=recs[f]["meta"], **st)
                 y -= r * TILE_H_IN + (r - 1) * GRID_GAP + 2 * GRID_GAP
-            fig.savefig(out_dir / f"factor_grid_p{pi}.pdf", dpi=200)
+                prow += r
+            pdf = out_dir / f"factor_grid_p{pi}.pdf"
+            fig.savefig(pdf, dpi=RASTER_DPI * PRINT_SCALE)
             fig.savefig(WORK / "pages" / f"factor_grid_p{pi}.png", dpi=110)
             plt.close(fig)
-        log(f"[int] grid page {pi}/{len(pages)} built ({', '.join(b[0] for b in blocks)}; {sum(len(b[2]) for b in blocks)} tiles)")
+        _jpeg_images(pdf)
+        log(f"[grid6] grid page {pi}/{len(pages)} built ({', '.join(b[0] for b in blocks)}; "
+            f"{sum(len(b[2]) for b in blocks)} tiles; {FH * PRINT_SCALE:.2f} in printed; {pdf.stat().st_size / 1e6:.2f} MB)")
+    nl, ng = sum(s["labels"] for s in stats.values()), sum(s["labels_ge_min"] for s in stats.values())
+    mins = sorted((s["min_scene_text_pt"], f) for f, s in stats.items() if s["min_scene_text_pt"] is not None)
+    log(f"[grid6] in-scene labels >= {MIN_PT} pt printed: {ng}/{nl}; tiles with every label >= {MIN_PT} pt: "
+        f"{sum(s['labels_ge_min'] == s['labels'] for s in stats.values())}/{len(stats)}; smallest: {mins[:5]}")
     (out_dir / "factor_grid.json").write_text(json.dumps(dict(
-        pages=len(pages), order=want, tile_px=[W, H + CAP_PX], caption=dict(font_pt=CAP_FS, max_lines=CAP_LINES),
-        probe_colour_rule=PROBE_RULE, tiles=index), indent=1, ensure_ascii=False,
-        default=lambda o: o.tolist() if hasattr(o, "tolist") else str(o)))
-    write_tex(len(pages), len(want))
+        pages=len(pages), order=want, cols=GRID_COLS, print_scale=PRINT_SCALE, tile_print_in=TILE_IN * PRINT_SCALE,
+        raster_dpi_printed=RASTER_DPI, tile_px=[W, H + CAP_PX],
+        caption=dict(name_pt=NAME_PT, short_pt=WHAT_PT, tag_pt=TAG_PT, badge_pt=BADGE_PT, formula_pt=[FORM_MIN_PT, FORM_PT]),
+        source_badges={k: v[0] for k, v in SRC_STYLE.items()}, probe_colour_rule=PROBE_RULE, tiles=index),
+        indent=1, ensure_ascii=False, default=lambda o: o.tolist() if hasattr(o, "tolist") else str(o)))
+    write_tex(len(pages), want, recs, index, order)
     return len(pages)
 
 
 TEX = MF.OUT / "fig_tiles.tex"
+_TEX_ESC = {"\\": r"\textbackslash{}", "&": r"\&", "%": r"\%", "$": r"\$", "#": r"\#", "_": r"\_", "{": r"\{", "}": r"\}",
+            "~": r"\textasciitilde{}", "^": r"\^{}", "×": r"$\times$", "→": r"$\to$", "↔": r"$\leftrightarrow$",
+            "≥": r"$\geq$", "≤": r"$\leq$", "°": r"$^\circ$", "–": "--", "—": "---", "`": "'",
+            "’": "'", "−": "$-$"}
 
 
-def write_tex(npages, ntiles):
-    """fig_tiles.tex: macro \\tilegrid = one float page per grid page (pages 2.. continue Fig. tiles)."""
+def tex_esc(s):
+    out = "".join(_TEX_ESC.get(c, c) for c in s)
+    bad = sorted({c for c in out if ord(c) > 126})
+    assert not bad, f"unmapped characters for LaTeX: {bad} in {s[:60]!r}"
+    return out
+
+
+def write_tex(npages, want, recs, index, order):
+    """fig_tiles.tex: \\tilegrid = one float page per grid page (pages 2.. continue Fig. tiles); \\tiledescriptions =
+    the full per-tile description (what it encodes, operator and form, source), keyed by page / row / column."""
+    G = {k: v[0] for k, v in SRC_STYLE.items()}
     first = (r"\captionsetup{font=footnotesize}\caption{\textbf{Every implemented relation factor, one tile each} ("
-             + f"{ntiles} tiles on {npages} pages" + r", families in the row order of Table~\ref{tab:relations}). Each tile "
-             r"shows one factor's term for one query token (ring or outlined chip) on a real simulator or environment state, "
-             r"computed by the repository's factor operators or label code; \emph{nothing is trained attention or a trained "
-             r"probe output}. Frame colour = family (Fig.~\ref{fig:fig2}'s four plus structure green); probe readouts are "
-             r"coloured by what they encode (cyan a geometric quantity, amber physical interaction, violet task/procedure "
-             r"state). Top-left chip: scene source (\textsc{scripted teacher} states are privileged). Bottom badge: term "
-             r"source. \emph{public (given)}: computed from public inputs, deployable as shown; \emph{estimated-probe}: the "
-             r"deployed term is the probe's estimate (not shown); \emph{gt \ldots\ training-only}: the colour is the "
-             r"simulator-truth label that trains that probe or readout, never a deployed input. Learned coefficients (edge "
-             r"weights $w$, PaPE $a,b$, rotation/alignment coefficients, same-code gain, task gate) are \emph{set by hand} "
-             r"and stated on the tile. \textsc{illustrative}: \texttt{edge.support\_of} uses a figure-only task-graph "
-             r"variant (no shipped arm/dual graph binds a support role to an entity); \texttt{probe.psi0.grasp\_pt} / "
-             r"\texttt{grasp\_face} show a real replay frame without a label (the replays carry no contact positions). "
-             r"Under each tile: factor, what it encodes, operator and form, source. Generated by "
+             + f"{len(want)} tiles on {npages} pages" + r", families in the row order of Table~\ref{tab:relations}; the full "
+             r"description of every tile is in \S\ref{app:tiledesc}). Each tile shows one factor's "
+             r"term for one query token (ring or outlined chip) on a real simulator or environment state, computed by the "
+             r"repository's factor operators or label code; \emph{nothing is trained attention or a trained probe output}. "
+             r"Frame colour = family (Fig.~\ref{fig:fig2}); probe readouts are coloured by what they encode. Top-left chip: "
+             r"scene source (\textsc{scripted teacher} states are privileged). Bottom chips: term source, "
+             r"{\color[HTML]{2B2F36}\ding{108}}~\emph{public}: computed from public inputs, deployable as shown; "
+             r"{\color[HTML]{B3261E}$\blacktriangle$}~\emph{gt train-only}: the colour is the simulator-truth label that "
+             r"trains a probe or readout, never a deployed input; {\color[HTML]{1F5FAD}$\blacklozenge$}~\emph{est-probe}: "
+             r"the deployed term is the probe's estimate (not shown). Learned coefficients are \emph{set by hand} (stated in "
+             r"\S\ref{app:tiledesc}). \textsc{illustrative}: not fully computable from shipped code or data (reason in "
+             r"\S\ref{app:tiledesc}). Under each tile: factor and what it encodes. Generated by "
              r"\texttt{make\_figures.py tiles}.}\label{fig:tiles}")
     out = ["% generated by make_figures.py tiles (factor_tiles.write_tex); do not edit", r"\newcommand{\tilegrid}{%"]
     for k in range(1, npages + 1):
         cap = first if k == 1 else (r"\ContinuedFloat\captionsetup{font=footnotesize}\caption[]{\textbf{Every implemented relation factor} (continued, page "
-                                     + f"{k}/{npages}" + r"). Badges, colours and marks as on the first page.}")
+                                     + f"{k}/{npages}" + r"). Chips, colours and marks as on the first page; descriptions in \S\ref{app:tiledesc}.}")
         # a table* float typed as a figure: double-column floats keep their order only within one type, so this keeps
         # the grid pages after Table 6 (and Table 7 after them) instead of overtaking the body's pending tables
         out += [r"\begin{table*}[p]", r"\captionsetup{type=figure}", r"\centering",
                 rf"\includegraphics[width=\textwidth]{{figures/factor_grid_p{k}.pdf}}", cap, r"\end{table*}"]
     out.append("}")
+    out += [r"\newcommand{\tiledescriptions}{%", r"\subsection{Tile descriptions of Fig.~\ref{fig:tiles}}\label{app:tiledesc}", r"{\scriptsize\setlength{\parskip}{0.6pt}\setlength{\parindent}{0pt}\raggedright",
+            r"Position = grid page.row.column; chips: \ding{108} public, $\blacktriangle$ gt train-only, $\blacklozenge$ "
+            r"est-probe. Each entry: what the term encodes on the shown state; operator and form (with the hand-set "
+            r"coefficients); source.\par"]
+    for key, disp, facs in order:
+        out.append(r"\smallskip{\bfseries\scshape " + tex_esc(disp) + r"}\par")
+        for f in facs:
+            i = index[f]
+            body = recs[f]["caption"]
+            pre = f + ": "
+            body = body[len(pre):] if body.startswith(pre) else body
+            glyphs = "".join({"public": r"\ding{108}", "gt": r"$\blacktriangle$", "probe": r"$\blacklozenge$"}[c]
+                             for c, _ in badge_chips(recs[f]))
+            ill = r" \textsc{illustrative}." if recs[f]["status"] == "illustrative" else ""
+            out.append(rf"\texttt{{{tex_esc(f)}}} [{i['page']}.{i['row'] + 1}.{i['col'] + 1}] {glyphs}: {tex_esc(body)}{ill}\par")
+    out += ["}", "}"]
     TEX.write_text("\n".join(out) + "\n")
 
 

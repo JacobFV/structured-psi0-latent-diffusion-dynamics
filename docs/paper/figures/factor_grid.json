@@ -1,5 +1,5 @@
 {
- "pages": 5,
+ "pages": 3,
  "order": [
   "edge.node_in_assembly",
   "edge.same_assembly",
@@ -77,15 +77,30 @@
   "probe.psi0.lift",
   "probe.psi0.target_pos"
  ],
+ "cols": 6,
+ "print_scale": 0.39253333333333335,
+ "tile_print_in": 1.1776,
+ "raster_dpi_printed": 300,
  "tile_px": [
   600,
-  520
+  538
  ],
  "caption": {
-  "font_pt": 4.4,
-  "max_lines": 4
+  "name_pt": 4.6,
+  "short_pt": 4.0,
+  "tag_pt": 4.0,
+  "badge_pt": 4.0,
+  "formula_pt": [
+   4.0,
+   4.4
+  ]
  },
- "probe_colour_rule": "tile colour = what the readout encodes: cyan geometric quantity, amber physical interaction, violet task / procedure state",
+ "source_badges": {
+  "public": "●",
+  "probe": "◆",
+  "gt": "▲"
+ },
+ "probe_colour_rule": "colour = what the readout encodes: cyan geometric, amber physical interaction, violet task / procedure",
  "tiles": {
   "edge.node_in_assembly": {
    "page": 1,
@@ -93,6 +108,7 @@
    "col": 0,
    "family": "structure",
    "status": "computed",
+   "short": "joint / sensor → its assembly",
    "caption": "edge.node_in_assembly: a joint / sensor token attends to the assembly (arm, gripper) it belongs to. edge x bias at act>ctx and ctx>ctx (solid: act nodes, dashed: touch / grip sensors; w=1). Source: public morphology (featurizer).",
    "colour": "#4E9A5B",
    "meta": {
@@ -149,7 +165,19 @@
      ]
     },
     "code_path": "FactorSite(['edge.node_in_assembly']) at act>ctx and ctx>ctx .contributions over the collated arm-rel-v1 edges, w=1"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 21,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.0,
+   "n_scene_text": 24,
+   "n_below_min": 21,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.same_assembly": {
    "page": 1,
@@ -157,6 +185,7 @@
    "col": 1,
    "family": "structure",
    "status": "computed",
+   "short": "dims of the same assembly",
    "caption": "edge.same_assembly: a command dim attends to the other dims of its own assembly (here the left arm). edge x bias at dims>dims (g1-dim-rel-v1 channel same_assembly; w=1). Source: public morphology (bodies.g1_simple).",
    "colour": "#4E9A5B",
    "meta": {
@@ -181,7 +210,19 @@
     "n_edges_total": 230,
     "note": null,
     "code_path": "FactorSite(['edge.same_assembly'], dims>dims).contributions over RelCtx edges = bodies.g1_simple.relation_matrix(); weight 1"
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 8,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.51,
+   "n_scene_text": 11,
+   "n_below_min": 6,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.same_node": {
    "page": 1,
@@ -189,6 +230,7 @@
    "col": 2,
    "family": "structure",
    "status": "computed",
+   "short": "action node → its own joint",
    "caption": "edge.same_node: an action-node query attends to its OWN morphology token (one per actuated joint). edge x bias, w*A[i,j] at act>ctx (arm-rel-v1, w=1 shown). Source: public morphology (featurizer).",
    "colour": "#4E9A5B",
    "meta": {
@@ -231,7 +273,19 @@
     },
     "n_edges": 8,
     "code_path": "arm_featurize -> collate_inputs -> act_rel; FactorSite(['edge.same_node'], act>ctx).contributions, w=1"
-   }
+   },
+   "labels_ge_min": 1,
+   "labels": 9,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 3.6,
+   "n_scene_text": 12,
+   "n_below_min": 8,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "id.same_assembly": {
    "page": 1,
@@ -239,6 +293,7 @@
    "col": 3,
    "family": "structure",
    "status": "computed",
+   "short": "soft same-assembly id match",
    "caption": "id.same_assembly: soft same-assembly term: a command dim prefers knots of its own assembly (left arm); other assemblies stay readable. same x aug, random 16-d codes for 64 ids (small cross-talk), g=1, dims>knots. Source: public morphology (bodies.g1_simple).",
    "colour": "#4E9A5B",
    "meta": {
@@ -263,14 +318,27 @@
     },
     "n_allowed": 5,
     "code_path": "FactorSite([{'name': 'id.same_assembly'}], dims>knots).contributions over dims/knots assembly_id (exactly psi0.nets.Realizer.forward's RelCtx)"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 13,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.37,
+   "n_scene_text": 46,
+   "n_below_min": 43,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "id.same_body": {
    "page": 1,
-   "row": 1,
-   "col": 0,
+   "row": 0,
+   "col": 4,
    "family": "structure",
    "status": "computed",
+   "short": "tokens of the same entity",
    "caption": "id.same_body: tokens denoting the SAME entity (a tracker slot and the task roles bound to it) attend to each other. same x aug: fixed random 16-d unit codes for 64 ids (1 on equal ids, small cross-talk otherwise), g=1. Source: public ids (featurizer pointers).",
    "colour": "#4E9A5B",
    "meta": {
@@ -339,14 +407,27 @@
      "grip_w": 0.07377111911773682
     },
     "code_path": "nets.batch.ctx_id_fields -> TokenSet ctx.entity_id; FactorSite(['id.same_body'], ctx>ctx).contributions (aug), g=1"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 15,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.63,
+   "n_scene_text": 18,
+   "n_below_min": 15,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "id.slot_handle": {
    "page": 1,
-   "row": 1,
-   "col": 1,
+   "row": 0,
+   "col": 5,
    "family": "structure",
    "status": "computed",
+   "short": "tracker-slot identity embedding",
    "caption": "id.slot_handle: each scene token carries its public tracker slot address as a learned embedding, so a slot keeps its identity across steps. embed form (unary, no attention term); E learned. Source: public tracker slot ids.",
    "colour": "#4E9A5B",
    "meta": {
@@ -425,14 +506,27 @@
     ],
     "note": "slot ids / descriptors / estimates are the real tracker output (PolicyObservation.object_descriptors); E is learned",
     "code_path": "FlowNet.forward: x_scene += slot_emb.weight[:T_scene] (id.slot_handle on)"
-   }
+   },
+   "labels_ge_min": 3,
+   "labels": 9,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.82,
+   "n_scene_text": 12,
+   "n_below_min": 6,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "msg.incidence": {
    "page": 1,
    "row": 1,
-   "col": 2,
+   "col": 0,
    "family": "structure",
    "status": "computed",
+   "short": "entity → role / predicate message",
    "caption": "msg.incidence: role and predicate tokens receive a message from the entity they point to (arrows: entity -> role). message form, not a logit term; W learned; control `serialized` = same facts as hashed text. Source: public task graph + tracker slots.",
    "colour": "#4E9A5B",
    "meta": {
@@ -484,14 +578,27 @@
     ],
     "note": "incidence structure is the real featurizer output (PolicyInput.pointers); the message map W (FlowNet.ptr) is learned and not shown",
     "code_path": "arm_featurize -> collate_inputs -> Batch.pointers; FlowNet: h.scatter_add(src, ptr(h[dst]))"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 14,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.82,
+   "n_scene_text": 17,
+   "n_below_min": 14,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "route.assembly_reads": {
    "page": 1,
    "row": 1,
-   "col": 3,
+   "col": 1,
    "family": "structure",
    "status": "computed",
+   "short": "dim reads own + neighbour knots",
    "caption": "route.assembly_reads: system 0 (Psi0 Realizer): a command dim reads packet knots of its own assembly and its kinematic neighbours only (left arm: arm, hand, torso). same x mask with params.reads = bodies.g1_simple.READS. Source: public morphology (bodies.g1_simple).",
    "colour": "#4E9A5B",
    "meta": {
@@ -516,14 +623,27 @@
     },
     "n_allowed": 15,
     "code_path": "FactorSite([{'name': 'route.assembly_reads', 'params': {'reads': [[True, False, True, False, False, False], [False, True, False, True, False, False], [True, False, True, False, True, False], [False, True, False, True, True, False], [False, False, True, True, True, True], [False, False, False, False, True, True]]}}], dims>knots).bias over dims/knots assembly_id (exactly psi0.nets.Realizer.forward's RelCtx)"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 13,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.37,
+   "n_scene_text": 46,
+   "n_below_min": 43,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "route.own_assembly": {
    "page": 1,
-   "row": 2,
-   "col": 0,
+   "row": 1,
+   "col": 2,
    "family": "structure",
    "status": "computed",
+   "short": "joint reads own-limb knots",
    "caption": "route.own_assembly: system 0 (legged Realizer): a joint node reads only the packet knots of its own limb plus the body assembly. same x mask on assembly_id, params.also_key_field = body (preset legged-s0). Source: public morphology (LeggedMorph).",
    "colour": "#4E9A5B",
    "meta": {
@@ -542,14 +662,27 @@
      "body"
     ],
     "code_path": "FactorSite([route.own_assembly also_key_field=body], act>knots).bias over the RelCtx of LeggedRealizer._route_bias"
-   }
+   },
+   "labels_ge_min": 1,
+   "labels": 11,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.37,
+   "n_scene_text": 34,
+   "n_below_min": 30,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "geo.above": {
    "page": 1,
-   "row": 0,
+   "row": 2,
    "col": 0,
    "family": "geometry",
    "status": "computed",
+   "short": "above / below along gravity",
    "caption": "geo.above: above / below along gravity: +1 for tokens (and surface points) higher than the query by > 1 cm, -1 lower, 0 in the dead zone (query: middle cube of a stack). order x bias on pos3d, axis +z, margin 0.01 m (w=1). Source: tracker pos3d (given).",
    "colour": "#2BB3C0",
    "meta": {
@@ -590,14 +723,27 @@
      "grip_w": -0.0
     },
     "code_path": "FactorSite(['geo.above']) ctx>ctx and ctx>pix .contributions -> OrderOp over pos3d (base frame), w=1"
-   }
+   },
+   "labels_ge_min": 4,
+   "labels": 5,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.92,
+   "n_scene_text": 8,
+   "n_below_min": 1,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "geo.depth3d": {
    "page": 1,
-   "row": 0,
+   "row": 2,
    "col": 1,
    "family": "geometry",
    "status": "computed",
+   "short": "PaPE on camera (u, v, depth)",
    "caption": "geo.depth3d: PaPE over (u, v, depth) in the declared front camera; weight on depth only, so tokens at the query's depth score high. sqdiff+diff x aug on cam_uvd, a=(0,0,60), b=0 (learned). Source: projected tracker pos3d (given); default source = probe.",
    "colour": "#2BB3C0",
    "meta": {
@@ -707,14 +853,31 @@
     },
     "closed_form_max_abs_err": 6.155453036171821e-06,
     "code_path": "ctx pos3d (base frame) -> world -> nets.batch.attach_cam_uvd(front) -> PaPE kernel (make_figures.pape_values = FactorSite contributions); pixels: project_points of ray-cast surface points"
-   }
+   },
+   "labels_ge_min": 4,
+   "labels": 6,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.92,
+   "n_scene_text": 10,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "public",
+     "public"
+    ],
+    [
+     "probe",
+     "default est-probe"
+    ]
+   ]
   },
   "geo.normal_align": {
    "page": 1,
-   "row": 0,
+   "row": 2,
    "col": 2,
    "family": "geometry",
    "status": "computed",
+   "short": "direction vs contact normal",
    "caption": "geo.normal_align: query direction b vs each token's contact normal (arrows: outward normal, mean over the token's contacts). align x aug, world frame, b=(0,0,1) (learned per head). Source: gt contact_normal (sim truth, training-only); deployed = probe.",
    "colour": "#2BB3C0",
    "meta": {
@@ -763,14 +926,31 @@
     },
     "note": "the arm family fills no public `normal` field: resolve() accepts this factor only with source probe or gt",
     "code_path": "relgen LABELS['contact_normal'] -> TokenSet.labels; FactorSite([{'name':'geo.normal_align','source':'gt'}]).contributions -> AlignOp"
-   }
+   },
+   "labels_ge_min": 3,
+   "labels": 6,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.92,
+   "n_scene_text": 10,
+   "n_below_min": 3,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ],
+    [
+     "probe",
+     "est-probe"
+    ]
+   ]
   },
   "geo.orient": {
    "page": 1,
-   "row": 0,
+   "row": 2,
    "col": 3,
    "family": "geometry",
    "status": "computed",
+   "short": "relative rotation of frames",
    "caption": "geo.orient: relative rotation between token frames: tr(R_i^T R_j) = 1 + 2 cos(angle) (axes: x red, y green, z blue). rel_rot x aug, B = I (learned per head). Source: gt orient label (sim truth, training-only); deployed = probe estimate (object frames are not tracked).",
    "colour": "#2BB3C0",
    "meta": {
@@ -792,14 +972,31 @@
     },
     "check": "== trace(R_i^T R_j) (asserted)",
     "code_path": "FactorSite([{'name':'geo.orient','source':'gt'}], ctx>ctx).contributions -> RelRotOp, B bias = I, weights 0"
-   }
+   },
+   "labels_ge_min": 1,
+   "labels": 7,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.92,
+   "n_scene_text": 11,
+   "n_below_min": 6,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ],
+    [
+     "probe",
+     "est-probe"
+    ]
+   ]
   },
   "geo.pos3d": {
    "page": 1,
-   "row": 1,
-   "col": 0,
+   "row": 2,
+   "col": 4,
    "family": "geometry",
    "status": "computed",
+   "short": "PaPE relative 3-D position",
    "caption": "geo.pos3d: PaPE relative-position term: tokens near and below the gripper score high; heat = the term at every surface point. sqdiff+diff x aug, a=30, b=(0,0,-8), W_p=I (learned per head). Source: public FK + tracker pos3d (given).",
    "colour": "#2BB3C0",
    "meta": {
@@ -837,14 +1034,27 @@
      "max": 0.49198713610472034
     },
     "code_path": "nets.batch.ctx_geometry_fields pos3d (base frame) -> make_figures.pape_values (FactorSite(['geo.pos3d']).contributions, asserted == closed form); pixels: mj_multiRay world points -> base frame"
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 7,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.92,
+   "n_scene_text": 10,
+   "n_below_min": 5,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.foot_of": {
-   "page": 2,
-   "row": 0,
+   "page": 1,
+   "row": 3,
    "col": 0,
    "family": "kinematics",
    "status": "computed",
+   "short": "limb → its own foot",
    "caption": "edge.foot_of: a limb token attends to its own foot token (feet exist only on foot-carrying assemblies; limbs drawn at hips, feet at foot sites). edge x bias at ctx>ctx (legged-rel-v1; w=1). Source: public morphology (LeggedMorph).",
    "colour": "#3A3F47",
    "meta": {
@@ -858,14 +1068,27 @@
     "query": "limb FR",
     "n_edges": 4,
     "code_path": "legged_graph ctx>ctx; FactorSite(['edge.foot_of']).contributions, w=1"
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 2,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 4.0,
+   "n_scene_text": 5,
+   "n_below_min": 0,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.limb_adjacent": {
-   "page": 2,
-   "row": 0,
+   "page": 1,
+   "row": 3,
    "col": 1,
    "family": "kinematics",
    "status": "computed",
+   "short": "limb ↔ limbs of the same kind",
    "caption": "edge.limb_adjacent: a limb token attends to the other limbs of the same kind on the trunk (all four legs; tokens drawn at their hips). edge x bias at ctx>ctx (legged-rel-v1, symmetric; w=1). Source: public morphology (LeggedMorph).",
    "colour": "#3A3F47",
    "meta": {
@@ -886,14 +1109,27 @@
     },
     "drawn_at": "limb tokens drawn at their hip joint anchor (their pos3d field is the default foot position)",
     "code_path": "legged_graph ctx>ctx; FactorSite(['edge.limb_adjacent']).contributions, w=1"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 5,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.82,
+   "n_scene_text": 8,
+   "n_below_min": 5,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.over_cell": {
-   "page": 2,
-   "row": 0,
+   "page": 1,
+   "row": 3,
    "col": 2,
    "family": "kinematics",
    "status": "computed",
+   "short": "foot → landing-window cells",
    "caption": "edge.over_cell: a foot token attends to the terrain-scan cells of its landing window (0.05 m behind to 0.35 m ahead, +-0.15 m aside of its default stance, body frame). edge x bias at ctx>ctx (legged-rel-v1; w=1). Source: public morphology + public terrain scan.",
    "colour": "#3A3F47",
    "meta": {
@@ -915,14 +1151,27 @@
     "scan_valid": 75,
     "scan_cells": 77,
     "code_path": "legged_graph (scan_xy, OVER_CELL_DX/DY, default stance foot_xy) ctx>ctx; FactorSite(['edge.over_cell']).contributions, w=1"
-   }
+   },
+   "labels_ge_min": 1,
+   "labels": 2,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.92,
+   "n_scene_text": 5,
+   "n_below_min": 1,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.kin_child": {
-   "page": 2,
-   "row": 0,
+   "page": 1,
+   "row": 3,
    "col": 3,
    "family": "kinematics",
    "status": "computed",
+   "short": "dim → kinematic children",
    "caption": "edge.kin_child: a command dim attends to its kinematic children (waist pitch -> both shoulder pitches). edge x bias at dims>dims (channel kin_child; w=1). Source: public morphology (bodies.g1_simple).",
    "colour": "#3A3F47",
    "meta": {
@@ -942,14 +1191,27 @@
     "n_edges_total": 35,
     "note": null,
     "code_path": "FactorSite(['edge.kin_child'], dims>dims).contributions over RelCtx edges = bodies.g1_simple.relation_matrix(); weight 1"
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 10,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.51,
+   "n_scene_text": 13,
+   "n_below_min": 8,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.mirror": {
-   "page": 2,
-   "row": 1,
-   "col": 0,
+   "page": 1,
+   "row": 3,
+   "col": 4,
    "family": "kinematics",
    "status": "computed",
+   "short": "dim ↔ left / right homologue",
    "caption": "edge.mirror: a command dim attends to its left/right homologue (grey lines: every mirror pair of the body). edge x bias at dims>dims (channel mirror; w=1). Source: public morphology (bodies.g1_simple).",
    "colour": "#3A3F47",
    "meta": {
@@ -968,14 +1230,27 @@
     "n_edges_total": 28,
     "note": null,
     "code_path": "FactorSite(['edge.mirror'], dims>dims).contributions over RelCtx edges = bodies.g1_simple.relation_matrix(); weight 1"
-   }
+   },
+   "labels_ge_min": 1,
+   "labels": 9,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.51,
+   "n_scene_text": 12,
+   "n_below_min": 8,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.kin_parent": {
-   "page": 2,
-   "row": 1,
-   "col": 1,
+   "page": 1,
+   "row": 3,
+   "col": 5,
    "family": "kinematics",
    "status": "computed",
+   "short": "joint → kinematic parent",
    "caption": "edge.kin_parent: a joint token attends to its kinematic parent joint (grey: every parent edge of the four legs). edge x bias at ctx>ctx (legged-rel-v1, from the per-assembly depth chain; w=1). Source: public morphology (LeggedMorph).",
    "colour": "#3A3F47",
    "meta": {
@@ -993,14 +1268,27 @@
     "site": "ctx>ctx",
     "n_edges": 8,
     "code_path": "legged_graph -> EdgeSet ctx>ctx; FactorSite(['edge.kin_parent']).contributions, w=1"
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 2,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 4.0,
+   "n_scene_text": 5,
+   "n_below_min": 0,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "kin.ancestor": {
-   "page": 2,
-   "row": 1,
-   "col": 2,
+   "page": 1,
+   "row": 4,
+   "col": 0,
    "family": "kinematics",
    "status": "computed",
+   "short": "joint → all chain ancestors",
    "caption": "kin.ancestor: a joint token attends to every joint up its kinematic chain (transitive closure of kin_parent; grey arrows: the parent edges). ancestor (closure) x bias at ctx>ctx (arm-rel-v1; w=1). Source: public morphology (featurizer).",
    "colour": "#3A3F47",
    "meta": {
@@ -1021,14 +1309,27 @@
      "j6"
     ],
     "code_path": "FactorSite(['kin.ancestor'], ctx>ctx).contributions -> ClosureOp over arm-rel-v1 kin_parent, w=1"
-   }
+   },
+   "labels_ge_min": 3,
+   "labels": 5,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.6,
+   "n_scene_text": 8,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "kin.sibling": {
-   "page": 2,
-   "row": 1,
-   "col": 3,
+   "page": 1,
+   "row": 4,
+   "col": 1,
    "family": "kinematics",
    "status": "computed",
+   "short": "dims at tree distance 2",
    "caption": "kin.sibling: dims at undirected tree distance 2: the sibling (r_shoulder_pitch) and, by the same op, grandparent and grandchild. hop x bias over the symmetrized kin_parent graph (hops=2; w=1). Source: public morphology (bodies.g1_simple).",
    "colour": "#3A3F47",
    "meta": {
@@ -1049,14 +1350,27 @@
     "n_edges_total": 94,
     "note": "hop op lights grandparent / grandchild pairs at the same undirected distance (catalog doc)",
     "code_path": "FactorSite(['kin.sibling'], dims>dims).contributions over RelCtx edges = bodies.g1_simple.relation_matrix(); weight 1"
-   }
+   },
+   "labels_ge_min": 3,
+   "labels": 11,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.51,
+   "n_scene_text": 14,
+   "n_below_min": 8,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "ix.contact": {
-   "page": 2,
-   "row": 0,
+   "page": 1,
+   "row": 5,
    "col": 0,
    "family": "interaction",
    "status": "computed (label)",
+   "short": "entities in geometric contact",
    "caption": "ix.contact: two entities in geometric contact (sim contact truth): query gripper → cube 1, distractors / target 0. White dots: the gripper–cube contact points. bilinear × aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
    "colour": "#F2A33A",
    "meta": {
@@ -1078,14 +1392,31 @@
     },
     "badge": "shown: gt label (training-only); deployed: estimated-probe",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 5,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.2,
+   "n_scene_text": 8,
+   "n_below_min": 3,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ],
+    [
+     "probe",
+     "est-probe"
+    ]
+   ]
   },
   "ix.force_flow": {
-   "page": 2,
-   "row": 0,
+   "page": 1,
+   "row": 5,
    "col": 1,
    "family": "interaction",
    "status": "computed",
+   "short": "everything the query carries",
    "caption": "ix.force_flow: transitive closure of the support graph: everything the query carries, directly or through others. Bottom cube → middle 1 and top 1 (direct edge only to the middle). Op: flow (closure) over support-v1. flow × bias. Source: shown: closure of gt support (training-only); deployed: closure of the ix.support estimated-probe.",
    "colour": "#F2A33A",
    "meta": {
@@ -1111,14 +1442,31 @@
     "closure_check": "flow == support_closure for all pairs",
     "badge": "shown: closure of gt support (training-only); deployed: closure of the ix.support estimated-probe",
     "scene": "TELEPORTED STACK (figure-only)"
-   }
+   },
+   "labels_ge_min": 1,
+   "labels": 4,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.2,
+   "n_scene_text": 7,
+   "n_below_min": 3,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ],
+    [
+     "probe",
+     "est-probe"
+    ]
+   ]
   },
   "ix.handover": {
-   "page": 2,
-   "row": 0,
+   "page": 1,
+   "row": 5,
    "col": 2,
    "family": "interaction",
    "status": "computed (label)",
+   "short": "two hands on one object",
    "caption": "ix.handover: two manipulator assemblies in contact with the same object at once (a handover in progress): query L grip → R grip 1, bar / target 0. Dots: bar contacts of each hand. Dual env only. bilinear × aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
    "colour": "#F2A33A",
    "meta": {
@@ -1139,14 +1487,31 @@
     "scene_source": "scripted privileged HandoverTeacher",
     "badge": "shown: gt label (training-only); deployed: estimated-probe",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 3,
+   "formula_pt": null,
+   "min_scene_text_pt": 3.0,
+   "n_scene_text": 6,
+   "n_below_min": 3,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ],
+    [
+     "probe",
+     "est-probe"
+    ]
+   ]
   },
   "ix.held_by": {
-   "page": 2,
-   "row": 0,
+   "page": 1,
+   "row": 5,
    "col": 3,
    "family": "interaction",
    "status": "computed (label)",
+   "short": "object held by a hand",
    "caption": "ix.held_by: object held by a manipulator assembly (≥ 2 contacts with its hand bodies): lifted cube → gripper 1; target and distractors 0. bilinear × aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
    "colour": "#F2A33A",
    "meta": {
@@ -1169,14 +1534,31 @@
     },
     "badge": "shown: gt label (training-only); deployed: estimated-probe",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 5,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.4,
+   "n_scene_text": 8,
+   "n_below_min": 3,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ],
+    [
+     "probe",
+     "est-probe"
+    ]
+   ]
   },
   "ix.support": {
-   "page": 2,
-   "row": 1,
-   "col": 0,
+   "page": 1,
+   "row": 5,
+   "col": 4,
    "family": "interaction",
    "status": "computed (label)",
+   "short": "a supports b (contact, up)",
    "caption": "ix.support: a supports b: contact + contact normal within 30° of gravity-up at a's top. Query middle cube → top 1 (row); it is itself supported by the bottom cube (grey arrow, column). Emits the estimated support-v1 graph. bilinear × aug (probe, emits). Source: shown: gt label (training-only); deployed: estimated-probe.",
    "colour": "#F2A33A",
    "meta": {
@@ -1208,14 +1590,31 @@
     },
     "badge": "shown: gt label (training-only); deployed: estimated-probe",
     "scene": "TELEPORTED STACK (figure-only)"
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 4,
+   "formula_pt": null,
+   "min_scene_text_pt": 3.2,
+   "n_scene_text": 7,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ],
+    [
+     "probe",
+     "est-probe"
+    ]
+   ]
   },
   "edge.actor_of": {
-   "page": 3,
+   "page": 2,
    "row": 0,
    "col": 0,
    "family": "task",
    "status": "computed",
+   "short": "actor ↔ its events",
    "caption": "edge.actor_of: manipulator entity ↔ every event it is (cooperating) actor of; L grip acts in take, offer, release. Typed edge channel of the arm-rel-v1 graph, one learned weight per head. edge × bias. Source: public (given): supplied task graph + runtime.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1237,14 +1636,27 @@
     "n_tokens": 51,
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 4,
+   "labels": 13,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 15,
+   "n_below_min": 9,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.consumed_by": {
-   "page": 3,
+   "page": 2,
    "row": 0,
    "col": 1,
    "family": "task",
    "status": "computed",
+   "short": "receipt ↔ consuming event",
    "caption": "edge.consumed_by: runtime receipt ↔ the event whose output-binding role consumes it: offer.anchor is consumed by receive. edge × bias. Source: public (given): supplied task graph + runtime.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1264,14 +1676,27 @@
     "n_tokens": 51,
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 4,
+   "labels": 12,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 14,
+   "n_below_min": 8,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.destination_of": {
-   "page": 3,
+   "page": 2,
    "row": 0,
    "col": 2,
    "family": "task",
    "status": "computed",
+   "short": "destination ↔ event",
    "caption": "edge.destination_of: destination entity ↔ event: the right gripper is where 'offer' and 'release' deliver the bar (target zone is place's destination). edge × bias. Source: public (given): supplied task graph + runtime.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1292,14 +1717,27 @@
     "n_tokens": 51,
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 6,
+   "labels": 12,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 14,
+   "n_below_min": 6,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.enables": {
-   "page": 3,
+   "page": 2,
    "row": 0,
    "col": 3,
    "family": "task",
    "status": "computed",
+   "short": "event → required-done event",
    "caption": "edge.enables: event → event it requires COMPLETED (requires_completed): release needs receive and offer done. Public task-graph precedence. edge × bias. Source: public (given): supplied task graph + runtime.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1320,14 +1758,27 @@
     "n_tokens": 51,
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 4,
+   "labels": 12,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 14,
+   "n_below_min": 8,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.maintained": {
-   "page": 3,
-   "row": 1,
-   "col": 0,
+   "page": 2,
+   "row": 0,
+   "col": 4,
    "family": "task",
    "status": "computed",
+   "short": "event → required-active event",
    "caption": "edge.maintained: event → event it requires ACTIVE (requires_active): receive is only valid while offer is held. edge × bias. Source: public (given): supplied task graph + runtime.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1347,14 +1798,27 @@
     "n_tokens": 51,
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 4,
+   "labels": 11,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 13,
+   "n_below_min": 7,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.node_actor_of": {
-   "page": 3,
-   "row": 1,
-   "col": 1,
+   "page": 2,
+   "row": 0,
+   "col": 5,
    "family": "task",
    "status": "computed",
+   "short": "action node → its events",
    "caption": "edge.node_actor_of: action node (one joint-command token) → every event its manipulator acts in: a 2-hop composition node → assembly → actor binding. Left-arm joint7 → take, offer, release. edge × bias (act>ctx). Source: public (given): supplied task graph + runtime.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1375,14 +1839,27 @@
     },
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 5,
+   "labels": 14,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 16,
+   "n_below_min": 9,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.output_to": {
-   "page": 3,
+   "page": 2,
    "row": 1,
-   "col": 2,
+   "col": 0,
    "family": "task",
    "status": "computed",
+   "short": "event ↔ consumer of output",
    "caption": "edge.output_to: event ↔ event consuming its output: receive's reference role binds offer's 'anchor' output (event_output binding). edge × bias. Source: public (given): supplied task graph + runtime.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1402,14 +1879,27 @@
     "n_tokens": 51,
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 4,
+   "labels": 11,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 13,
+   "n_below_min": 7,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.patient_of": {
-   "page": 3,
+   "page": 2,
    "row": 1,
-   "col": 3,
+   "col": 1,
    "family": "task",
    "status": "computed",
+   "short": "patient ↔ events acting on it",
    "caption": "edge.patient_of: patient entity ↔ the events that act on it: the bar is the patient of all five handover events (take, offer, receive, release, place). edge × bias. Source: public (given): supplied task graph + runtime.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1433,14 +1923,27 @@
     "n_tokens": 51,
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 4,
+   "labels": 15,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 17,
+   "n_below_min": 11,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.pred_arg": {
-   "page": 3,
-   "row": 2,
-   "col": 0,
+   "page": 2,
+   "row": 1,
+   "col": 2,
    "family": "task",
    "status": "computed",
+   "short": "predicate ↔ its arguments",
    "caption": "edge.pred_arg: predicate-estimate token ↔ its argument entities: held_by(bar, left) points at the bar slot and the left-gripper assembly. edge × bias. Source: public (given): supplied task graph + runtime.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1461,14 +1964,27 @@
     "n_tokens": 51,
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 3,
+   "labels": 13,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 15,
+   "n_below_min": 10,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.produced": {
-   "page": 3,
-   "row": 2,
-   "col": 1,
+   "page": 2,
+   "row": 1,
+   "col": 3,
    "family": "task",
    "status": "computed",
+   "short": "receipt ↔ producing event",
    "caption": "edge.produced: runtime receipt ↔ the event that produced it: the 'anchor' receipt (interact bank) was emitted by offer. edge × bias. Source: public (given): supplied task graph + runtime.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1488,14 +2004,27 @@
     "n_tokens": 51,
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 4,
+   "labels": 12,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 14,
+   "n_below_min": 8,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.role_in_event": {
-   "page": 3,
-   "row": 2,
-   "col": 2,
+   "page": 2,
+   "row": 1,
+   "col": 4,
    "family": "task",
    "status": "computed",
+   "short": "role slot ↔ its event",
    "caption": "edge.role_in_event: role-slot token ↔ its event: receive owns four ordered role slots (actor, patient, source, reference); multiplicity is explicit. edge × bias. Source: public (given): supplied task graph + runtime.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1518,14 +2047,27 @@
     "n_tokens": 51,
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 3,
+   "labels": 18,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 20,
+   "n_below_min": 15,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.role_points_to": {
-   "page": 3,
-   "row": 2,
-   "col": 3,
+   "page": 2,
+   "row": 1,
+   "col": 5,
    "family": "task",
    "status": "computed",
+   "short": "role slot → bound entity",
    "caption": "edge.role_points_to: role-slot token → the entity token it is bound to: receive:source → left-gripper assembly (an output binding points to no entity). edge × bias. Source: public (given): supplied task graph + runtime.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1545,14 +2087,27 @@
     "n_tokens": 51,
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 4,
+   "labels": 12,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 14,
+   "n_below_min": 8,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.support_of": {
-   "page": 3,
-   "row": 3,
+   "page": 2,
+   "row": 2,
    "col": 0,
    "family": "task",
    "status": "illustrative",
+   "short": "support role ↔ event",
    "caption": "edge.support_of: support-role entity ↔ event: the left arm braces the fixture during align. ILLUSTRATIVE: no shipped arm/dual graph binds a support role to an entity; align:support rebound to 'left' (figure-only). edge × bias. Source: illustrative: public edge on a figure-only task-graph variant.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1569,14 +2124,27 @@
     "why_illustrative": "no shipped arm/dual task graph binds role 'support' to an entity; only humanoid graphs do (crate), whose net family uses legged-rel-v1, not arm-rel-v1",
     "badge": "illustrative: public edge on a figure-only task-graph variant",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 12,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 14,
+   "n_below_min": 12,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "edge.target_of": {
-   "page": 3,
-   "row": 3,
+   "page": 2,
+   "row": 2,
    "col": 1,
    "family": "task",
    "status": "computed",
+   "short": "target / source ↔ event",
    "caption": "edge.target_of: target entity (and every role without its own channel, here receive:source) ↔ event: the left gripper is the source of 'receive'. edge × bias. Source: public (given): supplied task graph + runtime.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1596,14 +2164,27 @@
     "n_tokens": 51,
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 4,
+   "labels": 11,
+   "formula_pt": null,
+   "min_scene_text_pt": 2.04,
+   "n_scene_text": 13,
+   "n_below_min": 7,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "task.next_contact": {
-   "page": 3,
-   "row": 3,
+   "page": 2,
+   "row": 2,
    "col": 2,
    "family": "task",
    "status": "computed (label)",
+   "short": "hand → next graspable (gated)",
    "caption": "task.next_contact: manipulator → graspable score, sharpened by the task gate (g_task = 1.00 at init, learned). Dashed: PUBLIC candidate edges (1/|E|); solid: selected (gt reveal posterior given contact). bilinear × aug, gated. Source: candidates: public; selected: gt (training-only); deployed: estimated-probe × g_task.",
    "colour": "#8C7CF0",
    "meta": {
@@ -1638,14 +2219,35 @@
     "code_path": "nets.batch.candidate_interaction_edges (public, graspable row of the sensor token); relgen.task.next_contact_sample(default contact-truth evidence) -> TRANSFORMS['reveal'](schedule=[0]); gate = FactorSite._gate = 2*sigmoid(u·task + b) = 1 at init",
     "badge": "candidates: public; selected: gt (training-only); deployed: estimated-probe × g_task",
     "scene": "SCRIPTED TEACHER (privileged)"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 7,
+   "formula_pt": null,
+   "min_scene_text_pt": 1.96,
+   "n_scene_text": 11,
+   "n_below_min": 7,
+   "badges": [
+    [
+     "public",
+     "candidates"
+    ],
+    [
+     "gt",
+     "selected: gt train-only"
+    ],
+    [
+     "probe",
+     "est-probe"
+    ]
+   ]
   },
   "leg.com_support": {
-   "page": 3,
-   "row": 0,
+   "page": 2,
+   "row": 3,
    "col": 0,
    "family": "locomotion",
    "status": "computed",
+   "short": "COM stability margin",
    "caption": "leg.com_support: readout of the stability margin: signed planar distance of the COM projection to the stance-foot support polygon (m, + inside). readout (inert), address assembly, gauss (1-d). Source: gt sim truth (contacts), training-only.",
    "colour": "#F2A33A",
    "meta": {
@@ -1678,14 +2280,27 @@
     ],
     "note": "value = legged_collect.com_support(s) recorded per tick (= relgen.body.support_polygon_margin)",
     "episode_status": "success"
-   }
+   },
+   "labels_ge_min": 1,
+   "labels": 2,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.0,
+   "n_scene_text": 5,
+   "n_below_min": 1,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "leg.foothold": {
-   "page": 3,
-   "row": 0,
+   "page": 2,
+   "row": 3,
    "col": 1,
    "family": "locomotion",
    "status": "computed",
+   "short": "swing foot → touchdown cell",
    "caption": "leg.foothold: pair label: each swinging foot -> the terrain-scan cell containing its next touchdown (hindsight); planted feet have no true pair. op bilinear, form aug (the bias IS the pair probe). Source: gt label (future touchdown), training-only; deployed = estimated-probe.",
    "colour": "#F2A33A",
    "meta": {
@@ -1726,14 +2341,31 @@
     ],
     "note": "arr['foothold_cell'] = legged_latent_collect.foothold_cells (the training form one-hot onto the 77 scan-cell ctx tokens by nets.legged_latent.legged_graph); terrain flat (waypoint_contact)",
     "episode_status": "success"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 2,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.0,
+   "n_scene_text": 6,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ],
+    [
+     "probe",
+     "est-probe"
+    ]
+   ]
   },
   "ui.above": {
-   "page": 4,
-   "row": 0,
+   "page": 2,
+   "row": 4,
    "col": 0,
    "family": "ui",
    "status": "computed",
+   "short": "signed render order",
    "caption": "ui.above: signed render order: +1 if widget j is drawn above i (higher dense z-layer), -1 below, 0 same layer; dark = +1 (resize handles, shell), light = -1 (window frame, desktop icon). op order over field zlayer, form bias (antisymmetric). Source: public (given widget tree).",
    "colour": "#3A3F47",
    "meta": {
@@ -1760,14 +2392,27 @@
      "3": 8,
      "4": 11
     }
-   }
+   },
+   "labels_ge_min": 3,
+   "labels": 7,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.8,
+   "n_scene_text": 10,
+   "n_below_min": 4,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "ui.drag_to": {
-   "page": 4,
-   "row": 0,
+   "page": 2,
+   "row": 4,
    "col": 1,
    "family": "ui",
    "status": "computed",
+   "short": "drag handle → drop widget",
    "caption": "ui.drag_to: pair label: the teacher's drag handle -> the nearest widget outside the dragged window to where the drag ends (cw/drag_window); 1 pair of 2116 valid. op bilinear, form aug (the bias IS the pair probe). Source: gt label (teacher goal), training-only; deployed = estimated-probe.",
    "colour": "#3A3F47",
    "meta": {
@@ -1799,14 +2444,31 @@
     "n_valid_pairs": 2116,
     "n_true": 1,
     "note": "relgen.ui.drag_to_fn via teacher_drag_view(env); the deployed term is the learned bilinear probe (NOT computed here)"
-   }
+   },
+   "labels_ge_min": 1,
+   "labels": 3,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.0,
+   "n_scene_text": 7,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ],
+    [
+     "probe",
+     "est-probe"
+    ]
+   ]
   },
   "ui.focus_next": {
-   "page": 4,
-   "row": 0,
+   "page": 2,
+   "row": 4,
    "col": 2,
    "family": "ui",
    "status": "computed",
+   "short": "consecutive in tab order",
    "caption": "ui.focus_next: public UI edge: i, j consecutive in the tab order (focusable, enabled widgets in scene order, cyclic); Name -> Email. op edge, form bias (edges:ui-rel-v1 channel focus_next). Source: public (given widget tree).",
    "colour": "#3A3F47",
    "meta": {
@@ -1842,14 +2504,27 @@
       "label": "Resize browser — http://form.internal/ n"
      }
     ]
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 4,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.69,
+   "n_scene_text": 7,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "ui.label_for": {
-   "page": 4,
-   "row": 0,
+   "page": 2,
+   "row": 4,
    "col": 3,
    "family": "ui",
    "status": "computed",
+   "short": "label → its widget",
    "caption": "ui.label_for: public UI edge: a role=label widget -> the next widget after it in the same window (scene order); here 'Email' -> its textbox. op edge, form bias (edges:ui-rel-v1 channel label_for). Source: public (given widget tree).",
    "colour": "#3A3F47",
    "meta": {
@@ -1882,14 +2557,27 @@
      "max": 1.0,
      "nnz": 1
     }
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 3,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.03,
+   "n_scene_text": 6,
+   "n_below_min": 1,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "ui.same_window": {
-   "page": 4,
-   "row": 1,
-   "col": 0,
+   "page": 2,
+   "row": 4,
+   "col": 4,
    "family": "ui",
    "status": "computed",
+   "short": "widgets of the same window",
    "caption": "ui.same_window: 1 when two widgets belong to the same window (parent_id equality; shell items such as the tab strip have parent -1 and never match). op same over field parent_id, form bias. Source: public (given widget tree).",
    "colour": "#3A3F47",
    "meta": {
@@ -1931,14 +2619,27 @@
      41,
      42
     ]
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 3,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.2,
+   "n_scene_text": 6,
+   "n_below_min": 3,
+   "badges": [
+    [
+     "public",
+     "public"
+    ]
+   ]
   },
   "probe.arm.acting_on": {
-   "page": 4,
+   "page": 3,
    "row": 0,
    "col": 0,
    "family": "probe",
    "status": "computed",
+   "short": "hand touches entity?",
    "caption": "probe.arm.acting_on: readout of whether assembly a's hand links touch entity e (contact truth). readout (inert), address entity x assembly, bce. Source: gt sim truth (Session.truth held_by / contacts), training-only.",
    "colour": "#F2A33A",
    "meta": {
@@ -1966,14 +2667,27 @@
      "distractor0": 0,
      "distractor1": 0
     }
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 4,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 3.0,
+   "n_scene_text": 7,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.arm.focused_on": {
-   "page": 4,
+   "page": 3,
    "row": 0,
    "col": 1,
    "family": "probe",
    "status": "computed",
+   "short": "entities of the active event",
    "caption": "probe.arm.focused_on: readout of which entities a currently ACTIVE task event binds (active op 'place': cube + target). readout (inert), address entity, bce. Source: public label (task runtime status + bindings).",
    "colour": "#8C7CF0",
    "meta": {
@@ -2001,14 +2715,27 @@
      "distractor1": 0
     },
     "note": "packed._focus(pi): task event tokens with status active -> scene slots via relations 4/5/6 (patient/target/destination)"
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 4,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 3.6,
+   "n_scene_text": 7,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "public",
+     "public label"
+    ]
+   ]
   },
   "probe.arm.goal_effect": {
-   "page": 4,
+   "page": 3,
    "row": 0,
    "col": 2,
    "family": "probe",
    "status": "computed",
+   "short": "displacement the task asks",
    "caption": "probe.arm.goal_effect: readout of the displacement the task asks of each entity: destination minus patient for open events (cube -> target; others 0). readout (inert), address entity, gauss. Source: public label (task spec + public pose estimates).",
    "colour": "#8C7CF0",
    "meta": {
@@ -2052,14 +2779,27 @@
      ]
     },
     "note": "latent_batch.goal_effect_from_batch on collate_samples([sample]); arrow drawn cube -> target_zone (sim poses), numbers = label (base frame, public estimates)"
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 4,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.2,
+   "n_scene_text": 7,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "public",
+     "public label"
+    ]
+   ]
   },
   "probe.arm.held_by": {
-   "page": 4,
+   "page": 3,
    "row": 0,
    "col": 3,
    "family": "probe",
    "status": "computed",
+   "short": "entity held by assembly?",
    "caption": "probe.arm.held_by: readout of whether entity e is held by assembly a (here gripper; cube 1, others 0). readout (inert), address entity x assembly, bce. Source: gt sim truth (Session.truth held_by / contacts), training-only.",
    "colour": "#F2A33A",
    "meta": {
@@ -2087,14 +2827,27 @@
      "distractor0": 0,
      "distractor1": 0
     }
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 4,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 3.0,
+   "n_scene_text": 7,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.arm.looking_at": {
-   "page": 4,
-   "row": 1,
-   "col": 0,
+   "page": 3,
+   "row": 0,
+   "col": 4,
    "family": "probe",
    "status": "computed",
+   "short": "angle off the camera axis",
    "caption": "probe.arm.looking_at: readout of each entity's angle off the front-camera optical axis (gaze label, degrees, scaled 1/30). readout (inert), address entity, mse. Source: gt sim truth (camera pose + body pose), training-only.",
    "colour": "#2BB3C0",
    "meta": {
@@ -2122,14 +2875,27 @@
      "distractor1": 13.36483097076416
     },
     "note": "collect.privileged_labels slot_gaze_angle; front camera is the scene camera, not the render view"
-   }
+   },
+   "labels_ge_min": 3,
+   "labels": 6,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.92,
+   "n_scene_text": 9,
+   "n_below_min": 3,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.arm.observed_effect": {
-   "page": 4,
-   "row": 1,
-   "col": 1,
+   "page": 3,
+   "row": 0,
+   "col": 5,
    "family": "probe",
    "status": "computed",
+   "short": "realized 16-tick displacement",
    "caption": "probe.arm.observed_effect: readout of each entity's realized displacement over the 16-tick chunk (future_disp; cube lifted, others 0). readout (inert), address entity, gauss. Source: gt sim truth (future state), training-only.",
    "colour": "#2BB3C0",
    "meta": {
@@ -2174,14 +2940,27 @@
      ]
     },
     "note": "arrow = world positions at t and t+H-1 (same rigid displacement as the base-frame label)"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 3,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.8,
+   "n_scene_text": 6,
+   "n_below_min": 3,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.arm.rel_pos": {
-   "page": 4,
+   "page": 3,
    "row": 1,
-   "col": 2,
+   "col": 0,
    "family": "probe",
    "status": "computed",
+   "short": "position relative to the TCP",
    "caption": "probe.arm.rel_pos: readout of entity position relative to the assembly's TCP, (x,y,z) m, world frame. readout (inert), address entity x assembly, gauss (mu, logvar). Source: gt sim truth, training-only.",
    "colour": "#2BB3C0",
    "meta": {
@@ -2226,14 +3005,27 @@
      ]
     },
     "note": "arrows drawn from the TCP site to tcp + label (the label's own vector)"
-   }
+   },
+   "labels_ge_min": 3,
+   "labels": 5,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.69,
+   "n_scene_text": 8,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.arm.subtask": {
-   "page": 4,
+   "page": 3,
    "row": 1,
-   "col": 3,
+   "col": 1,
    "family": "probe",
    "status": "computed",
+   "short": "active task operator",
    "caption": "probe.arm.subtask: readout of the active task operator for the assembly (12-way; this episode: grasp -> place -> none). readout (inert), address assembly, ce. Source: public label (task runtime: first ACTIVE event's operator).",
    "colour": "#8C7CF0",
    "meta": {
@@ -2262,14 +3054,27 @@
      "none"
     ],
     "note": "derived.active_operator(pi); OPERATORS[:12] shown (the head is 12-way)"
-   }
+   },
+   "labels_ge_min": 1,
+   "labels": 13,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.6,
+   "n_scene_text": 16,
+   "n_below_min": 12,
+   "badges": [
+    [
+     "public",
+     "public label"
+    ]
+   ]
   },
   "probe.arm.visible": {
-   "page": 4,
-   "row": 2,
-   "col": 0,
+   "page": 3,
+   "row": 1,
+   "col": 2,
    "family": "probe",
    "status": "computed",
+   "short": "visible in the front camera?",
    "caption": "probe.arm.visible: readout of whether each entity is visible in the front camera (cube occluded by the closing gripper here: 0). readout (inert) on the packet, address entity, bce. Source: gt sim truth, training-only target; deployed = probe estimate.",
    "colour": "#2BB3C0",
    "meta": {
@@ -2297,14 +3102,27 @@
      "distractor1": 1
     },
     "note": "label = envs.mujoco.sensors.camera_visibility(model, data, 'front', slot) (privileged); colour = label"
-   }
+   },
+   "labels_ge_min": 4,
+   "labels": 4,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 4.0,
+   "n_scene_text": 7,
+   "n_below_min": 0,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.legged.contact": {
-   "page": 4,
-   "row": 2,
-   "col": 1,
+   "page": 3,
+   "row": 1,
+   "col": 3,
    "family": "probe",
    "status": "computed",
+   "short": "foot contact at packet knots",
    "caption": "probe.legged.contact: readout of each foot's ground contact at the 4 packet knots (+0.1/0.3/0.5/0.7 s) of a trot. readout (inert), address knot x assembly (feet), bce. Source: gt sim truth (future contacts), training-only.",
    "colour": "#F2A33A",
    "meta": {
@@ -2374,14 +3192,27 @@
      0.7
     ],
     "episode_status": "success"
-   }
+   },
+   "labels_ge_min": 2,
+   "labels": 5,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.0,
+   "n_scene_text": 8,
+   "n_below_min": 3,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.legged.disp": {
-   "page": 4,
-   "row": 2,
-   "col": 2,
+   "page": 3,
+   "row": 1,
+   "col": 4,
    "family": "probe",
    "status": "computed",
+   "short": "base displacement, next 0.8 s",
    "caption": "probe.legged.disp: readout of the base displacement over the next 0.8 s in the start body frame (xy in 0.5 m units, yaw change in rad). readout (inert), address assembly, gauss (3-d). Source: gt sim truth (future base pose), training-only.",
    "colour": "#2BB3C0",
    "meta": {
@@ -2413,14 +3244,27 @@
      0.030350685119628906
     ],
     "episode_status": "success"
-   }
+   },
+   "labels_ge_min": 1,
+   "labels": 2,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 3.0,
+   "n_scene_text": 5,
+   "n_below_min": 1,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.legged.fall": {
-   "page": 4,
-   "row": 2,
-   "col": 3,
+   "page": 3,
+   "row": 1,
+   "col": 5,
    "family": "probe",
    "status": "computed",
+   "short": "imminent fall",
    "caption": "probe.legged.fall: readout of an imminent fall: 1 in the last 0.8 s of an episode that ends in a fall (non-foot ground contact, low base or tilt). readout (inert), address assembly, bce. Source: gt sim truth (episode outcome), training-only.",
    "colour": "#F2A33A",
    "meta": {
@@ -2448,14 +3292,27 @@
     "fall_label_ticks": 41,
     "note": "episode chosen because artifacts/datasets/legged_latent_v1/pquad4/s0-99.json records seed 11 sigma 0.3 as status 'fell'; re-collected here",
     "episode_status": "fell"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 1,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.69,
+   "n_scene_text": 4,
+   "n_below_min": 1,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.legged.goal": {
-   "page": 5,
-   "row": 0,
+   "page": 3,
+   "row": 2,
    "col": 0,
    "family": "probe",
    "status": "computed",
+   "short": "goal in the body yaw frame",
    "caption": "probe.legged.goal: readout of the active event's goal entity (here the waypoint) in the body yaw frame, /2 m, as the PUBLIC context estimates it. readout (inert), address assembly (body row), gauss (2-d). Source: public label (public context estimate).",
    "colour": "#8C7CF0",
    "meta": {
@@ -2487,14 +3344,27 @@
     "goal_valid": true,
     "active_event": "walk_to_a",
     "episode_status": "success"
-   }
+   },
+   "labels_ge_min": 3,
+   "labels": 3,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 4.0,
+   "n_scene_text": 6,
+   "n_below_min": 0,
+   "badges": [
+    [
+     "public",
+     "public label"
+    ]
+   ]
   },
   "probe.legged.subtask": {
-   "page": 5,
-   "row": 0,
+   "page": 3,
+   "row": 2,
    "col": 1,
    "family": "probe",
    "status": "computed",
+   "short": "active task event",
    "caption": "probe.legged.subtask: readout of which task event is active (walk_to_a, walk_to_b, halt, done) from the public task runtime. readout (inert), address assembly, ce. Source: public label (task runtime).",
    "colour": "#8C7CF0",
    "meta": {
@@ -2540,14 +3410,27 @@
      ]
     ],
     "episode_status": "success"
-   }
+   },
+   "labels_ge_min": 1,
+   "labels": 6,
+   "formula_pt": 4.334217390448055,
+   "min_scene_text_pt": 1.92,
+   "n_scene_text": 9,
+   "n_below_min": 5,
+   "badges": [
+    [
+     "public",
+     "public label"
+    ]
+   ]
   },
   "probe.pointer.phase": {
-   "page": 5,
-   "row": 0,
+   "page": 3,
+   "row": 2,
    "col": 2,
    "family": "probe",
    "status": "computed",
+   "short": "interaction phase per knot",
    "caption": "probe.pointer.phase: readout of the interaction phase of the commanded tick (idle, move, press, release, drag, type) at each knot. readout (inert), address knot x assembly, ce. Source: gt teacher command, training-only.",
    "colour": "#8C7CF0",
    "meta": {
@@ -2641,14 +3524,27 @@
     ],
     "scene_source": "scripted privileged CWTeacher, stepped from reset; frame rendered before the tick's command",
     "code_path": "DemoTeacher row (slot = env.slots.slots[target], txy = target_px/half, phase = phase_of) -> Demos labels at t+LATE (rel = txy[t+j] - ptr[t])"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 8,
+   "formula_pt": 4.331693590637328,
+   "min_scene_text_pt": 1.6,
+   "n_scene_text": 11,
+   "n_below_min": 8,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.pointer.rel": {
-   "page": 5,
-   "row": 0,
+   "page": 3,
+   "row": 2,
    "col": 3,
    "family": "probe",
    "status": "computed",
+   "short": "target relative to pointer",
    "caption": "probe.pointer.rel: readout of the target point relative to the pointer, normalized screen units (x right, y up), per knot. readout (inert), address knot x assembly, gauss (2-d mean + logvar). Source: gt teacher target, training-only.",
    "colour": "#2BB3C0",
    "meta": {
@@ -2742,14 +3638,27 @@
     ],
     "scene_source": "scripted privileged CWTeacher, stepped from reset; frame rendered before the tick's command",
     "code_path": "DemoTeacher row (slot = env.slots.slots[target], txy = target_px/half, phase = phase_of) -> Demos labels at t+LATE (rel = txy[t+j] - ptr[t])"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 2,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.0,
+   "n_scene_text": 5,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.pointer.slot": {
-   "page": 5,
-   "row": 1,
-   "col": 0,
+   "page": 3,
+   "row": 2,
+   "col": 4,
    "family": "probe",
    "status": "computed",
+   "short": "targeted widget slot",
    "caption": "probe.pointer.slot: readout of WHICH widget the current plan step targets, as its stable slot index (opaque codes only, no widget content). readout (inert), address knot x assembly, ce over 80 slots. Source: gt teacher target, training-only.",
    "colour": "#8C7CF0",
    "meta": {
@@ -2843,14 +3752,27 @@
     ],
     "scene_source": "scripted privileged CWTeacher, stepped from reset; frame rendered before the tick's command",
     "code_path": "DemoTeacher row (slot = env.slots.slots[target], txy = target_px/half, phase = phase_of) -> Demos labels at t+LATE (rel = txy[t+j] - ptr[t])"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 2,
+   "formula_pt": 4.0,
+   "min_scene_text_pt": 2.8,
+   "n_scene_text": 5,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.psi0.active_hand": {
-   "page": 5,
-   "row": 1,
-   "col": 1,
+   "page": 3,
+   "row": 2,
+   "col": 5,
    "family": "probe",
    "status": "computed",
+   "short": "which hand binds the target",
    "caption": "probe.psi0.active_hand: readout of which hand the packet binds to the target (here right); -1 (no contact ever) is masked. readout (inert), address body (per packet), ce over 2. Source: gt sim truth (future contacts), training-only.",
    "colour": "#F2A33A",
    "meta": {
@@ -2864,14 +3786,27 @@
     "label_code": "rrp.policies.psi0.data.EpisodeLabels.labels(t) on the recorded replay npz (sim truth via SIMPLE worker _sim_truth)",
     "tick": 148,
     "value": 1
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 3,
+   "formula_pt": 4.0,
+   "min_scene_text_pt": 2.4,
+   "n_scene_text": 6,
+   "n_below_min": 3,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.psi0.base_cmd": {
-   "page": 5,
-   "row": 1,
-   "col": 2,
+   "page": 3,
+   "row": 3,
+   "col": 0,
    "family": "probe",
    "status": "computed",
+   "short": "demonstrated base command",
    "caption": "probe.psi0.base_cmd: readout of the demonstrated base command at each knot (normalized action dims 32 = vx, 34 = turning flag per bodies.g1_simple). readout (inert), address knot x pair (slot 0), gauss (2-d). Source: label from the recorded demonstration actions, training-only.",
    "colour": "#8C7CF0",
    "meta": {
@@ -2908,14 +3843,27 @@
      ]
     ],
     "note": "nets.add_cmd_labels: actions[:, KNOT_STEPS][..., CMD_DIMS]; the code comment calls dim 34 the yaw-rate command, the g1_simple docstring the turning flag"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 4,
+   "formula_pt": 4.0,
+   "min_scene_text_pt": 2.2,
+   "n_scene_text": 7,
+   "n_below_min": 4,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.psi0.base_disp": {
-   "page": 5,
-   "row": 1,
-   "col": 3,
+   "page": 3,
+   "row": 3,
+   "col": 1,
    "family": "probe",
    "status": "computed",
+   "short": "pelvis displacement + yaw",
    "caption": "probe.psi0.base_disp: readout of the pelvis displacement over the packet (t -> t+29) in the robot frame at t, plus yaw change. readout (inert), address body, gauss (3-d). Source: gt sim truth (pelvis pose), training-only.",
    "colour": "#2BB3C0",
    "meta": {
@@ -2933,14 +3881,27 @@
      0.022749662399291992,
      0.05723278969526291
     ]
-   }
+   },
+   "labels_ge_min": 1,
+   "labels": 3,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 3.0,
+   "n_scene_text": 6,
+   "n_below_min": 2,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.psi0.contact": {
-   "page": 5,
-   "row": 2,
-   "col": 0,
+   "page": 3,
+   "row": 3,
+   "col": 2,
    "family": "probe",
    "status": "computed",
+   "short": "hand–target contact per knot",
    "caption": "probe.psi0.contact: readout of hand-target contact per hand at the 5 knots (here the right hand closes on the target). readout (inert), address knot x pair, bce. Source: gt sim truth (recorded contacts), training-only.",
    "colour": "#F2A33A",
    "meta": {
@@ -2982,14 +3943,27 @@
       1
      ]
     ]
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 4,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.2,
+   "n_scene_text": 7,
+   "n_below_min": 4,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.psi0.grasp_face": {
-   "page": 5,
-   "row": 2,
-   "col": 1,
+   "page": 3,
+   "row": 3,
+   "col": 3,
    "family": "probe",
    "status": "illustrative",
+   "short": "object face of first contact",
    "caption": "probe.psi0.grasp_face: readout of the object face (+x,-x,+y,-y,+z,-z) of each hand's first contact. readout (inert), address knot x pair (last knot), ce over 6. Source: gt sim truth, training-only (default OFF). Illustrative: scene real, label value not computable here.",
    "colour": "#F2A33A",
    "meta": {
@@ -3003,14 +3977,27 @@
     "label_code": "rrp.policies.psi0.data.EpisodeLabels.labels(t) on the recorded replay npz (sim truth via SIMPLE worker _sim_truth)",
     "tick": 165,
     "reason": "no cpos__left/right in any recorded replay npz (EpisodeLabels.grasp is None); computing it needs SIMPLE/Isaac Sim"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 4,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.0,
+   "n_scene_text": 7,
+   "n_below_min": 4,
+   "badges": [
+    [
+     "gt",
+     "gt train-only (OFF)"
+    ]
+   ]
   },
   "probe.psi0.grasp_pt": {
-   "page": 5,
-   "row": 2,
-   "col": 2,
+   "page": 3,
+   "row": 3,
+   "col": 4,
    "family": "probe",
    "status": "illustrative",
+   "short": "first contact point (obj. frame)",
    "caption": "probe.psi0.grasp_pt: readout of each hand's FIRST contact point on the target in the object frame (last knot). readout (inert), address knot x pair (last knot), gauss (3-d). Source: gt sim truth, training-only (default OFF). Illustrative: scene real, label value not computable here.",
    "colour": "#F2A33A",
    "meta": {
@@ -3024,14 +4011,27 @@
     "label_code": "rrp.policies.psi0.data.EpisodeLabels.labels(t) on the recorded replay npz (sim truth via SIMPLE worker _sim_truth)",
     "tick": 165,
     "reason": "no cpos__left/right in any recorded replay npz (EpisodeLabels.grasp is None); computing it needs SIMPLE/Isaac Sim"
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 4,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.0,
+   "n_scene_text": 7,
+   "n_below_min": 4,
+   "badges": [
+    [
+     "gt",
+     "gt train-only (OFF)"
+    ]
+   ]
   },
   "probe.psi0.hand_dist": {
-   "page": 5,
-   "row": 2,
-   "col": 3,
+   "page": 3,
+   "row": 3,
+   "col": 5,
    "family": "probe",
    "status": "computed",
+   "short": "palm–target distance",
    "caption": "probe.psi0.hand_dist: readout of each hand's palm-to-target distance at the 5 packet knots (+5..+29 ticks of 20 ms). readout (inert), address knot x pair (pair = L/R hand), gauss. Source: gt sim truth (recorded SIMPLE replay), training-only.",
    "colour": "#F2A33A",
    "meta": {
@@ -3073,14 +4073,27 @@
       0.19159691035747528
      ]
     ]
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 6,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.2,
+   "n_scene_text": 9,
+   "n_below_min": 6,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.psi0.lift": {
-   "page": 5,
-   "row": 3,
+   "page": 3,
+   "row": 4,
    "col": 0,
    "family": "probe",
    "status": "computed",
+   "short": "target lifted ≥ 3 cm",
    "caption": "probe.psi0.lift: readout of whether the target is lifted >= 3 cm above its initial height at each knot. readout (inert), address knot x pair (slot 0), bce. Source: gt sim truth (target pose), training-only.",
    "colour": "#F2A33A",
    "meta": {
@@ -3114,14 +4127,27 @@
      0.06115245819091797,
      0.06115245819091797
     ]
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 4,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 2.2,
+   "n_scene_text": 7,
+   "n_below_min": 4,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   },
   "probe.psi0.target_pos": {
-   "page": 5,
-   "row": 3,
+   "page": 3,
+   "row": 4,
    "col": 1,
    "family": "probe",
    "status": "computed",
+   "short": "target position (robot frame)",
    "caption": "probe.psi0.target_pos: readout of the target's position at each knot in the robot (pelvis yaw) frame at t. readout (inert), address knot x pair (slot 0), gauss (3-d). Source: gt sim truth (target pose), training-only.",
    "colour": "#2BB3C0",
    "meta": {
@@ -3168,7 +4194,19 @@
       0.007128238677978516
      ]
     ]
-   }
+   },
+   "labels_ge_min": 0,
+   "labels": 7,
+   "formula_pt": 4.4,
+   "min_scene_text_pt": 1.58,
+   "n_scene_text": 10,
+   "n_below_min": 7,
+   "badges": [
+    [
+     "gt",
+     "gt train-only"
+    ]
+   ]
   }
  }
 }
