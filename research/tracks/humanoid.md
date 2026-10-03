@@ -789,3 +789,15 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
 - 2026-10-03 **T3 shared:morph_v2_ub** installed (owner exception; see D-147 addendum); sealed-body teacher check running (recipe sealed_check.yaml).
 - 2026-10-03 T4: h_turn collect + pack done (06:36); h_walk collect_tgt was shed at 06:26 (`live_limit_reduced`, the peer's live memory limit
   dropped below the declared total) and re-launched 09:14.
+- 2026-10-03 **Sealed-body teacher check** (pre-registered D-147 addendum; recipe `sealed_check.yaml`; scripted teacher over `shared:morph_v2_ub`,
+  20 target-adaptation seeds [1000000, 1000020) per (body, task); gate >= 16/20):
+  | sealed body | h_walk | h_turn | outcome |
+  |---|---|---|---|
+  | n1 (S2) | 0/20 (falls ~0.9 s) | 0/20 | blocked_external (excluded) |
+  | toddlerbot_2xc (S4) | 0/20 (falls ~0.7 s) | 0/20 | blocked_external (excluded) |
+  | berkeley (S3) | n/a: `shared:morph_v2_ub` refuses a body without an upper group (morph_v2 = legs + upper block) | n/a | blocked_external (excluded) |
+  Env fixes needed to run the check at all (2026-10-03): legs-only bodies get "legs" control on the legs-only h_* tasks (berkeley failed at session
+  build); the palm lookup tolerates hands without a contact geom (toddlerbot failed with StopIteration). No sealed EVALUATION scene was touched.
+  Consequence: with T3 zero-shot failing on every planned sealed body, there are NO sealed transfer cells for h_walk / h_turn in D-147.
+- 2026-10-03 T4 h_walk: `collect-tgt_s0` of the shed 06:26 attempt and the 09:19 retry mixed in one dir (manifest missing a shard) -> set aside
+  as `collect-tgt_s0.PARTIAL_killed_20261003`, re-collected fresh (09:57). Audit tool: legged reps load through `load_legged_rep` (factor stamps).
