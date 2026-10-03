@@ -1763,3 +1763,18 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
   the peer scheme); swap rule unchanged. Back-off to 1 slot is automatic in the lead's host watcher (`hum_watch.sh`) when the GPU reaches 85 C or
   memory PSI full avg60 >= 20; restoring 2 slots is a lead decision.
 - At the change (10-03 ~06:40): available 83.8 GiB, swap free 6.6 GiB, GPU 50 C idle, watchdog ok, admission open.
+
+### D-147 addendum 2026-10-03 (lead): GPU thermal policy of the watchdog
+- Finding: `watchdog.evaluate` shed the newest lease on ANY sample with a GPU thermal-slowdown bit set (`clocks_throttle_reasons & 0x60`), with
+  no temperature or time condition. The peer log shows those sheds at GPU 86-87 C with the CPU (shared GB10 die) at 96 C; they killed Psi0's
+  probes_gen three times (~2-5 min into each run) and stopped admission peer-wide.
+- Measurements (peer, 10-03 08:19-08:25, 5 s samples, ONE GPU job at 0-95 % utilisation plus the CPU-bound humanoid collectors): GPU 71-87 C,
+  SM clock 2405-2489 of 3003 MHz, power 36-53 W, hottest thermal zone 78-90.5 C, NO throttle-reason bit set in 62 samples. The slowdown flags
+  appear only with 2 GPU jobs and a CPU near 96 C, i.e. transiently at the hot edge, not as a sustained runaway.
+- Policy (main 288b7ba8, peer watchdog restarted 08:27; tests in `test_watchdog.py`): a slowdown flag or GPU >= 90 C STOPS ADMISSION only; a
+  running lease is shed only when the GPU stays >= 90 C for 60 s (30 samples) or exceeds the 95 C hard ceiling; the victim is the newest GPU
+  lease of a track WITHOUT a reservation (humanoid's `reserve:humanoid` prefixes go last); reservation pseudo-leases are never shed. CPU rules
+  unchanged. The peer keeps 2 GPU slots: one job runs at <= 87 C without throttling; if sustained-hot sheds recur with 2 jobs, the peer drops to 1
+  slot (humanoid keeps it) and other tracks go to the host's shared slot.
+- T3 validate re-declared 6G (apollo peaked 3.6 GB under the 0.8 x 4G throttle and was shed as a memory culprit); the other five validate
+  outputs were adopted across the watchdog / broker code change (no evaluation code changed).
