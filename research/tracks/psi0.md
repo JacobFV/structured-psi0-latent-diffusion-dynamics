@@ -469,3 +469,35 @@ peer GPU-h (lease-log estimate).
   before it starts (GateFailed, `gate_report.json`). The trainer-side writer of the block belongs to P1 (`train.heldout`).
 - Tests: `tests/unit/test_psi0_data.py`; `test_pointer_psi0_stages.py` follows the new recipe shape. Peer smoke not run (no
   training or simulation on the host; the label driver is covered against the fake-worker double).
+
+### 2026-10-02/03 D-147 campaign T7 (tabletop, new `rrp run-dag` path, seed 0) -- INTERIM, closed-loop structured eval pending
+Recipe `recipes/psi0/psi0_tabletop_step2.yaml`, ledger `artifacts/runs/psi0/_dags/psi0_tabletop_step2/ledger.json`, coordinator logs
+`~/work/rrp-data/campaign/psi0/tabletop_dag_p{1,2,3}.log`. All training/eval on the peer through the broker, one GPU lease at a time.
+Sources: features = released VLM (cached, 12226 frames); labels = `privileged_teacher:sim_replay` (labels only, 98 episodes; never a
+deployable observation); Stage A, direct head, structured head = learned (ours); released = upstream weights (not ours, diagnostic).
+- Infra bugs found and fixed (not protocol changes, regression tests in `tests/unit/test_psi0_train.py`, merged f3cd8acf): (1) `rrp train psi0 --arm
+  stageA ...` died with "argument --arm: expected one argument": argparse REMAINDER on the sub-parser dropped the value of a leading option; argv now
+  passes verbatim. (2) `rrp train psi0 gate|heldout` returns a result dict, `sys.exit(dict)` was exit code 1 even for a PASSED gate (the first gate run
+  wrote packet_gate.json passed=true and the node was still marked failed). (3) `peer_run.sh`: `RRP_PEER_PY` overrides the PY expansion (the generic
+  peer venv has no pandas). (4) eval nodes declare 36G / 26G GPU / 6 h (broker cap 21600 s) from the measured peak 26.67 GiB at batch 2 (x1.35).
+- Stage A with the D-141 fix (constant-input state mask, state dropout on R 0.3/0.1, permuted-packet hinge margin 0.05): 6000 steps, 338 GPU-s,
+  `stage_a.pt` sha256_16 039edb43e73f9d8c. Val: rec 0.0067, KL 4.0.
+- Probes (diagnostic, E(demonstrated chunk) packet z, 8 held-out episodes): z probe vs metadata-only control: hand_dist MAE 0.0111 vs 0.0279, contact acc
+  0.815 vs 0.665, target_pos MAE 0.0105 vs 0.0114, active_hand acc 0.740 vs 0.763, base_disp MAE 0.0064 vs 0.0053 (z helps on hand distance and contact only).
+- Packet-use gate (pre-registered margin 0.05, 252 frames, 8 held-out episodes 10,16,26,36,90,91,93,94): err R(z_mean) 0.0843 vs err R(E(a)) 0.0060,
+  gap 0.0782 >= 0.05 -> PASSED (`gate_s0/packet_gate.json`, `gate_report.json` verdict pass). The D-141 "system 0 ignores the packet" failure is not
+  reproduced at the R level.
+- Direct head (8000 steps, batch 32, 4202 s) and structured head (8000 steps, same features/split/steps/batch, w_sem 0.1): trained.
+- Held-out open-loop L1 (252 frames, stride 4, NFE 10; mean abs error, lower is better), `heldout_s0/heldout.json`:
+  | model | hand | arm | waist_rp | waist_yaw |
+  | released ckpt 40000 (upstream, not ours) | 0.0210 | 0.0145 | 0.0101 | 0.0044 |
+  | direct (ours) | 0.0469 | 0.0476 | 0.0082 | 0.0052 |
+  | structured, generated packet (ours) | 0.0221 | 0.0231 | 0.0054 | 0.0037 |
+  | ORACLE route R(E(chunk)) (diagnostic, uses the demonstrated future) | 0.0175 | 0.0148 | 0.0039 | 0.0030 |
+  Structured is lower than direct on all four groups (hand -53%, arm -51%); one seed, 8 episodes, no CI, so a point estimate only.
+- Closed-loop SIMPLE tabletop, 20 episodes (seeds 0-9 twice, batch 2): direct 19/20, Wilson95 [0.764, 0.991], one timeout.
+  Structured, released: NOT YET RUN (see blockers).
+- `probes_gen` (probes on the structured head's generated z) failed twice with exit -10 (host/peer memory-pressure watchdog `sustained_project_memory_psi`
+  killed it; peak 4.7 GiB, i.e. the pressure came from other tracks). Not retried with changed settings; it is a diagnostic and can be rerun as is.
+- Blockers: eval_structured@s0 has waited 6 h + 6 h in broker admission (first "gpu owners 3 > slots 2", then "memory 147 GB > aggregate 114 GB"):
+  other tracks hold the GPU slots and memory. Coordinator `camp-psi0-tt-p3b` keeps waiting.
