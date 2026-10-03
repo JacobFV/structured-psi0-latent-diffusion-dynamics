@@ -44,10 +44,10 @@ defaults:
   max_cpu: 10
 nodes:
   stageA: {resources: {cpu: 2, mem: '14G', gpu_mem: '2G', max_seconds: 21600}}
-  F0: {resources: {cpu: 2, mem: '9G', gpu_mem: '2G', max_seconds: 21600}}
-  Fft: {resources: {cpu: 2, mem: '9G', gpu_mem: '2G', max_seconds: 21600}}
-  Fgdag1: {resources: {cpu: 2, mem: '9G', gpu_mem: '2G', max_seconds: 21600}}
-  Fgdag2h: {resources: {cpu: 2, mem: '9G', gpu_mem: '2G', max_seconds: 14400}}
+  F0: {resources: {cpu: 2, mem: '12G', gpu_mem: '2G', max_seconds: 21600}}
+  Fft: {resources: {cpu: 2, mem: '12G', gpu_mem: '2G', max_seconds: 21600}}
+  Fgdag1: {resources: {cpu: 2, mem: '12G', gpu_mem: '2G', max_seconds: 21600}}
+  Fgdag2h: {resources: {cpu: 2, mem: '12G', gpu_mem: '2G', max_seconds: 14400}}
   rzbcdag1: {resources: {cpu: 2, mem: '8G', gpu_mem: '3G', max_seconds: 21600}}
   rzbcdag1long: {resources: {cpu: 2, mem: '8G', gpu_mem: '3G', max_seconds: 21600}}
   rzbcdag2: {resources: {cpu: 2, mem: '8G', gpu_mem: '3G', max_seconds: 21600}}
