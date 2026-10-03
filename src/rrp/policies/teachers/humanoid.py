@@ -333,6 +333,7 @@ class SquatPlanner:
         self.foot_body = fb
         self.foot_pos = [self.d.xpos[i].copy() for i in fb]
         self.foot_rot = [self.d.xmat[i].reshape(3, 3).copy() for i in fb]
+        self.fwd_local = [r.T @ np.array([1.0, 0.0, 0.0]) for r in self.foot_rot]      # the forward (x) axis in each foot frame
         jid = [int(model.actuator_trnid[a, 0]) for a in binding.pol_act]
         chain = [_ancestors(model, i) for i in fb]
         self.leg_ix = [np.array([k for k, j in enumerate(jid) if int(model.jnt_bodyid[j]) in c], int) for c in chain]
@@ -363,8 +364,9 @@ class SquatPlanner:
                 mujoco.mj_comPos(m, d)
                 fb = self.foot_body[leg]
                 mujoco.mj_jacBody(m, d, self.jp, self.jr, fb)
-                e = np.concatenate([self.foot_pos[leg] - d.xpos[fb], _rot_err(d.xmat[fb].reshape(3, 3), self.foot_rot[leg])])
-                J = np.vstack([self.jp[:, da], self.jr[:, da]])
+                P = self._rot_proj(leg)
+                e = np.concatenate([self.foot_pos[leg] - d.xpos[fb], P @ _rot_err(d.xmat[fb].reshape(3, 3), self.foot_rot[leg])])
+                J = np.vstack([self.jp[:, da], P @ self.jr[:, da]])
                 dq = J.T @ np.linalg.solve(J @ J.T + 1e-4 * np.eye(6), e)
                 d.qpos[qa] = np.clip(d.qpos[qa] + np.clip(dq, -0.3, 0.3), b.lo[ix], b.hi[ix])
                 if np.linalg.norm(e) < 1e-5:
@@ -372,9 +374,18 @@ class SquatPlanner:
         mujoco.mj_kinematics(m, d)
         mujoco.mj_comPos(m, d)
         err = max(float(np.linalg.norm(np.concatenate([self.foot_pos[i] - d.xpos[f],
-                                                       _rot_err(d.xmat[f].reshape(3, 3), self.foot_rot[i])])))
+                                                       self._rot_proj(i) @ _rot_err(d.xmat[f].reshape(3, 3), self.foot_rot[i])])))
                   for i, f in enumerate(self.foot_body))
         return d.qpos[b.pol_qadr].copy(), err
+
+    def _rot_proj(self, leg: int) -> np.ndarray:
+        """Projector of the foot-orientation task of `leg`: all three axes for a 6-DoF leg; a 5-DoF leg (h1: no ankle roll) cannot
+        set the foot's roll independently of its position, so the roll about the foot's forward axis is left free (it is what the
+        floor contact and the hip roll make it; t1 / g1 keep the full task)."""
+        if len(self.leg_ix[leg]) >= 6:
+            return np.eye(3)
+        f = self.foot_rot[leg] @ self.fwd_local[leg]
+        return np.eye(3) - np.outer(f, f)
 
     def pose(self, dz: float, pitch: float, com_tol: float = 0.005, foot_tol: float = 2e-3) -> dict:
         b, d = self.b, self.d
@@ -698,7 +709,7 @@ class SquatPickTeacher(WholebodyTeacher):
     SQUAT_PITCH = 1.0                         # nominal trunk pitch per unit squat depth in leg lengths (rad per L; t1's U2 rule 1.5 rad/m x L 0.666 m)
     DZ_MAX_L, DZ_STEP = 0.5, 0.0125           # squat search: root drop 0 .. 0.5 L in 12.5 mm steps
     PITCH_DEV = np.arange(0.0, 1.0001, 0.05)  # rad: deviations from the nominal trunk pitch, tried in this order
-    PITCH_MAX = 1.2                           # rad
+    TILT_MARGIN = 0.15                        # rad: planned trunk pitch stays this far inside the body's fall-detector tilt limit
     BAR_Z = (0.0, 0.2, -0.2, 0.4, -0.4, 0.6, -0.6)   # bar elevation (up . bar axis) tried in this order: level first
     IK_TOL = 8e-3                             # m: arm IK residual accepted for the open and squeeze poses
 
@@ -714,6 +725,11 @@ class SquatPickTeacher(WholebodyTeacher):
             return _PLANS[key]
         _PLANS[key] = self._search(self.planner)
         return _PLANS[key]
+
+    @property
+    def pitch_max(self) -> float:
+        """The root is the pelvis on most humanoids: a planned pitch past the tilt limit IS a fall by the judge (g1 0.72 rad)."""
+        return float(self.b.tilt_limit) - self.TILT_MARGIN
 
     def _search(self, pl) -> dict:
         """The plan search of `_plan` with planner `pl` (its foot targets) against the box of `self.sc` (raises RuntimeError)."""
@@ -741,7 +757,7 @@ class SquatPickTeacher(WholebodyTeacher):
                 for dz in dzs:
                     nominal = self.SQUAT_PITCH * dz / L
                     for pitch in sorted({nominal + dev, nominal - dev}, reverse=True):
-                        if not 0.0 <= pitch <= self.PITCH_MAX:
+                        if not 0.0 <= pitch <= self.pitch_max:
                             continue
                         pose = leg_pose(dz, float(pitch))
                         if not pose["ok"]:
@@ -823,6 +839,30 @@ class SquatPickTeacher(WholebodyTeacher):
             e = (tg - self.s.data.geom_xpos[self.ik.gid[sd]]) * mask
             self.off[sd] = np.clip(self.off[sd] + 0.03 * e, -0.05, 0.05)
 
+    def _hang_clear(self, up: np.ndarray) -> np.ndarray:
+        """During the squat the arms hang at the default pose -- unless the pitched trunk swings a palm past the box's near face
+        (h1's default forearms point forward: they hit the box on the way down). Then that palm is held at the face minus M_OPEN
+        by the arm IK (position only, posture rows to the hanging pose); otherwise the default pose is returned unchanged."""
+        d, b = self.s.data, self.b
+        r = d.xmat[self.ik.chest_bid].reshape(3, 3)
+        hd = np.array([r[0, 0], r[1, 0], 0.0])
+        hd /= max(np.linalg.norm(hd), 1e-9)
+        box = np.array([*self.sc["box"]["xy"], 0.0])
+        x_max = float(hd @ box) - self.sc["box"]["half"][0] - self.M_OPEN - max(self.ik.palm_r.values())
+        q = d.qpos.copy()
+        q[b.held_qadr] = b.q0_held
+        out = up.copy()
+        for sd, ix in self.ik.arm.items():
+            self.ik.d.qpos[:] = q
+            mujoco.mj_kinematics(self.m, self.ik.d)
+            p = self.ik.palm(sd)
+            over = float(hd @ p) - x_max
+            if over <= 0.0:
+                continue
+            sol, _ = self.ik.solve(q, sd, p - over * hd, iters=20, axis_w=0.0, q_ref=b.q0_held[ix], posture_w=self.POSTURE_W)
+            out[ix] = sol
+        return out
+
     def _open_posture(self, f: float) -> dict:
         """Joint-space reference of the opening path: hanging arm (q0) blended to the plan's open-pose IK solution."""
         u = _smooth(f)
@@ -858,7 +898,7 @@ class SquatPickTeacher(WholebodyTeacher):
         t, tl = self.t, self.tl
         up = self.b.q0_held.copy()
         if t < tl["squat"]:
-            pass                                             # the arms hang while the body goes down
+            up = self._hang_clear(up)                        # the arms hang while the body goes down (kept off the box's near face)
         elif t < tl["open"]:
             f = (t - tl["squat"]) / self.T_OPEN
             tg = self._open_targets(f)
@@ -1147,6 +1187,7 @@ class LocoPickTeacher(SquatPickTeacher):
                 and self.s.truth_predicate("base_speed", ["body"]) < 0.08)
 
 
+
     YAW_TOL = 0.15
 
     def legs_command(self) -> np.ndarray:
@@ -1154,14 +1195,16 @@ class LocoPickTeacher(SquatPickTeacher):
             self._still = self._still + 1 if self._at_stance() else 0
             if (self._still * self.dt >= self.T_SETTLE or self.k * self.dt >= self.T_WALK_MAX) and self._double_support():
                 self.k_pick = self.k
+                self._q_pick = self.s.data.qpos[self.b.pol_qadr].copy()
                 self._replan_at_feet()
         if self.k_pick is None:
             return np.asarray(self.bt.act(self.s.data, self.command_values()), float)
         planned = super().legs_command()
         if self.t >= self.T_BLEND:
             return planned
-        a = _smooth(self.t / self.T_BLEND)                    # tracker -> planned standing pose over the pick's first T_BLEND s
-        return (1.0 - a) * np.asarray(self.bt.act(self.s.data, np.zeros(3)), float) + a * planned
+        a = _smooth(self.t / self.T_BLEND)                    # measured stance -> planned standing pose over the pick's first T_BLEND s
+        return (1.0 - a) * self._q_pick + a * planned      # (not the tracker's output: at a zero command it may still start a step,
+        #                                                   and the plan is for the feet where they are now)
 
     def _double_support(self) -> bool:
         """Both feet on the floor (contact, sole within 1 cm of its standing height): the hand-over to the planned pose never starts
@@ -1190,12 +1233,15 @@ class LocoPickTeacher(SquatPickTeacher):
             self.sc = real
         dz, pitch = self.plan["dz"], self.plan["pitch"]
         for dev in self.PITCH_DEV:                       # a staggered stance can put the planned depth past a joint limit (g1: ankle
-            cands = [c_ for c_ in (pitch + dev, pitch - dev) if 0.0 <= c_ <= self.PITCH_MAX]       # stop): nearest feasible pitch
+            cands = [c_ for c_ in (pitch + dev, pitch - dev) if 0.0 <= c_ <= self.pitch_max]       # stop): nearest feasible pitch
             ok = [c_ for c_ in cands if pl.pose(dz, c_)["ok"]]
             if ok:
                 pitch = ok[0]
                 break
         poses = [pl.pose(dz * w, pitch * w) for w in self.plan["ws"]]
+        if not all(p["ok"] for p in poses):
+            self.plan = {**self.plan, "replanned_at_feet": "none"}          # no plan for these feet: keep the default-stance plan
+            return
         self.plan = {**self.plan, "legs": np.array([pl.servo_targets(p) for p in poses]), "sway": np.array([pl.sway(p) for p in poses]),
                      "root_pos": np.array([p["root_pos"] for p in poses]), "root_quat": np.array([p["root_quat"] for p in poses]),
                      "ok": [bool(p["ok"]) for p in poses], "pitch": pitch, "replanned_at_feet": "legs"}
