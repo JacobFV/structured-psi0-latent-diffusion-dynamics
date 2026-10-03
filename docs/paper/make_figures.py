@@ -14,7 +14,7 @@ research/tracks/pointer.md).  Run under the ops broker: `python -m rrp.cli ops r
 
 Sections: [U3] relation tables, [U2] environments table and Fig. 3 (source-tagged environment tiles), [U1] Fig. 2.
 `tiles` (factor_tiles.py): the relation-factor tile grid, one tile per implemented factor, as the appendix pages
-figures/factor_grid_p<k>.pdf after Table 6 (`tiles build` renders and caches the tiles, `tiles grid` composes the pages).
+figures/tiles/<factor>.pdf + fig_tiles.tex after Table 6 (`tiles build` renders and caches the tiles, `tiles grid` composes the pages).
 Fig. 2 shows factor VALUES computed by the real relation code or read from simulator state; it is not trained attention.
 """
 from __future__ import annotations

@@ -1,5 +1,5 @@
 {
- "pages": 3,
+ "pages": 10,
  "order": [
   "edge.node_in_assembly",
   "edge.same_assembly",
@@ -77,23 +77,20 @@
   "probe.psi0.lift",
   "probe.psi0.target_pos"
  ],
- "cols": 6,
- "print_scale": 0.39253333333333335,
- "tile_print_in": 1.1776,
- "raster_dpi_printed": 300,
+ "cols": 3,
+ "print_scale": 0.7822222222222223,
+ "tile_print_in": 2.3466666666666667,
+ "raster_dpi_printed": 256,
  "tile_px": [
   600,
-  538
+  450
  ],
  "caption": {
-  "name_pt": 4.6,
-  "short_pt": 4.0,
-  "tag_pt": 4.0,
-  "badge_pt": 4.0,
-  "formula_pt": [
-   4.0,
-   4.4
-  ]
+  "name_pt": 8.0,
+  "desc_pt": 7.0,
+  "eq_pt": 7.5,
+  "tag_pt": 5.0,
+  "desc_max_lines": 4
  },
  "source_badges": {
   "public": "●",
@@ -108,9 +105,19 @@
    "col": 0,
    "family": "structure",
    "status": "computed",
-   "short": "joint / sensor → its assembly",
-   "caption": "edge.node_in_assembly: a joint / sensor token attends to the assembly (arm, gripper) it belongs to. edge x bias at act>ctx and ctx>ctx (solid: act nodes, dashed: touch / grip sensors; w=1). Source: public morphology (featurizer).",
+   "file": "figures/tiles/edge_node_in_assembly.pdf",
+   "desc_lines": 3,
    "colour": "#4E9A5B",
+   "caption": {
+    "name": "edge.node\\_in\\_assembly",
+    "colour": "4E9A5B",
+    "glyphs": "\\tilesrcpub",
+    "desc": "a joint / sensor token attends to the assembly (arm, gripper) it belongs to. edge x bias at act>ctx and ctx>ctx (solid: act nodes, dashed: touch / grip sensors; w=1). Source: public morphology (featurizer).",
+    "condensed": false,
+    "full": "a joint / sensor token attends to the assembly (arm, gripper) it belongs to. edge x bias at act>ctx and ctx>ctx (solid: act nodes, dashed: touch / grip sensors; w=1). Source: public morphology (featurizer).",
+    "eq": "$\\tileind[\\,j=\\mathrm{asm}(i)\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -166,12 +173,11 @@
     },
     "code_path": "FactorSite(['edge.node_in_assembly']) at act>ctx and ctx>ctx .contributions over the collated arm-rel-v1 edges, w=1"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 21,
    "labels": 21,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.0,
-   "n_scene_text": 24,
-   "n_below_min": 21,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 22,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -185,9 +191,19 @@
    "col": 1,
    "family": "structure",
    "status": "computed",
-   "short": "dims of the same assembly",
-   "caption": "edge.same_assembly: a command dim attends to the other dims of its own assembly (here the left arm). edge x bias at dims>dims (g1-dim-rel-v1 channel same_assembly; w=1). Source: public morphology (bodies.g1_simple).",
+   "file": "figures/tiles/edge_same_assembly.pdf",
+   "desc_lines": 3,
    "colour": "#4E9A5B",
+   "caption": {
+    "name": "edge.same\\_assembly",
+    "colour": "4E9A5B",
+    "glyphs": "\\tilesrcpub",
+    "desc": "a command dim attends to the other dims of its own assembly (here the left arm). edge x bias at dims>dims (g1-dim-rel-v1 channel same\\_assembly; w=1). Source: public morphology (bodies.g1\\_simple).",
+    "condensed": false,
+    "full": "a command dim attends to the other dims of its own assembly (here the left arm). edge x bias at dims>dims (g1-dim-rel-v1 channel same_assembly; w=1). Source: public morphology (bodies.g1_simple).",
+    "eq": "$\\tileind[\\,\\mathrm{asm}(i)=\\mathrm{asm}(j),\\ i\\neq j\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/humanoid (rrp.envs.mujoco.humanoid_scenes.task_model('g1','h_steps'))",
     "body": "g1 (36 command-dim tokens, bodies.g1_simple, vocab g1-dim-rel-v1)",
@@ -211,12 +227,11 @@
     "note": null,
     "code_path": "FactorSite(['edge.same_assembly'], dims>dims).contributions over RelCtx edges = bodies.g1_simple.relation_matrix(); weight 1"
    },
-   "labels_ge_min": 2,
+   "labels_ge_min": 8,
    "labels": 8,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.51,
-   "n_scene_text": 11,
-   "n_below_min": 6,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 9,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -230,9 +245,19 @@
    "col": 2,
    "family": "structure",
    "status": "computed",
-   "short": "action node → its own joint",
-   "caption": "edge.same_node: an action-node query attends to its OWN morphology token (one per actuated joint). edge x bias, w*A[i,j] at act>ctx (arm-rel-v1, w=1 shown). Source: public morphology (featurizer).",
+   "file": "figures/tiles/edge_same_node.pdf",
+   "desc_lines": 3,
    "colour": "#4E9A5B",
+   "caption": {
+    "name": "edge.same\\_node",
+    "colour": "4E9A5B",
+    "glyphs": "\\tilesrcpub",
+    "desc": "an action-node query attends to its OWN morphology token (one per actuated joint). edge x bias, w*A[i,j] at act>ctx (arm-rel-v1, w=1 shown). Source: public morphology (featurizer).",
+    "condensed": false,
+    "full": "an action-node query attends to its OWN morphology token (one per actuated joint). edge x bias, w*A[i,j] at act>ctx (arm-rel-v1, w=1 shown). Source: public morphology (featurizer).",
+    "eq": "$\\tileind[\\,j=\\mathrm{morph}(i)\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -274,12 +299,11 @@
     "n_edges": 8,
     "code_path": "arm_featurize -> collate_inputs -> act_rel; FactorSite(['edge.same_node'], act>ctx).contributions, w=1"
    },
-   "labels_ge_min": 1,
+   "labels_ge_min": 9,
    "labels": 9,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 3.6,
-   "n_scene_text": 12,
-   "n_below_min": 8,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 10,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -289,13 +313,23 @@
   },
   "id.same_assembly": {
    "page": 1,
-   "row": 0,
-   "col": 3,
+   "row": 1,
+   "col": 0,
    "family": "structure",
    "status": "computed",
-   "short": "soft same-assembly id match",
-   "caption": "id.same_assembly: soft same-assembly term: a command dim prefers knots of its own assembly (left arm); other assemblies stay readable. same x aug, random 16-d codes for 64 ids (small cross-talk), g=1, dims>knots. Source: public morphology (bodies.g1_simple).",
+   "file": "figures/tiles/id_same_assembly.pdf",
+   "desc_lines": 4,
    "colour": "#4E9A5B",
+   "caption": {
+    "name": "id.same\\_assembly",
+    "colour": "4E9A5B",
+    "glyphs": "\\tilesrcpub",
+    "desc": "soft same-assembly term: a command dim prefers knots of its own assembly (left arm); other assemblies stay readable. same x aug, random 16-d codes for 64 ids (small cross-talk), g=1, dims>knots. Source: public morphology (bodies.g1\\_simple).",
+    "condensed": false,
+    "full": "soft same-assembly term: a command dim prefers knots of its own assembly (left arm); other assemblies stay readable. same x aug, random 16-d codes for 64 ids (small cross-talk), g=1, dims>knots. Source: public morphology (bodies.g1_simple).",
+    "eq": "$\\langle e(a_i),e(a_j)\\rangle\\approx\\tileind[a_i=a_j]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/humanoid (rrp.envs.mujoco.humanoid_scenes.task_model('g1','h_steps'))",
     "body": "g1 (36 command-dim tokens, bodies.g1_simple, vocab g1-dim-rel-v1)",
@@ -319,12 +353,11 @@
     "n_allowed": 5,
     "code_path": "FactorSite([{'name': 'id.same_assembly'}], dims>knots).contributions over dims/knots assembly_id (exactly psi0.nets.Realizer.forward's RelCtx)"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 2,
    "labels": 13,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.37,
-   "n_scene_text": 46,
-   "n_below_min": 43,
+   "min_scene_text_pt": 2.74,
+   "n_scene_text": 44,
+   "n_below_min": 41,
    "badges": [
     [
      "public",
@@ -334,13 +367,23 @@
   },
   "id.same_body": {
    "page": 1,
-   "row": 0,
-   "col": 4,
+   "row": 1,
+   "col": 1,
    "family": "structure",
    "status": "computed",
-   "short": "tokens of the same entity",
-   "caption": "id.same_body: tokens denoting the SAME entity (a tracker slot and the task roles bound to it) attend to each other. same x aug: fixed random 16-d unit codes for 64 ids (1 on equal ids, small cross-talk otherwise), g=1. Source: public ids (featurizer pointers).",
+   "file": "figures/tiles/id_same_body.pdf",
+   "desc_lines": 4,
    "colour": "#4E9A5B",
+   "caption": {
+    "name": "id.same\\_body",
+    "colour": "4E9A5B",
+    "glyphs": "\\tilesrcpub",
+    "desc": "tokens denoting the SAME entity (a tracker slot and the task roles bound to it) attend to each other. same x aug: fixed random 16-d unit codes for 64 ids (1 on equal ids, small cross-talk otherwise), g=1. Source: public ids (featurizer pointers).",
+    "condensed": false,
+    "full": "tokens denoting the SAME entity (a tracker slot and the task roles bound to it) attend to each other. same x aug: fixed random 16-d unit codes for 64 ids (1 on equal ids, small cross-talk otherwise), g=1. Source: public ids (featurizer pointers).",
+    "eq": "$\\langle e(\\mathrm{id}_i),e(\\mathrm{id}_j)\\rangle\\approx\\tileind[\\mathrm{id}_i=\\mathrm{id}_j]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -408,12 +451,11 @@
     },
     "code_path": "nets.batch.ctx_id_fields -> TokenSet ctx.entity_id; FactorSite(['id.same_body'], ctx>ctx).contributions (aug), g=1"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 13,
    "labels": 15,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.63,
-   "n_scene_text": 18,
-   "n_below_min": 15,
+   "min_scene_text_pt": 4.3,
+   "n_scene_text": 16,
+   "n_below_min": 2,
    "badges": [
     [
      "public",
@@ -423,13 +465,23 @@
   },
   "id.slot_handle": {
    "page": 1,
-   "row": 0,
-   "col": 5,
+   "row": 1,
+   "col": 2,
    "family": "structure",
    "status": "computed",
-   "short": "tracker-slot identity embedding",
-   "caption": "id.slot_handle: each scene token carries its public tracker slot address as a learned embedding, so a slot keeps its identity across steps. embed form (unary, no attention term); E learned. Source: public tracker slot ids.",
+   "file": "figures/tiles/id_slot_handle.pdf",
+   "desc_lines": 3,
    "colour": "#4E9A5B",
+   "caption": {
+    "name": "id.slot\\_handle",
+    "colour": "4E9A5B",
+    "glyphs": "\\tilesrcpub",
+    "desc": "each scene token carries its public tracker slot address as a learned embedding, so a slot keeps its identity across steps. embed form (unary, no attention term); E learned. Source: public tracker slot ids.",
+    "condensed": false,
+    "full": "each scene token carries its public tracker slot address as a learned embedding, so a slot keeps its identity across steps. embed form (unary, no attention term); E learned. Source: public tracker slot ids.",
+    "eq": "$x_k \\leftarrow x_k + E[\\mathrm{slot}_k]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -507,12 +559,11 @@
     "note": "slot ids / descriptors / estimates are the real tracker output (PolicyObservation.object_descriptors); E is learned",
     "code_path": "FlowNet.forward: x_scene += slot_emb.weight[:T_scene] (id.slot_handle on)"
    },
-   "labels_ge_min": 3,
+   "labels_ge_min": 9,
    "labels": 9,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.82,
-   "n_scene_text": 12,
-   "n_below_min": 6,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 10,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -522,13 +573,23 @@
   },
   "msg.incidence": {
    "page": 1,
-   "row": 1,
+   "row": 2,
    "col": 0,
    "family": "structure",
    "status": "computed",
-   "short": "entity → role / predicate message",
-   "caption": "msg.incidence: role and predicate tokens receive a message from the entity they point to (arrows: entity -> role). message form, not a logit term; W learned; control `serialized` = same facts as hashed text. Source: public task graph + tracker slots.",
+   "file": "figures/tiles/msg_incidence.pdf",
+   "desc_lines": 4,
    "colour": "#4E9A5B",
+   "caption": {
+    "name": "msg.incidence",
+    "colour": "4E9A5B",
+    "glyphs": "\\tilesrcpub",
+    "desc": "role and predicate tokens receive a message from the entity they point to (arrows: entity -> role). message form, not a logit term; W learned; control 'serialized' = same facts as hashed text. Source: public task graph + tracker slots.",
+    "condensed": false,
+    "full": "role and predicate tokens receive a message from the entity they point to (arrows: entity -> role). message form, not a logit term; W learned; control `serialized` = same facts as hashed text. Source: public task graph + tracker slots.",
+    "eq": "$h_i \\leftarrow h_i + W\\,h_{\\mathrm{ptr}(i)}$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -579,12 +640,11 @@
     "note": "incidence structure is the real featurizer output (PolicyInput.pointers); the message map W (FlowNet.ptr) is learned and not shown",
     "code_path": "arm_featurize -> collate_inputs -> Batch.pointers; FlowNet: h.scatter_add(src, ptr(h[dst]))"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 12,
    "labels": 14,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.82,
-   "n_scene_text": 17,
-   "n_below_min": 14,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 15,
+   "n_below_min": 2,
    "badges": [
     [
      "public",
@@ -594,13 +654,23 @@
   },
   "route.assembly_reads": {
    "page": 1,
-   "row": 1,
+   "row": 2,
    "col": 1,
    "family": "structure",
    "status": "computed",
-   "short": "dim reads own + neighbour knots",
-   "caption": "route.assembly_reads: system 0 (Psi0 Realizer): a command dim reads packet knots of its own assembly and its kinematic neighbours only (left arm: arm, hand, torso). same x mask with params.reads = bodies.g1_simple.READS. Source: public morphology (bodies.g1_simple).",
+   "file": "figures/tiles/route_assembly_reads.pdf",
+   "desc_lines": 4,
    "colour": "#4E9A5B",
+   "caption": {
+    "name": "route.assembly\\_reads",
+    "colour": "4E9A5B",
+    "glyphs": "\\tilesrcpub",
+    "desc": "system 0 (Psi0 Realizer): a command dim reads packet knots of its own assembly and its kinematic neighbours only (left arm: arm, hand, torso). same x mask with params.reads = bodies.g1\\_simple.READS. Source: public morphology (bodies.g1\\_simple).",
+    "condensed": false,
+    "full": "system 0 (Psi0 Realizer): a command dim reads packet knots of its own assembly and its kinematic neighbours only (left arm: arm, hand, torso). same x mask with params.reads = bodies.g1_simple.READS. Source: public morphology (bodies.g1_simple).",
+    "eq": "$0\\ \\mathrm{if}\\ \\mathrm{READS}[\\mathrm{asm}(i),\\mathrm{asm}(j)]\\ \\mathrm{else}\\ -\\infty$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/humanoid (rrp.envs.mujoco.humanoid_scenes.task_model('g1','h_steps'))",
     "body": "g1 (36 command-dim tokens, bodies.g1_simple, vocab g1-dim-rel-v1)",
@@ -624,12 +694,11 @@
     "n_allowed": 15,
     "code_path": "FactorSite([{'name': 'route.assembly_reads', 'params': {'reads': [[True, False, True, False, False, False], [False, True, False, True, False, False], [True, False, True, False, True, False], [False, True, False, True, True, False], [False, False, True, True, True, True], [False, False, False, False, True, True]]}}], dims>knots).bias over dims/knots assembly_id (exactly psi0.nets.Realizer.forward's RelCtx)"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 2,
    "labels": 13,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.37,
-   "n_scene_text": 46,
-   "n_below_min": 43,
+   "min_scene_text_pt": 2.74,
+   "n_scene_text": 44,
+   "n_below_min": 41,
    "badges": [
     [
      "public",
@@ -639,13 +708,23 @@
   },
   "route.own_assembly": {
    "page": 1,
-   "row": 1,
+   "row": 2,
    "col": 2,
    "family": "structure",
    "status": "computed",
-   "short": "joint reads own-limb knots",
-   "caption": "route.own_assembly: system 0 (legged Realizer): a joint node reads only the packet knots of its own limb plus the body assembly. same x mask on assembly_id, params.also_key_field = body (preset legged-s0). Source: public morphology (LeggedMorph).",
+   "file": "figures/tiles/route_own_assembly.pdf",
+   "desc_lines": 4,
    "colour": "#4E9A5B",
+   "caption": {
+    "name": "route.own\\_assembly",
+    "colour": "4E9A5B",
+    "glyphs": "\\tilesrcpub",
+    "desc": "system 0 (legged Realizer): a joint node reads only the packet knots of its own limb plus the body assembly. same x mask on assembly\\_id, params.also\\_key\\_field = body (preset legged-s0). Source: public morphology (LeggedMorph).",
+    "condensed": false,
+    "full": "system 0 (legged Realizer): a joint node reads only the packet knots of its own limb plus the body assembly. same x mask on assembly_id, params.also_key_field = body (preset legged-s0). Source: public morphology (LeggedMorph).",
+    "eq": "$0\\ \\mathrm{if}\\ a_j\\in\\{a_i,\\mathrm{body}\\}\\ \\mathrm{else}\\ -\\infty$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/legged",
     "body": "go2",
@@ -663,12 +742,11 @@
     ],
     "code_path": "FactorSite([route.own_assembly also_key_field=body], act>knots).bias over the RelCtx of LeggedRealizer._route_bias"
    },
-   "labels_ge_min": 1,
+   "labels_ge_min": 5,
    "labels": 11,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.37,
-   "n_scene_text": 34,
-   "n_below_min": 30,
+   "min_scene_text_pt": 2.74,
+   "n_scene_text": 32,
+   "n_below_min": 26,
    "badges": [
     [
      "public",
@@ -677,14 +755,24 @@
    ]
   },
   "geo.above": {
-   "page": 1,
-   "row": 2,
+   "page": 2,
+   "row": 0,
    "col": 0,
    "family": "geometry",
    "status": "computed",
-   "short": "above / below along gravity",
-   "caption": "geo.above: above / below along gravity: +1 for tokens (and surface points) higher than the query by > 1 cm, -1 lower, 0 in the dead zone (query: middle cube of a stack). order x bias on pos3d, axis +z, margin 0.01 m (w=1). Source: tracker pos3d (given).",
+   "file": "figures/tiles/geo_above.pdf",
+   "desc_lines": 4,
    "colour": "#2BB3C0",
+   "caption": {
+    "name": "geo.above",
+    "colour": "2BB3C0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "above / below along gravity: +1 for tokens (and surface points) higher than the query by > 1 cm, -1 lower, 0 in the dead zone (query: middle cube of a stack). order x bias on pos3d, axis +z, margin 0.01 m (w=1). Source: tracker pos3d (given).",
+    "condensed": false,
+    "full": "above / below along gravity: +1 for tokens (and surface points) higher than the query by > 1 cm, -1 lower, 0 in the dead zone (query: middle cube of a stack). order x bias on pos3d, axis +z, margin 0.01 m (w=1). Source: tracker pos3d (given).",
+    "eq": "$\\mathrm{sign}((r_j-r_i)\\cdot\\hat z)\\ \\mathrm{if}\\ |\\cdot|>1\\,\\mathrm{cm}$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -724,12 +812,11 @@
     },
     "code_path": "FactorSite(['geo.above']) ctx>ctx and ctx>pix .contributions -> OrderOp over pos3d (base frame), w=1"
    },
-   "labels_ge_min": 4,
+   "labels_ge_min": 5,
    "labels": 5,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.92,
-   "n_scene_text": 8,
-   "n_below_min": 1,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 6,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -738,14 +825,24 @@
    ]
   },
   "geo.depth3d": {
-   "page": 1,
-   "row": 2,
+   "page": 2,
+   "row": 0,
    "col": 1,
    "family": "geometry",
    "status": "computed",
-   "short": "PaPE on camera (u, v, depth)",
-   "caption": "geo.depth3d: PaPE over (u, v, depth) in the declared front camera; weight on depth only, so tokens at the query's depth score high. sqdiff+diff x aug on cam_uvd, a=(0,0,60), b=0 (learned). Source: projected tracker pos3d (given); default source = probe.",
+   "file": "figures/tiles/geo_depth3d.pdf",
+   "desc_lines": 4,
    "colour": "#2BB3C0",
+   "caption": {
+    "name": "geo.depth3d",
+    "colour": "2BB3C0",
+    "glyphs": "\\tilesrcpub\\,\\tilesrcprobe",
+    "desc": "PaPE over (u, v, depth) in the declared front camera; weight on depth only, so tokens at the query's depth score high. sqdiff+diff x aug on cam\\_uvd, a=(0,0,60), b=0 (learned). Source: projected tracker pos3d (given); default source = probe.",
+    "condensed": false,
+    "full": "PaPE over (u, v, depth) in the declared front camera; weight on depth only, so tokens at the query's depth score high. sqdiff+diff x aug on cam_uvd, a=(0,0,60), b=0 (learned). Source: projected tracker pos3d (given); default source = probe.",
+    "eq": "$-(r_j-r_i)^{\\top}M(r_j-r_i),\\ r=(u,v,\\mathrm{depth})$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -854,12 +951,11 @@
     "closed_form_max_abs_err": 6.155453036171821e-06,
     "code_path": "ctx pos3d (base frame) -> world -> nets.batch.attach_cam_uvd(front) -> PaPE kernel (make_figures.pape_values = FactorSite contributions); pixels: project_points of ray-cast surface points"
    },
-   "labels_ge_min": 4,
+   "labels_ge_min": 5,
    "labels": 6,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.92,
-   "n_scene_text": 10,
-   "n_below_min": 2,
+   "min_scene_text_pt": 4.3,
+   "n_scene_text": 7,
+   "n_below_min": 1,
    "badges": [
     [
      "public",
@@ -872,14 +968,24 @@
    ]
   },
   "geo.normal_align": {
-   "page": 1,
-   "row": 2,
+   "page": 2,
+   "row": 0,
    "col": 2,
    "family": "geometry",
    "status": "computed",
-   "short": "direction vs contact normal",
-   "caption": "geo.normal_align: query direction b vs each token's contact normal (arrows: outward normal, mean over the token's contacts). align x aug, world frame, b=(0,0,1) (learned per head). Source: gt contact_normal (sim truth, training-only); deployed = probe.",
+   "file": "figures/tiles/geo_normal_align.pdf",
+   "desc_lines": 4,
    "colour": "#2BB3C0",
+   "caption": {
+    "name": "geo.normal\\_align",
+    "colour": "2BB3C0",
+    "glyphs": "\\tilesrcgt\\,\\tilesrcprobe",
+    "desc": "query direction b vs each token's contact normal (arrows: outward normal, mean over the token's contacts). align x aug, world frame, b=(0,0,1) (learned per head). Source: gt contact\\_normal (sim truth, training-only); deployed = probe.",
+    "condensed": false,
+    "full": "query direction b vs each token's contact normal (arrows: outward normal, mean over the token's contacts). align x aug, world frame, b=(0,0,1) (learned per head). Source: gt contact_normal (sim truth, training-only); deployed = probe.",
+    "eq": "$\\langle b_i,n_j\\rangle,\\ b=(0,0,1)$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -927,12 +1033,11 @@
     "note": "the arm family fills no public `normal` field: resolve() accepts this factor only with source probe or gt",
     "code_path": "relgen LABELS['contact_normal'] -> TokenSet.labels; FactorSite([{'name':'geo.normal_align','source':'gt'}]).contributions -> AlignOp"
    },
-   "labels_ge_min": 3,
+   "labels_ge_min": 6,
    "labels": 6,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.92,
-   "n_scene_text": 10,
-   "n_below_min": 3,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 7,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -945,14 +1050,24 @@
    ]
   },
   "geo.orient": {
-   "page": 1,
-   "row": 2,
-   "col": 3,
+   "page": 2,
+   "row": 1,
+   "col": 0,
    "family": "geometry",
    "status": "computed",
-   "short": "relative rotation of frames",
-   "caption": "geo.orient: relative rotation between token frames: tr(R_i^T R_j) = 1 + 2 cos(angle) (axes: x red, y green, z blue). rel_rot x aug, B = I (learned per head). Source: gt orient label (sim truth, training-only); deployed = probe estimate (object frames are not tracked).",
+   "file": "figures/tiles/geo_orient.pdf",
+   "desc_lines": 4,
    "colour": "#2BB3C0",
+   "caption": {
+    "name": "geo.orient",
+    "colour": "2BB3C0",
+    "glyphs": "\\tilesrcgt\\,\\tilesrcprobe",
+    "desc": "relative rotation between token frames: tr(R\\_i\\^{}T R\\_j) = 1 + 2 cos(angle) (axes: x red, y green, z blue). rel\\_rot x aug, B = I (learned per head). Source: gt orient label (sim truth, training-only); deployed = probe estimate (object frames are not tracked).",
+    "condensed": false,
+    "full": "relative rotation between token frames: tr(R_i^T R_j) = 1 + 2 cos(angle) (axes: x red, y green, z blue). rel_rot x aug, B = I (learned per head). Source: gt orient label (sim truth, training-only); deployed = probe estimate (object frames are not tracked).",
+    "eq": "$\\langle R_iB,R_j\\rangle_F=\\mathrm{tr}(R_i^{\\top}R_j),\\ B=I$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -973,12 +1088,11 @@
     "check": "== trace(R_i^T R_j) (asserted)",
     "code_path": "FactorSite([{'name':'geo.orient','source':'gt'}], ctx>ctx).contributions -> RelRotOp, B bias = I, weights 0"
    },
-   "labels_ge_min": 1,
+   "labels_ge_min": 7,
    "labels": 7,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.92,
-   "n_scene_text": 11,
-   "n_below_min": 6,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 8,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -991,14 +1105,24 @@
    ]
   },
   "geo.pos3d": {
-   "page": 1,
-   "row": 2,
-   "col": 4,
+   "page": 2,
+   "row": 1,
+   "col": 1,
    "family": "geometry",
    "status": "computed",
-   "short": "PaPE relative 3-D position",
-   "caption": "geo.pos3d: PaPE relative-position term: tokens near and below the gripper score high; heat = the term at every surface point. sqdiff+diff x aug, a=30, b=(0,0,-8), W_p=I (learned per head). Source: public FK + tracker pos3d (given).",
+   "file": "figures/tiles/geo_pos3d.pdf",
+   "desc_lines": 4,
    "colour": "#2BB3C0",
+   "caption": {
+    "name": "geo.pos3d",
+    "colour": "2BB3C0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "PaPE relative-position term: tokens near and below the gripper score high; heat = the term at every surface point. sqdiff+diff x aug, a=30, b=(0,0,-8), W\\_p=I (learned per head). Source: public FK + tracker pos3d (given).",
+    "condensed": false,
+    "full": "PaPE relative-position term: tokens near and below the gripper score high; heat = the term at every surface point. sqdiff+diff x aug, a=30, b=(0,0,-8), W_p=I (learned per head). Source: public FK + tracker pos3d (given).",
+    "eq": "$-(r_j-r_i)^{\\top}M(r_j-r_i)+\\tilde b^{\\top}(r_j-r_i)$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -1035,12 +1159,11 @@
     },
     "code_path": "nets.batch.ctx_geometry_fields pos3d (base frame) -> make_figures.pape_values (FactorSite(['geo.pos3d']).contributions, asserted == closed form); pixels: mj_multiRay world points -> base frame"
    },
-   "labels_ge_min": 2,
+   "labels_ge_min": 7,
    "labels": 7,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.92,
-   "n_scene_text": 10,
-   "n_below_min": 5,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 8,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -1049,14 +1172,24 @@
    ]
   },
   "edge.foot_of": {
-   "page": 1,
-   "row": 3,
+   "page": 3,
+   "row": 0,
    "col": 0,
    "family": "kinematics",
    "status": "computed",
-   "short": "limb → its own foot",
-   "caption": "edge.foot_of: a limb token attends to its own foot token (feet exist only on foot-carrying assemblies; limbs drawn at hips, feet at foot sites). edge x bias at ctx>ctx (legged-rel-v1; w=1). Source: public morphology (LeggedMorph).",
+   "file": "figures/tiles/edge_foot_of.pdf",
+   "desc_lines": 3,
    "colour": "#3A3F47",
+   "caption": {
+    "name": "edge.foot\\_of",
+    "colour": "3A3F47",
+    "glyphs": "\\tilesrcpub",
+    "desc": "a limb token attends to its own foot token (feet exist only on foot-carrying assemblies; limbs drawn at hips, feet at foot sites). edge x bias at ctx>ctx (legged-rel-v1; w=1). Source: public morphology (LeggedMorph).",
+    "condensed": false,
+    "full": "a limb token attends to its own foot token (feet exist only on foot-carrying assemblies; limbs drawn at hips, feet at foot sites). edge x bias at ctx>ctx (legged-rel-v1; w=1). Source: public morphology (LeggedMorph).",
+    "eq": "$\\tileind[\\,j=\\mathrm{foot}(i)\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/legged",
     "body": "go2",
@@ -1071,9 +1204,8 @@
    },
    "labels_ge_min": 2,
    "labels": 2,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 4.0,
-   "n_scene_text": 5,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 3,
    "n_below_min": 0,
    "badges": [
     [
@@ -1083,14 +1215,24 @@
    ]
   },
   "edge.limb_adjacent": {
-   "page": 1,
-   "row": 3,
+   "page": 3,
+   "row": 0,
    "col": 1,
    "family": "kinematics",
    "status": "computed",
-   "short": "limb ↔ limbs of the same kind",
-   "caption": "edge.limb_adjacent: a limb token attends to the other limbs of the same kind on the trunk (all four legs; tokens drawn at their hips). edge x bias at ctx>ctx (legged-rel-v1, symmetric; w=1). Source: public morphology (LeggedMorph).",
+   "file": "figures/tiles/edge_limb_adjacent.pdf",
+   "desc_lines": 4,
    "colour": "#3A3F47",
+   "caption": {
+    "name": "edge.limb\\_adjacent",
+    "colour": "3A3F47",
+    "glyphs": "\\tilesrcpub",
+    "desc": "a limb token attends to the other limbs of the same kind on the trunk (all four legs; tokens drawn at their hips). edge x bias at ctx>ctx (legged-rel-v1, symmetric; w=1). Source: public morphology (LeggedMorph).",
+    "condensed": false,
+    "full": "a limb token attends to the other limbs of the same kind on the trunk (all four legs; tokens drawn at their hips). edge x bias at ctx>ctx (legged-rel-v1, symmetric; w=1). Source: public morphology (LeggedMorph).",
+    "eq": "$\\tileind[\\,\\mathrm{kind}(i)=\\mathrm{kind}(j)\\neq\\mathrm{body},\\ i\\neq j\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/legged",
     "body": "go2",
@@ -1110,12 +1252,11 @@
     "drawn_at": "limb tokens drawn at their hip joint anchor (their pos3d field is the default foot position)",
     "code_path": "legged_graph ctx>ctx; FactorSite(['edge.limb_adjacent']).contributions, w=1"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 3,
    "labels": 5,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.82,
-   "n_scene_text": 8,
-   "n_below_min": 5,
+   "min_scene_text_pt": 3.63,
+   "n_scene_text": 6,
+   "n_below_min": 2,
    "badges": [
     [
      "public",
@@ -1124,14 +1265,24 @@
    ]
   },
   "edge.over_cell": {
-   "page": 1,
-   "row": 3,
+   "page": 3,
+   "row": 0,
    "col": 2,
    "family": "kinematics",
    "status": "computed",
-   "short": "foot → landing-window cells",
-   "caption": "edge.over_cell: a foot token attends to the terrain-scan cells of its landing window (0.05 m behind to 0.35 m ahead, +-0.15 m aside of its default stance, body frame). edge x bias at ctx>ctx (legged-rel-v1; w=1). Source: public morphology + public terrain scan.",
+   "file": "figures/tiles/edge_over_cell.pdf",
+   "desc_lines": 4,
    "colour": "#3A3F47",
+   "caption": {
+    "name": "edge.over\\_cell",
+    "colour": "3A3F47",
+    "glyphs": "\\tilesrcpub",
+    "desc": "a foot token attends to the terrain-scan cells of its landing window (0.05 m behind to 0.35 m ahead, +-0.15 m aside of its default stance, body frame). edge x bias at ctx>ctx (legged-rel-v1; w=1). Source: public morphology + public terrain scan.",
+    "condensed": false,
+    "full": "a foot token attends to the terrain-scan cells of its landing window (0.05 m behind to 0.35 m ahead, +-0.15 m aside of its default stance, body frame). edge x bias at ctx>ctx (legged-rel-v1; w=1). Source: public morphology + public terrain scan.",
+    "eq": "$\\tileind[\\,\\mathrm{cell}\\ j\\in\\mathrm{window}(\\mathrm{foot}\\ i)\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/legged",
     "body": "go2",
@@ -1152,12 +1303,11 @@
     "scan_cells": 77,
     "code_path": "legged_graph (scan_xy, OVER_CELL_DX/DY, default stance foot_xy) ctx>ctx; FactorSite(['edge.over_cell']).contributions, w=1"
    },
-   "labels_ge_min": 1,
+   "labels_ge_min": 2,
    "labels": 2,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.92,
-   "n_scene_text": 5,
-   "n_below_min": 1,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 3,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -1166,14 +1316,24 @@
    ]
   },
   "edge.kin_child": {
-   "page": 1,
-   "row": 3,
-   "col": 3,
+   "page": 3,
+   "row": 1,
+   "col": 0,
    "family": "kinematics",
    "status": "computed",
-   "short": "dim → kinematic children",
-   "caption": "edge.kin_child: a command dim attends to its kinematic children (waist pitch -> both shoulder pitches). edge x bias at dims>dims (channel kin_child; w=1). Source: public morphology (bodies.g1_simple).",
+   "file": "figures/tiles/edge_kin_child.pdf",
+   "desc_lines": 3,
    "colour": "#3A3F47",
+   "caption": {
+    "name": "edge.kin\\_child",
+    "colour": "3A3F47",
+    "glyphs": "\\tilesrcpub",
+    "desc": "a command dim attends to its kinematic children (waist pitch -> both shoulder pitches). edge x bias at dims>dims (channel kin\\_child; w=1). Source: public morphology (bodies.g1\\_simple).",
+    "condensed": false,
+    "full": "a command dim attends to its kinematic children (waist pitch -> both shoulder pitches). edge x bias at dims>dims (channel kin_child; w=1). Source: public morphology (bodies.g1_simple).",
+    "eq": "$\\tileind[\\,\\mathrm{parent}(j)=i\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/humanoid (rrp.envs.mujoco.humanoid_scenes.task_model('g1','h_steps'))",
     "body": "g1 (36 command-dim tokens, bodies.g1_simple, vocab g1-dim-rel-v1)",
@@ -1192,12 +1352,11 @@
     "note": null,
     "code_path": "FactorSite(['edge.kin_child'], dims>dims).contributions over RelCtx edges = bodies.g1_simple.relation_matrix(); weight 1"
    },
-   "labels_ge_min": 2,
+   "labels_ge_min": 8,
    "labels": 10,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.51,
-   "n_scene_text": 13,
-   "n_below_min": 8,
+   "min_scene_text_pt": 3.5,
+   "n_scene_text": 11,
+   "n_below_min": 2,
    "badges": [
     [
      "public",
@@ -1206,14 +1365,24 @@
    ]
   },
   "edge.mirror": {
-   "page": 1,
-   "row": 3,
-   "col": 4,
+   "page": 3,
+   "row": 1,
+   "col": 1,
    "family": "kinematics",
    "status": "computed",
-   "short": "dim ↔ left / right homologue",
-   "caption": "edge.mirror: a command dim attends to its left/right homologue (grey lines: every mirror pair of the body). edge x bias at dims>dims (channel mirror; w=1). Source: public morphology (bodies.g1_simple).",
+   "file": "figures/tiles/edge_mirror.pdf",
+   "desc_lines": 3,
    "colour": "#3A3F47",
+   "caption": {
+    "name": "edge.mirror",
+    "colour": "3A3F47",
+    "glyphs": "\\tilesrcpub",
+    "desc": "a command dim attends to its left/right homologue (grey lines: every mirror pair of the body). edge x bias at dims>dims (channel mirror; w=1). Source: public morphology (bodies.g1\\_simple).",
+    "condensed": false,
+    "full": "a command dim attends to its left/right homologue (grey lines: every mirror pair of the body). edge x bias at dims>dims (channel mirror; w=1). Source: public morphology (bodies.g1_simple).",
+    "eq": "$\\tileind[\\,j=\\mathrm{mirror}(i)\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/humanoid (rrp.envs.mujoco.humanoid_scenes.task_model('g1','h_steps'))",
     "body": "g1 (36 command-dim tokens, bodies.g1_simple, vocab g1-dim-rel-v1)",
@@ -1231,12 +1400,11 @@
     "note": null,
     "code_path": "FactorSite(['edge.mirror'], dims>dims).contributions over RelCtx edges = bodies.g1_simple.relation_matrix(); weight 1"
    },
-   "labels_ge_min": 1,
+   "labels_ge_min": 9,
    "labels": 9,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.51,
-   "n_scene_text": 12,
-   "n_below_min": 8,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 10,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -1245,14 +1413,24 @@
    ]
   },
   "edge.kin_parent": {
-   "page": 1,
-   "row": 3,
-   "col": 5,
+   "page": 3,
+   "row": 1,
+   "col": 2,
    "family": "kinematics",
    "status": "computed",
-   "short": "joint → kinematic parent",
-   "caption": "edge.kin_parent: a joint token attends to its kinematic parent joint (grey: every parent edge of the four legs). edge x bias at ctx>ctx (legged-rel-v1, from the per-assembly depth chain; w=1). Source: public morphology (LeggedMorph).",
+   "file": "figures/tiles/edge_kin_parent.pdf",
+   "desc_lines": 4,
    "colour": "#3A3F47",
+   "caption": {
+    "name": "edge.kin\\_parent",
+    "colour": "3A3F47",
+    "glyphs": "\\tilesrcpub",
+    "desc": "a joint token attends to its kinematic parent joint (grey: every parent edge of the four legs). edge x bias at ctx>ctx (legged-rel-v1, from the per-assembly depth chain; w=1). Source: public morphology (LeggedMorph).",
+    "condensed": false,
+    "full": "a joint token attends to its kinematic parent joint (grey: every parent edge of the four legs). edge x bias at ctx>ctx (legged-rel-v1, from the per-assembly depth chain; w=1). Source: public morphology (LeggedMorph).",
+    "eq": "$\\tileind[\\,j=\\mathrm{parent}(i)\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/legged",
     "body": "go2",
@@ -1271,9 +1449,8 @@
    },
    "labels_ge_min": 2,
    "labels": 2,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 4.0,
-   "n_scene_text": 5,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 3,
    "n_below_min": 0,
    "badges": [
     [
@@ -1283,14 +1460,24 @@
    ]
   },
   "kin.ancestor": {
-   "page": 1,
-   "row": 4,
+   "page": 3,
+   "row": 2,
    "col": 0,
    "family": "kinematics",
    "status": "computed",
-   "short": "joint → all chain ancestors",
-   "caption": "kin.ancestor: a joint token attends to every joint up its kinematic chain (transitive closure of kin_parent; grey arrows: the parent edges). ancestor (closure) x bias at ctx>ctx (arm-rel-v1; w=1). Source: public morphology (featurizer).",
+   "file": "figures/tiles/kin_ancestor.pdf",
+   "desc_lines": 4,
    "colour": "#3A3F47",
+   "caption": {
+    "name": "kin.ancestor",
+    "colour": "3A3F47",
+    "glyphs": "\\tilesrcpub",
+    "desc": "a joint token attends to every joint up its kinematic chain (transitive closure of kin\\_parent; grey arrows: the parent edges). ancestor (closure) x bias at ctx>ctx (arm-rel-v1; w=1). Source: public morphology (featurizer).",
+    "condensed": false,
+    "full": "a joint token attends to every joint up its kinematic chain (transitive closure of kin_parent; grey arrows: the parent edges). ancestor (closure) x bias at ctx>ctx (arm-rel-v1; w=1). Source: public morphology (featurizer).",
+    "eq": "$\\tileind[\\,j\\ \\mathrm{ancestor\\ of}\\ i\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -1310,12 +1497,11 @@
     ],
     "code_path": "FactorSite(['kin.ancestor'], ctx>ctx).contributions -> ClosureOp over arm-rel-v1 kin_parent, w=1"
    },
-   "labels_ge_min": 3,
+   "labels_ge_min": 5,
    "labels": 5,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.6,
-   "n_scene_text": 8,
-   "n_below_min": 2,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 6,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -1324,14 +1510,24 @@
    ]
   },
   "kin.sibling": {
-   "page": 1,
-   "row": 4,
+   "page": 3,
+   "row": 2,
    "col": 1,
    "family": "kinematics",
    "status": "computed",
-   "short": "dims at tree distance 2",
-   "caption": "kin.sibling: dims at undirected tree distance 2: the sibling (r_shoulder_pitch) and, by the same op, grandparent and grandchild. hop x bias over the symmetrized kin_parent graph (hops=2; w=1). Source: public morphology (bodies.g1_simple).",
+   "file": "figures/tiles/kin_sibling.pdf",
+   "desc_lines": 4,
    "colour": "#3A3F47",
+   "caption": {
+    "name": "kin.sibling",
+    "colour": "3A3F47",
+    "glyphs": "\\tilesrcpub",
+    "desc": "dims at undirected tree distance 2: the sibling (r\\_shoulder\\_pitch) and, by the same op, grandparent and grandchild. hop x bias over the symmetrized kin\\_parent graph (hops=2; w=1). Source: public morphology (bodies.g1\\_simple).",
+    "condensed": false,
+    "full": "dims at undirected tree distance 2: the sibling (r_shoulder_pitch) and, by the same op, grandparent and grandchild. hop x bias over the symmetrized kin_parent graph (hops=2; w=1). Source: public morphology (bodies.g1_simple).",
+    "eq": "$\\tileind[\\,d_{\\mathrm{tree}}(i,j)=2\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/humanoid (rrp.envs.mujoco.humanoid_scenes.task_model('g1','h_steps'))",
     "body": "g1 (36 command-dim tokens, bodies.g1_simple, vocab g1-dim-rel-v1)",
@@ -1351,12 +1547,11 @@
     "note": "hop op lights grandparent / grandchild pairs at the same undirected distance (catalog doc)",
     "code_path": "FactorSite(['kin.sibling'], dims>dims).contributions over RelCtx edges = bodies.g1_simple.relation_matrix(); weight 1"
    },
-   "labels_ge_min": 3,
+   "labels_ge_min": 11,
    "labels": 11,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.51,
-   "n_scene_text": 14,
-   "n_below_min": 8,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 12,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -1365,14 +1560,24 @@
    ]
   },
   "ix.contact": {
-   "page": 1,
-   "row": 5,
+   "page": 4,
+   "row": 0,
    "col": 0,
    "family": "interaction",
    "status": "computed (label)",
-   "short": "entities in geometric contact",
-   "caption": "ix.contact: two entities in geometric contact (sim contact truth): query gripper → cube 1, distractors / target 0. White dots: the gripper–cube contact points. bilinear × aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
+   "file": "figures/tiles/ix_contact.pdf",
+   "desc_lines": 4,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "ix.contact",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt\\,\\tilesrcprobe",
+    "desc": "two entities in geometric contact (sim contact truth): query gripper $\\to$ cube 1, distractors / target 0. White dots: the gripper--cube contact points. bilinear $\\times$ aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
+    "condensed": false,
+    "full": "two entities in geometric contact (sim contact truth): query gripper → cube 1, distractors / target 0. White dots: the gripper–cube contact points. bilinear × aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
+    "eq": "$\\mathrm{contact}(i,j)$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -1393,12 +1598,11 @@
     "badge": "shown: gt label (training-only); deployed: estimated-probe",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 2,
+   "labels_ge_min": 5,
    "labels": 5,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.2,
-   "n_scene_text": 8,
-   "n_below_min": 3,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 6,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -1411,14 +1615,24 @@
    ]
   },
   "ix.force_flow": {
-   "page": 1,
-   "row": 5,
+   "page": 4,
+   "row": 0,
    "col": 1,
    "family": "interaction",
    "status": "computed",
-   "short": "everything the query carries",
-   "caption": "ix.force_flow: transitive closure of the support graph: everything the query carries, directly or through others. Bottom cube → middle 1 and top 1 (direct edge only to the middle). Op: flow (closure) over support-v1. flow × bias. Source: shown: closure of gt support (training-only); deployed: closure of the ix.support estimated-probe.",
+   "file": "figures/tiles/ix_force_flow.pdf",
+   "desc_lines": 4,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "ix.force\\_flow",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt\\,\\tilesrcprobe",
+    "desc": "transitive closure of the support graph: all the query carries, directly or via others. Bottom cube $\\to$ middle 1, top 1 (direct edge only to the middle). flow (closure) $\\times$ bias over support-v1. Source: shown: closure of gt support (training-only); deployed: closure of the ix.support est-probe.",
+    "condensed": true,
+    "full": "transitive closure of the support graph: everything the query carries, directly or through others. Bottom cube → middle 1 and top 1 (direct edge only to the middle). Op: flow (closure) over support-v1. flow × bias. Source: shown: closure of gt support (training-only); deployed: closure of the ix.support estimated-probe.",
+    "eq": "$\\mathrm{flow}^{+}(\\mathrm{support})(i,j)$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -1443,12 +1657,11 @@
     "badge": "shown: closure of gt support (training-only); deployed: closure of the ix.support estimated-probe",
     "scene": "TELEPORTED STACK (figure-only)"
    },
-   "labels_ge_min": 1,
+   "labels_ge_min": 4,
    "labels": 4,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.2,
-   "n_scene_text": 7,
-   "n_below_min": 3,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 5,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -1461,14 +1674,24 @@
    ]
   },
   "ix.handover": {
-   "page": 1,
-   "row": 5,
+   "page": 4,
+   "row": 0,
    "col": 2,
    "family": "interaction",
    "status": "computed (label)",
-   "short": "two hands on one object",
-   "caption": "ix.handover: two manipulator assemblies in contact with the same object at once (a handover in progress): query L grip → R grip 1, bar / target 0. Dots: bar contacts of each hand. Dual env only. bilinear × aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
+   "file": "figures/tiles/ix_handover.pdf",
+   "desc_lines": 4,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "ix.handover",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt\\,\\tilesrcprobe",
+    "desc": "two manipulator assemblies in contact with the same object at once (a handover in progress): query L grip $\\to$ R grip 1, bar / target 0. Dots: bar contacts of each hand. Dual env only. bilinear $\\times$ aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
+    "condensed": false,
+    "full": "two manipulator assemblies in contact with the same object at once (a handover in progress): query L grip → R grip 1, bar / target 0. Dots: bar contacts of each hand. Dual env only. bilinear × aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
+    "eq": "$\\mathrm{handover}(i,j)$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -1488,12 +1711,11 @@
     "badge": "shown: gt label (training-only); deployed: estimated-probe",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 3,
    "labels": 3,
-   "formula_pt": null,
-   "min_scene_text_pt": 3.0,
-   "n_scene_text": 6,
-   "n_below_min": 3,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 4,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -1506,14 +1728,24 @@
    ]
   },
   "ix.held_by": {
-   "page": 1,
-   "row": 5,
-   "col": 3,
+   "page": 4,
+   "row": 1,
+   "col": 0,
    "family": "interaction",
    "status": "computed (label)",
-   "short": "object held by a hand",
-   "caption": "ix.held_by: object held by a manipulator assembly (≥ 2 contacts with its hand bodies): lifted cube → gripper 1; target and distractors 0. bilinear × aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
+   "file": "figures/tiles/ix_held_by.pdf",
+   "desc_lines": 3,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "ix.held\\_by",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt\\,\\tilesrcprobe",
+    "desc": "object held by a manipulator assembly ($\\geq$ 2 contacts with its hand bodies): lifted cube $\\to$ gripper 1; target and distractors 0. bilinear $\\times$ aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
+    "condensed": false,
+    "full": "object held by a manipulator assembly (≥ 2 contacts with its hand bodies): lifted cube → gripper 1; target and distractors 0. bilinear × aug (probe). Source: shown: gt label (training-only); deployed: estimated-probe.",
+    "eq": "$\\mathrm{held\\_by}(i,j)$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -1535,12 +1767,11 @@
     "badge": "shown: gt label (training-only); deployed: estimated-probe",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 2,
+   "labels_ge_min": 5,
    "labels": 5,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.4,
-   "n_scene_text": 8,
-   "n_below_min": 3,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 6,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -1553,14 +1784,24 @@
    ]
   },
   "ix.support": {
-   "page": 1,
-   "row": 5,
-   "col": 4,
+   "page": 4,
+   "row": 1,
+   "col": 1,
    "family": "interaction",
    "status": "computed (label)",
-   "short": "a supports b (contact, up)",
-   "caption": "ix.support: a supports b: contact + contact normal within 30° of gravity-up at a's top. Query middle cube → top 1 (row); it is itself supported by the bottom cube (grey arrow, column). Emits the estimated support-v1 graph. bilinear × aug (probe, emits). Source: shown: gt label (training-only); deployed: estimated-probe.",
+   "file": "figures/tiles/ix_support.pdf",
+   "desc_lines": 4,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "ix.support",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt\\,\\tilesrcprobe",
+    "desc": "a supports b: contact + normal within 30$^\\circ$ of gravity-up at a's top. Query middle cube $\\to$ top 1 (row); the bottom cube supports it (grey arrow, column). Emits the estimated support-v1 graph. bilinear $\\times$ aug (probe, emits). Source: shown: gt label (training-only); deployed: est-probe.",
+    "condensed": true,
+    "full": "a supports b: contact + contact normal within 30° of gravity-up at a's top. Query middle cube → top 1 (row); it is itself supported by the bottom cube (grey arrow, column). Emits the estimated support-v1 graph. bilinear × aug (probe, emits). Source: shown: gt label (training-only); deployed: estimated-probe.",
+    "eq": "$\\mathrm{support}(i,j)$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -1591,12 +1832,11 @@
     "badge": "shown: gt label (training-only); deployed: estimated-probe",
     "scene": "TELEPORTED STACK (figure-only)"
    },
-   "labels_ge_min": 2,
+   "labels_ge_min": 4,
    "labels": 4,
-   "formula_pt": null,
-   "min_scene_text_pt": 3.2,
-   "n_scene_text": 7,
-   "n_below_min": 2,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 5,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -1609,14 +1849,24 @@
    ]
   },
   "edge.actor_of": {
-   "page": 2,
-   "row": 0,
+   "page": 4,
+   "row": 2,
    "col": 0,
    "family": "task",
    "status": "computed",
-   "short": "actor ↔ its events",
-   "caption": "edge.actor_of: manipulator entity ↔ every event it is (cooperating) actor of; L grip acts in take, offer, release. Typed edge channel of the arm-rel-v1 graph, one learned weight per head. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "file": "figures/tiles/edge_actor_of.pdf",
+   "desc_lines": 4,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.actor\\_of",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "manipulator entity $\\leftrightarrow$ every event it is (cooperating) actor of; L grip acts in take, offer, release. Typed edge channel of the arm-rel-v1 graph, one learned weight per head. edge $\\times$ bias. Source: public (given): supplied task graph + runtime.",
+    "condensed": false,
+    "full": "manipulator entity ↔ every event it is (cooperating) actor of; L grip acts in take, offer, release. Typed edge channel of the arm-rel-v1 graph, one learned weight per head. edge × bias. Source: public (given): supplied task graph + runtime.",
+    "eq": "$\\tileind[\\,\\{i,j\\}\\in E_{\\mathrm{actor\\_of}}\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -1637,12 +1887,11 @@
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 4,
+   "labels_ge_min": 9,
    "labels": 13,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 15,
-   "n_below_min": 9,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 14,
+   "n_below_min": 4,
    "badges": [
     [
      "public",
@@ -1651,14 +1900,24 @@
    ]
   },
   "edge.consumed_by": {
-   "page": 2,
-   "row": 0,
+   "page": 4,
+   "row": 2,
    "col": 1,
    "family": "task",
    "status": "computed",
-   "short": "receipt ↔ consuming event",
-   "caption": "edge.consumed_by: runtime receipt ↔ the event whose output-binding role consumes it: offer.anchor is consumed by receive. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "file": "figures/tiles/edge_consumed_by.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.consumed\\_by",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "runtime receipt $\\leftrightarrow$ the event whose output-binding role consumes it: offer.anchor is consumed by receive. edge $\\times$ bias. Source: public (given): supplied task graph + runtime.",
+    "condensed": false,
+    "full": "runtime receipt ↔ the event whose output-binding role consumes it: offer.anchor is consumed by receive. edge × bias. Source: public (given): supplied task graph + runtime.",
+    "eq": "$\\tileind[\\,\\{i,j\\}\\in E_{\\mathrm{consumed\\_by}}\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -1677,12 +1936,11 @@
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 4,
+   "labels_ge_min": 10,
    "labels": 12,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 14,
-   "n_below_min": 8,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 13,
+   "n_below_min": 2,
    "badges": [
     [
      "public",
@@ -1691,14 +1949,24 @@
    ]
   },
   "edge.destination_of": {
-   "page": 2,
-   "row": 0,
+   "page": 4,
+   "row": 2,
    "col": 2,
    "family": "task",
    "status": "computed",
-   "short": "destination ↔ event",
-   "caption": "edge.destination_of: destination entity ↔ event: the right gripper is where 'offer' and 'release' deliver the bar (target zone is place's destination). edge × bias. Source: public (given): supplied task graph + runtime.",
+   "file": "figures/tiles/edge_destination_of.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.destination\\_of",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "destination entity $\\leftrightarrow$ event: the right gripper is where 'offer' and 'release' deliver the bar (target zone is place's destination). edge $\\times$ bias. Source: public (given): supplied task graph + runtime.",
+    "condensed": false,
+    "full": "destination entity ↔ event: the right gripper is where 'offer' and 'release' deliver the bar (target zone is place's destination). edge × bias. Source: public (given): supplied task graph + runtime.",
+    "eq": "$\\tileind[\\,\\{i,j\\}\\in E_{\\mathrm{destination\\_of}}\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -1718,12 +1986,11 @@
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 6,
+   "labels_ge_min": 10,
    "labels": 12,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 14,
-   "n_below_min": 6,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 13,
+   "n_below_min": 2,
    "badges": [
     [
      "public",
@@ -1732,14 +1999,24 @@
    ]
   },
   "edge.enables": {
-   "page": 2,
+   "page": 5,
    "row": 0,
-   "col": 3,
+   "col": 0,
    "family": "task",
    "status": "computed",
-   "short": "event → required-done event",
-   "caption": "edge.enables: event → event it requires COMPLETED (requires_completed): release needs receive and offer done. Public task-graph precedence. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "file": "figures/tiles/edge_enables.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.enables",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "event $\\to$ event it requires COMPLETED (requires\\_completed): release needs receive and offer done. Public task-graph precedence. edge $\\times$ bias. Source: public (given): supplied task graph + runtime.",
+    "condensed": false,
+    "full": "event → event it requires COMPLETED (requires_completed): release needs receive and offer done. Public task-graph precedence. edge × bias. Source: public (given): supplied task graph + runtime.",
+    "eq": "$\\tileind[\\,j\\in\\mathrm{requires\\_completed}(i)\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -1759,12 +2036,11 @@
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 4,
+   "labels_ge_min": 10,
    "labels": 12,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 14,
-   "n_below_min": 8,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 13,
+   "n_below_min": 2,
    "badges": [
     [
      "public",
@@ -1773,14 +2049,24 @@
    ]
   },
   "edge.maintained": {
-   "page": 2,
+   "page": 5,
    "row": 0,
-   "col": 4,
+   "col": 1,
    "family": "task",
    "status": "computed",
-   "short": "event → required-active event",
-   "caption": "edge.maintained: event → event it requires ACTIVE (requires_active): receive is only valid while offer is held. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "file": "figures/tiles/edge_maintained.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.maintained",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "event $\\to$ event it requires ACTIVE (requires\\_active): receive is only valid while offer is held. edge $\\times$ bias. Source: public (given): supplied task graph + runtime.",
+    "condensed": false,
+    "full": "event → event it requires ACTIVE (requires_active): receive is only valid while offer is held. edge × bias. Source: public (given): supplied task graph + runtime.",
+    "eq": "$\\tileind[\\,j\\in\\mathrm{requires\\_active}(i)\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -1799,12 +2085,11 @@
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 4,
+   "labels_ge_min": 9,
    "labels": 11,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 13,
-   "n_below_min": 7,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 12,
+   "n_below_min": 2,
    "badges": [
     [
      "public",
@@ -1813,14 +2098,24 @@
    ]
   },
   "edge.node_actor_of": {
-   "page": 2,
+   "page": 5,
    "row": 0,
-   "col": 5,
+   "col": 2,
    "family": "task",
    "status": "computed",
-   "short": "action node → its events",
-   "caption": "edge.node_actor_of: action node (one joint-command token) → every event its manipulator acts in: a 2-hop composition node → assembly → actor binding. Left-arm joint7 → take, offer, release. edge × bias (act>ctx). Source: public (given): supplied task graph + runtime.",
+   "file": "figures/tiles/edge_node_actor_of.pdf",
+   "desc_lines": 4,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.node\\_actor\\_of",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "action node (one joint-command token) $\\to$ every event its manipulator acts in: a 2-hop composition node $\\to$ assembly $\\to$ actor binding. Left-arm joint7 $\\to$ take, offer, release. edge $\\times$ bias (act>ctx). Source: public (given): supplied task graph + runtime.",
+    "condensed": false,
+    "full": "action node (one joint-command token) → every event its manipulator acts in: a 2-hop composition node → assembly → actor binding. Left-arm joint7 → take, offer, release. edge × bias (act>ctx). Source: public (given): supplied task graph + runtime.",
+    "eq": "$\\tileind[\\,\\mathrm{asm}(i)\\in\\mathrm{actors}(j)\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -1840,12 +2135,11 @@
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 5,
+   "labels_ge_min": 10,
    "labels": 14,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 16,
-   "n_below_min": 9,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 15,
+   "n_below_min": 4,
    "badges": [
     [
      "public",
@@ -1854,14 +2148,24 @@
    ]
   },
   "edge.output_to": {
-   "page": 2,
+   "page": 5,
    "row": 1,
    "col": 0,
    "family": "task",
    "status": "computed",
-   "short": "event ↔ consumer of output",
-   "caption": "edge.output_to: event ↔ event consuming its output: receive's reference role binds offer's 'anchor' output (event_output binding). edge × bias. Source: public (given): supplied task graph + runtime.",
+   "file": "figures/tiles/edge_output_to.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.output\\_to",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "event $\\leftrightarrow$ event consuming its output: receive's reference role binds offer's 'anchor' output (event\\_output binding). edge $\\times$ bias. Source: public (given): supplied task graph + runtime.",
+    "condensed": false,
+    "full": "event ↔ event consuming its output: receive's reference role binds offer's 'anchor' output (event_output binding). edge × bias. Source: public (given): supplied task graph + runtime.",
+    "eq": "$\\tileind[\\,\\{i,j\\}\\in E_{\\mathrm{output\\_to}}\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -1880,12 +2184,11 @@
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 4,
+   "labels_ge_min": 9,
    "labels": 11,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 13,
-   "n_below_min": 7,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 12,
+   "n_below_min": 2,
    "badges": [
     [
      "public",
@@ -1894,14 +2197,24 @@
    ]
   },
   "edge.patient_of": {
-   "page": 2,
+   "page": 5,
    "row": 1,
    "col": 1,
    "family": "task",
    "status": "computed",
-   "short": "patient ↔ events acting on it",
-   "caption": "edge.patient_of: patient entity ↔ the events that act on it: the bar is the patient of all five handover events (take, offer, receive, release, place). edge × bias. Source: public (given): supplied task graph + runtime.",
+   "file": "figures/tiles/edge_patient_of.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.patient\\_of",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "patient entity $\\leftrightarrow$ the events that act on it: the bar is the patient of all five handover events (take, offer, receive, release, place). edge $\\times$ bias. Source: public (given): supplied task graph + runtime.",
+    "condensed": false,
+    "full": "patient entity ↔ the events that act on it: the bar is the patient of all five handover events (take, offer, receive, release, place). edge × bias. Source: public (given): supplied task graph + runtime.",
+    "eq": "$\\tileind[\\,\\{i,j\\}\\in E_{\\mathrm{patient\\_of}}\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -1924,12 +2237,11 @@
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 4,
+   "labels_ge_min": 8,
    "labels": 15,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 17,
-   "n_below_min": 11,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 16,
+   "n_below_min": 7,
    "badges": [
     [
      "public",
@@ -1938,14 +2250,24 @@
    ]
   },
   "edge.pred_arg": {
-   "page": 2,
+   "page": 5,
    "row": 1,
    "col": 2,
    "family": "task",
    "status": "computed",
-   "short": "predicate ↔ its arguments",
-   "caption": "edge.pred_arg: predicate-estimate token ↔ its argument entities: held_by(bar, left) points at the bar slot and the left-gripper assembly. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "file": "figures/tiles/edge_pred_arg.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.pred\\_arg",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "predicate-estimate token $\\leftrightarrow$ its argument entities: held\\_by(bar, left) points at the bar slot and the left-gripper assembly. edge $\\times$ bias. Source: public (given): supplied task graph + runtime.",
+    "condensed": false,
+    "full": "predicate-estimate token ↔ its argument entities: held_by(bar, left) points at the bar slot and the left-gripper assembly. edge × bias. Source: public (given): supplied task graph + runtime.",
+    "eq": "$\\tileind[\\,\\{i,j\\}\\in E_{\\mathrm{pred\\_arg}}\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -1965,12 +2287,11 @@
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 3,
+   "labels_ge_min": 11,
    "labels": 13,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 15,
-   "n_below_min": 10,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 14,
+   "n_below_min": 2,
    "badges": [
     [
      "public",
@@ -1979,14 +2300,24 @@
    ]
   },
   "edge.produced": {
-   "page": 2,
-   "row": 1,
-   "col": 3,
+   "page": 5,
+   "row": 2,
+   "col": 0,
    "family": "task",
    "status": "computed",
-   "short": "receipt ↔ producing event",
-   "caption": "edge.produced: runtime receipt ↔ the event that produced it: the 'anchor' receipt (interact bank) was emitted by offer. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "file": "figures/tiles/edge_produced.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.produced",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "runtime receipt $\\leftrightarrow$ the event that produced it: the 'anchor' receipt (interact bank) was emitted by offer. edge $\\times$ bias. Source: public (given): supplied task graph + runtime.",
+    "condensed": false,
+    "full": "runtime receipt ↔ the event that produced it: the 'anchor' receipt (interact bank) was emitted by offer. edge × bias. Source: public (given): supplied task graph + runtime.",
+    "eq": "$\\tileind[\\,\\{i,j\\}\\in E_{\\mathrm{produced}}\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -2005,12 +2336,11 @@
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 4,
+   "labels_ge_min": 10,
    "labels": 12,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 14,
-   "n_below_min": 8,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 13,
+   "n_below_min": 2,
    "badges": [
     [
      "public",
@@ -2019,14 +2349,24 @@
    ]
   },
   "edge.role_in_event": {
-   "page": 2,
-   "row": 1,
-   "col": 4,
+   "page": 5,
+   "row": 2,
+   "col": 1,
    "family": "task",
    "status": "computed",
-   "short": "role slot ↔ its event",
-   "caption": "edge.role_in_event: role-slot token ↔ its event: receive owns four ordered role slots (actor, patient, source, reference); multiplicity is explicit. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "file": "figures/tiles/edge_role_in_event.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.role\\_in\\_event",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "role-slot token $\\leftrightarrow$ its event: receive owns four ordered role slots (actor, patient, source, reference); multiplicity is explicit. edge $\\times$ bias. Source: public (given): supplied task graph + runtime.",
+    "condensed": false,
+    "full": "role-slot token ↔ its event: receive owns four ordered role slots (actor, patient, source, reference); multiplicity is explicit. edge × bias. Source: public (given): supplied task graph + runtime.",
+    "eq": "$\\tileind[\\,\\{i,j\\}\\in E_{\\mathrm{role\\_in\\_event}}\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -2048,12 +2388,11 @@
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 3,
+   "labels_ge_min": 13,
    "labels": 18,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 20,
-   "n_below_min": 15,
+   "min_scene_text_pt": 4.07,
+   "n_scene_text": 19,
+   "n_below_min": 5,
    "badges": [
     [
      "public",
@@ -2062,14 +2401,24 @@
    ]
   },
   "edge.role_points_to": {
-   "page": 2,
-   "row": 1,
-   "col": 5,
+   "page": 5,
+   "row": 2,
+   "col": 2,
    "family": "task",
    "status": "computed",
-   "short": "role slot → bound entity",
-   "caption": "edge.role_points_to: role-slot token → the entity token it is bound to: receive:source → left-gripper assembly (an output binding points to no entity). edge × bias. Source: public (given): supplied task graph + runtime.",
+   "file": "figures/tiles/edge_role_points_to.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.role\\_points\\_to",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "role-slot token $\\to$ the entity token it is bound to: receive:source $\\to$ left-gripper assembly (an output binding points to no entity). edge $\\times$ bias. Source: public (given): supplied task graph + runtime.",
+    "condensed": false,
+    "full": "role-slot token → the entity token it is bound to: receive:source → left-gripper assembly (an output binding points to no entity). edge × bias. Source: public (given): supplied task graph + runtime.",
+    "eq": "$\\tileind[\\,j=\\mathrm{bound}(i)\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -2088,12 +2437,11 @@
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 4,
+   "labels_ge_min": 10,
    "labels": 12,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 14,
-   "n_below_min": 8,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 13,
+   "n_below_min": 2,
    "badges": [
     [
      "public",
@@ -2102,14 +2450,24 @@
    ]
   },
   "edge.support_of": {
-   "page": 2,
-   "row": 2,
+   "page": 6,
+   "row": 0,
    "col": 0,
    "family": "task",
    "status": "illustrative",
-   "short": "support role ↔ event",
-   "caption": "edge.support_of: support-role entity ↔ event: the left arm braces the fixture during align. ILLUSTRATIVE: no shipped arm/dual graph binds a support role to an entity; align:support rebound to 'left' (figure-only). edge × bias. Source: illustrative: public edge on a figure-only task-graph variant.",
+   "file": "figures/tiles/edge_support_of.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.support\\_of",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "support-role entity $\\leftrightarrow$ event: the left arm braces the fixture during align. edge $\\times$ bias. Source: illustrative: public edge on a figure-only task-graph variant.",
+    "condensed": false,
+    "full": "support-role entity ↔ event: the left arm braces the fixture during align. edge × bias. Source: illustrative: public edge on a figure-only task-graph variant.",
+    "eq": "$\\tileind[\\,\\{i,j\\}\\in E_{\\mathrm{support\\_of}}\\,]$",
+    "illus": "no shipped arm or dual task graph binds a support role to an entity; align:support is rebound to 'left' for this figure only."
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -2125,12 +2483,11 @@
     "badge": "illustrative: public edge on a figure-only task-graph variant",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 8,
    "labels": 12,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 14,
-   "n_below_min": 12,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 13,
+   "n_below_min": 4,
    "badges": [
     [
      "public",
@@ -2139,14 +2496,24 @@
    ]
   },
   "edge.target_of": {
-   "page": 2,
-   "row": 2,
+   "page": 6,
+   "row": 0,
    "col": 1,
    "family": "task",
    "status": "computed",
-   "short": "target / source ↔ event",
-   "caption": "edge.target_of: target entity (and every role without its own channel, here receive:source) ↔ event: the left gripper is the source of 'receive'. edge × bias. Source: public (given): supplied task graph + runtime.",
+   "file": "figures/tiles/edge_target_of.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "edge.target\\_of",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "target entity (and every role without its own channel, here receive:source) $\\leftrightarrow$ event: the left gripper is the source of 'receive'. edge $\\times$ bias. Source: public (given): supplied task graph + runtime.",
+    "condensed": false,
+    "full": "target entity (and every role without its own channel, here receive:source) ↔ event: the left gripper is the source of 'receive'. edge × bias. Source: public (given): supplied task graph + runtime.",
+    "eq": "$\\tileind[\\,\\{i,j\\}\\in E_{\\mathrm{target\\_of}}\\,]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/dual",
     "body": "panda_pg2__ur5e_pg2",
@@ -2165,12 +2532,11 @@
     "badge": "public (given): supplied task graph + runtime",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 4,
+   "labels_ge_min": 9,
    "labels": 11,
-   "formula_pt": null,
-   "min_scene_text_pt": 2.04,
-   "n_scene_text": 13,
-   "n_below_min": 7,
+   "min_scene_text_pt": 4.1,
+   "n_scene_text": 12,
+   "n_below_min": 2,
    "badges": [
     [
      "public",
@@ -2179,14 +2545,24 @@
    ]
   },
   "task.next_contact": {
-   "page": 2,
-   "row": 2,
+   "page": 6,
+   "row": 0,
    "col": 2,
    "family": "task",
    "status": "computed (label)",
-   "short": "hand → next graspable (gated)",
-   "caption": "task.next_contact: manipulator → graspable score, sharpened by the task gate (g_task = 1.00 at init, learned). Dashed: PUBLIC candidate edges (1/|E|); solid: selected (gt reveal posterior given contact). bilinear × aug, gated. Source: candidates: public; selected: gt (training-only); deployed: estimated-probe × g_task.",
+   "file": "figures/tiles/task_next_contact.pdf",
+   "desc_lines": 4,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "task.next\\_contact",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub\\,\\tilesrcgt\\,\\tilesrcprobe",
+    "desc": "manipulator $\\to$ graspable score, sharpened by the task gate (g\\_task = 1.00 at init, learned). Dashed: public candidate edges (1/|E|); solid: selected (gt reveal posterior given contact). bilinear $\\times$ aug, gated. Deployed: est-probe $\\times$ g\\_task.",
+    "condensed": true,
+    "full": "manipulator → graspable score, sharpened by the task gate (g_task = 1.00 at init, learned). Dashed: PUBLIC candidate edges (1/|E|); solid: selected (gt reveal posterior given contact). bilinear × aug, gated. Source: candidates: public; selected: gt (training-only); deployed: estimated-probe × g_task.",
+    "eq": "$g_{\\rm task}\\,\\mathrm{next}(i,j)$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -2220,12 +2596,11 @@
     "badge": "candidates: public; selected: gt (training-only); deployed: estimated-probe × g_task",
     "scene": "SCRIPTED TEACHER (privileged)"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 3,
    "labels": 7,
-   "formula_pt": null,
-   "min_scene_text_pt": 1.96,
-   "n_scene_text": 11,
-   "n_below_min": 7,
+   "min_scene_text_pt": 3.91,
+   "n_scene_text": 8,
+   "n_below_min": 4,
    "badges": [
     [
      "public",
@@ -2242,14 +2617,24 @@
    ]
   },
   "leg.com_support": {
-   "page": 2,
-   "row": 3,
+   "page": 6,
+   "row": 1,
    "col": 0,
    "family": "locomotion",
    "status": "computed",
-   "short": "COM stability margin",
-   "caption": "leg.com_support: readout of the stability margin: signed planar distance of the COM projection to the stance-foot support polygon (m, + inside). readout (inert), address assembly, gauss (1-d). Source: gt sim truth (contacts), training-only.",
+   "file": "figures/tiles/leg_com_support.pdf",
+   "desc_lines": 4,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "leg.com\\_support",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of the stability margin: signed planar distance of the COM projection to the stance-foot support polygon (m, + inside). readout (inert), address assembly, gauss (1-d). Source: gt sim truth (contacts), training-only.",
+    "condensed": false,
+    "full": "readout of the stability margin: signed planar distance of the COM projection to the stance-foot support polygon (m, + inside). readout (inert), address assembly, gauss (1-d). Source: gt sim truth (contacts), training-only.",
+    "eq": "signed dist(COM$_{xy}$, hull(stance feet))",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/legged",
     "body": "go2",
@@ -2283,9 +2668,8 @@
    },
    "labels_ge_min": 1,
    "labels": 2,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.0,
-   "n_scene_text": 5,
+   "min_scene_text_pt": 4.3,
+   "n_scene_text": 3,
    "n_below_min": 1,
    "badges": [
     [
@@ -2295,14 +2679,24 @@
    ]
   },
   "leg.foothold": {
-   "page": 2,
-   "row": 3,
+   "page": 6,
+   "row": 1,
    "col": 1,
    "family": "locomotion",
    "status": "computed",
-   "short": "swing foot → touchdown cell",
-   "caption": "leg.foothold: pair label: each swinging foot -> the terrain-scan cell containing its next touchdown (hindsight); planted feet have no true pair. op bilinear, form aug (the bias IS the pair probe). Source: gt label (future touchdown), training-only; deployed = estimated-probe.",
+   "file": "figures/tiles/leg_foothold.pdf",
+   "desc_lines": 4,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "leg.foothold",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt\\,\\tilesrcprobe",
+    "desc": "pair label: each swinging foot -> the terrain-scan cell containing its next touchdown (hindsight); planted feet have no true pair. op bilinear, form aug (the bias IS the pair probe). Source: gt label (future touchdown), training-only; deployed = estimated-probe.",
+    "condensed": false,
+    "full": "pair label: each swinging foot -> the terrain-scan cell containing its next touchdown (hindsight); planted feet have no true pair. op bilinear, form aug (the bias IS the pair probe). Source: gt label (future touchdown), training-only; deployed = estimated-probe.",
+    "eq": "foothold(foot$_f$, cell$_c$)",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/legged",
     "body": "go2",
@@ -2342,12 +2736,11 @@
     "note": "arr['foothold_cell'] = legged_latent_collect.foothold_cells (the training form one-hot onto the 77 scan-cell ctx tokens by nets.legged_latent.legged_graph); terrain flat (waypoint_contact)",
     "episode_status": "success"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 1,
    "labels": 2,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.0,
-   "n_scene_text": 6,
-   "n_below_min": 2,
+   "min_scene_text_pt": 3.9,
+   "n_scene_text": 3,
+   "n_below_min": 1,
    "badges": [
     [
      "gt",
@@ -2360,14 +2753,24 @@
    ]
   },
   "ui.above": {
-   "page": 2,
-   "row": 4,
+   "page": 7,
+   "row": 0,
    "col": 0,
    "family": "ui",
    "status": "computed",
-   "short": "signed render order",
-   "caption": "ui.above: signed render order: +1 if widget j is drawn above i (higher dense z-layer), -1 below, 0 same layer; dark = +1 (resize handles, shell), light = -1 (window frame, desktop icon). op order over field zlayer, form bias (antisymmetric). Source: public (given widget tree).",
+   "file": "figures/tiles/ui_above.pdf",
+   "desc_lines": 4,
    "colour": "#3A3F47",
+   "caption": {
+    "name": "ui.above",
+    "colour": "3A3F47",
+    "glyphs": "\\tilesrcpub",
+    "desc": "signed render order: +1 if widget j is drawn above i (higher dense z-layer), -1 below, 0 same layer; dark = +1 (resize handles, shell), light = -1 (window frame, desktop icon). op order over field zlayer, form bias (antisymmetric). Source: public (given widget tree).",
+    "condensed": false,
+    "full": "signed render order: +1 if widget j is drawn above i (higher dense z-layer), -1 below, 0 same layer; dark = +1 (resize handles, shell), light = -1 (window frame, desktop icon). op order over field zlayer, form bias (antisymmetric). Source: public (given widget tree).",
+    "eq": "$\\mathrm{sign}(z_j-z_i)$",
+    "illus": ""
+   },
    "meta": {
     "env": "computerworld (cw-site)",
     "seed": 3000001,
@@ -2393,12 +2796,11 @@
      "4": 11
     }
    },
-   "labels_ge_min": 3,
+   "labels_ge_min": 4,
    "labels": 7,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.8,
-   "n_scene_text": 10,
-   "n_below_min": 4,
+   "min_scene_text_pt": 3.59,
+   "n_scene_text": 8,
+   "n_below_min": 3,
    "badges": [
     [
      "public",
@@ -2407,14 +2809,24 @@
    ]
   },
   "ui.drag_to": {
-   "page": 2,
-   "row": 4,
+   "page": 7,
+   "row": 0,
    "col": 1,
    "family": "ui",
    "status": "computed",
-   "short": "drag handle → drop widget",
-   "caption": "ui.drag_to: pair label: the teacher's drag handle -> the nearest widget outside the dragged window to where the drag ends (cw/drag_window); 1 pair of 2116 valid. op bilinear, form aug (the bias IS the pair probe). Source: gt label (teacher goal), training-only; deployed = estimated-probe.",
+   "file": "figures/tiles/ui_drag_to.pdf",
+   "desc_lines": 4,
    "colour": "#3A3F47",
+   "caption": {
+    "name": "ui.drag\\_to",
+    "colour": "3A3F47",
+    "glyphs": "\\tilesrcgt\\,\\tilesrcprobe",
+    "desc": "pair label: the teacher's drag handle -> the nearest widget outside the dragged window to where the drag ends (cw/drag\\_window); 1 pair of 2116 valid. op bilinear, form aug (the bias IS the pair probe). Source: gt label (teacher goal), training-only; deployed = estimated-probe.",
+    "condensed": false,
+    "full": "pair label: the teacher's drag handle -> the nearest widget outside the dragged window to where the drag ends (cw/drag_window); 1 pair of 2116 valid. op bilinear, form aug (the bias IS the pair probe). Source: gt label (teacher goal), training-only; deployed = estimated-probe.",
+    "eq": "$\\mathrm{drag\\_to}(i,j)$",
+    "illus": ""
+   },
    "meta": {
     "env": "computerworld (cw-site)",
     "seed": 3000001,
@@ -2445,12 +2857,11 @@
     "n_true": 1,
     "note": "relgen.ui.drag_to_fn via teacher_drag_view(env); the deployed term is the learned bilinear probe (NOT computed here)"
    },
-   "labels_ge_min": 1,
+   "labels_ge_min": 2,
    "labels": 3,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.0,
-   "n_scene_text": 7,
-   "n_below_min": 2,
+   "min_scene_text_pt": 4.3,
+   "n_scene_text": 4,
+   "n_below_min": 1,
    "badges": [
     [
      "gt",
@@ -2463,14 +2874,24 @@
    ]
   },
   "ui.focus_next": {
-   "page": 2,
-   "row": 4,
+   "page": 7,
+   "row": 0,
    "col": 2,
    "family": "ui",
    "status": "computed",
-   "short": "consecutive in tab order",
-   "caption": "ui.focus_next: public UI edge: i, j consecutive in the tab order (focusable, enabled widgets in scene order, cyclic); Name -> Email. op edge, form bias (edges:ui-rel-v1 channel focus_next). Source: public (given widget tree).",
+   "file": "figures/tiles/ui_focus_next.pdf",
+   "desc_lines": 3,
    "colour": "#3A3F47",
+   "caption": {
+    "name": "ui.focus\\_next",
+    "colour": "3A3F47",
+    "glyphs": "\\tilesrcpub",
+    "desc": "public UI edge: i, j consecutive in the tab order (focusable, enabled widgets in scene order, cyclic); Name -> Email. op edge, form bias (edges:ui-rel-v1 channel focus\\_next). Source: public (given widget tree).",
+    "condensed": false,
+    "full": "public UI edge: i, j consecutive in the tab order (focusable, enabled widgets in scene order, cyclic); Name -> Email. op edge, form bias (edges:ui-rel-v1 channel focus_next). Source: public (given widget tree).",
+    "eq": "$\\mathrm{focus\\_next}(i,j)$",
+    "illus": ""
+   },
    "meta": {
     "env": "computerworld (cw-site)",
     "seed": 3000001,
@@ -2505,12 +2926,11 @@
      }
     ]
    },
-   "labels_ge_min": 2,
+   "labels_ge_min": 4,
    "labels": 4,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.69,
-   "n_scene_text": 7,
-   "n_below_min": 2,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 5,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -2519,14 +2939,24 @@
    ]
   },
   "ui.label_for": {
-   "page": 2,
-   "row": 4,
-   "col": 3,
+   "page": 7,
+   "row": 1,
+   "col": 0,
    "family": "ui",
    "status": "computed",
-   "short": "label → its widget",
-   "caption": "ui.label_for: public UI edge: a role=label widget -> the next widget after it in the same window (scene order); here 'Email' -> its textbox. op edge, form bias (edges:ui-rel-v1 channel label_for). Source: public (given widget tree).",
+   "file": "figures/tiles/ui_label_for.pdf",
+   "desc_lines": 3,
    "colour": "#3A3F47",
+   "caption": {
+    "name": "ui.label\\_for",
+    "colour": "3A3F47",
+    "glyphs": "\\tilesrcpub",
+    "desc": "public UI edge: a role=label widget -> the next widget after it in the same window (scene order); here 'Email' -> its textbox. op edge, form bias (edges:ui-rel-v1 channel label\\_for). Source: public (given widget tree).",
+    "condensed": false,
+    "full": "public UI edge: a role=label widget -> the next widget after it in the same window (scene order); here 'Email' -> its textbox. op edge, form bias (edges:ui-rel-v1 channel label_for). Source: public (given widget tree).",
+    "eq": "$\\mathrm{label\\_for}(i,j)$",
+    "illus": ""
+   },
    "meta": {
     "env": "computerworld (cw-site)",
     "seed": 3000001,
@@ -2558,12 +2988,11 @@
      "nnz": 1
     }
    },
-   "labels_ge_min": 2,
+   "labels_ge_min": 3,
    "labels": 3,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.03,
-   "n_scene_text": 6,
-   "n_below_min": 1,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 4,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -2572,14 +3001,24 @@
    ]
   },
   "ui.same_window": {
-   "page": 2,
-   "row": 4,
-   "col": 4,
+   "page": 7,
+   "row": 1,
+   "col": 1,
    "family": "ui",
    "status": "computed",
-   "short": "widgets of the same window",
-   "caption": "ui.same_window: 1 when two widgets belong to the same window (parent_id equality; shell items such as the tab strip have parent -1 and never match). op same over field parent_id, form bias. Source: public (given widget tree).",
+   "file": "figures/tiles/ui_same_window.pdf",
+   "desc_lines": 3,
    "colour": "#3A3F47",
+   "caption": {
+    "name": "ui.same\\_window",
+    "colour": "3A3F47",
+    "glyphs": "\\tilesrcpub",
+    "desc": "1 when two widgets belong to the same window (parent\\_id equality; shell items such as the tab strip have parent -1 and never match). op same over field parent\\_id, form bias. Source: public (given widget tree).",
+    "condensed": false,
+    "full": "1 when two widgets belong to the same window (parent_id equality; shell items such as the tab strip have parent -1 and never match). op same over field parent_id, form bias. Source: public (given widget tree).",
+    "eq": "$\\tileind[\\mathrm{parent}_i=\\mathrm{parent}_j]$",
+    "illus": ""
+   },
    "meta": {
     "env": "computerworld (cw-site)",
     "seed": 3000001,
@@ -2620,12 +3059,11 @@
      42
     ]
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 3,
    "labels": 3,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.2,
-   "n_scene_text": 6,
-   "n_below_min": 3,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 4,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -2634,14 +3072,24 @@
    ]
   },
   "probe.arm.acting_on": {
-   "page": 3,
-   "row": 0,
+   "page": 7,
+   "row": 2,
    "col": 0,
    "family": "probe",
    "status": "computed",
-   "short": "hand touches entity?",
-   "caption": "probe.arm.acting_on: readout of whether assembly a's hand links touch entity e (contact truth). readout (inert), address entity x assembly, bce. Source: gt sim truth (Session.truth held_by / contacts), training-only.",
+   "file": "figures/tiles/probe_arm_acting_on.pdf",
+   "desc_lines": 3,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "probe.arm.acting\\_on",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of whether assembly a's hand links touch entity e (contact truth). readout (inert), address entity x assembly, bce. Source: gt sim truth (Session.truth held\\_by / contacts), training-only.",
+    "condensed": false,
+    "full": "readout of whether assembly a's hand links touch entity e (contact truth). readout (inert), address entity x assembly, bce. Source: gt sim truth (Session.truth held_by / contacts), training-only.",
+    "eq": "$\\mathrm{contact}(e,a)$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -2668,12 +3116,11 @@
      "distractor1": 0
     }
    },
-   "labels_ge_min": 2,
+   "labels_ge_min": 4,
    "labels": 4,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 3.0,
-   "n_scene_text": 7,
-   "n_below_min": 2,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 5,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -2682,14 +3129,24 @@
    ]
   },
   "probe.arm.focused_on": {
-   "page": 3,
-   "row": 0,
+   "page": 7,
+   "row": 2,
    "col": 1,
    "family": "probe",
    "status": "computed",
-   "short": "entities of the active event",
-   "caption": "probe.arm.focused_on: readout of which entities a currently ACTIVE task event binds (active op 'place': cube + target). readout (inert), address entity, bce. Source: public label (task runtime status + bindings).",
+   "file": "figures/tiles/probe_arm_focused_on.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "probe.arm.focused\\_on",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "readout of which entities a currently ACTIVE task event binds (active op 'place': cube + target). readout (inert), address entity, bce. Source: public label (task runtime status + bindings).",
+    "condensed": false,
+    "full": "readout of which entities a currently ACTIVE task event binds (active op 'place': cube + target). readout (inert), address entity, bce. Source: public label (task runtime status + bindings).",
+    "eq": "$\\mathrm{focus}(e)=\\exists$ active event $\\ni e$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -2716,12 +3173,11 @@
     },
     "note": "packed._focus(pi): task event tokens with status active -> scene slots via relations 4/5/6 (patient/target/destination)"
    },
-   "labels_ge_min": 2,
+   "labels_ge_min": 4,
    "labels": 4,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 3.6,
-   "n_scene_text": 7,
-   "n_below_min": 2,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 5,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -2730,14 +3186,24 @@
    ]
   },
   "probe.arm.goal_effect": {
-   "page": 3,
-   "row": 0,
+   "page": 7,
+   "row": 2,
    "col": 2,
    "family": "probe",
    "status": "computed",
-   "short": "displacement the task asks",
-   "caption": "probe.arm.goal_effect: readout of the displacement the task asks of each entity: destination minus patient for open events (cube -> target; others 0). readout (inert), address entity, gauss. Source: public label (task spec + public pose estimates).",
+   "file": "figures/tiles/probe_arm_goal_effect.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "probe.arm.goal\\_effect",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "readout of the displacement the task asks of each entity: destination minus patient for open events (cube -> target; others 0). readout (inert), address entity, gauss. Source: public label (task spec + public pose estimates).",
+    "condensed": false,
+    "full": "readout of the displacement the task asks of each entity: destination minus patient for open events (cube -> target; others 0). readout (inert), address entity, gauss. Source: public label (task spec + public pose estimates).",
+    "eq": "$\\hat p_{\\rm dst}-\\hat p_{\\rm patient}$ (open events)",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -2780,12 +3246,11 @@
     },
     "note": "latent_batch.goal_effect_from_batch on collate_samples([sample]); arrow drawn cube -> target_zone (sim poses), numbers = label (base frame, public estimates)"
    },
-   "labels_ge_min": 2,
+   "labels_ge_min": 4,
    "labels": 4,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.2,
-   "n_scene_text": 7,
-   "n_below_min": 2,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 5,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -2794,14 +3259,24 @@
    ]
   },
   "probe.arm.held_by": {
-   "page": 3,
+   "page": 8,
    "row": 0,
-   "col": 3,
+   "col": 0,
    "family": "probe",
    "status": "computed",
-   "short": "entity held by assembly?",
-   "caption": "probe.arm.held_by: readout of whether entity e is held by assembly a (here gripper; cube 1, others 0). readout (inert), address entity x assembly, bce. Source: gt sim truth (Session.truth held_by / contacts), training-only.",
+   "file": "figures/tiles/probe_arm_held_by.pdf",
+   "desc_lines": 3,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "probe.arm.held\\_by",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of whether entity e is held by assembly a (here gripper; cube 1, others 0). readout (inert), address entity x assembly, bce. Source: gt sim truth (Session.truth held\\_by / contacts), training-only.",
+    "condensed": false,
+    "full": "readout of whether entity e is held by assembly a (here gripper; cube 1, others 0). readout (inert), address entity x assembly, bce. Source: gt sim truth (Session.truth held_by / contacts), training-only.",
+    "eq": "$\\mathrm{held}(e,a)$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -2828,12 +3303,11 @@
      "distractor1": 0
     }
    },
-   "labels_ge_min": 2,
+   "labels_ge_min": 4,
    "labels": 4,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 3.0,
-   "n_scene_text": 7,
-   "n_below_min": 2,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 5,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -2842,14 +3316,24 @@
    ]
   },
   "probe.arm.looking_at": {
-   "page": 3,
+   "page": 8,
    "row": 0,
-   "col": 4,
+   "col": 1,
    "family": "probe",
    "status": "computed",
-   "short": "angle off the camera axis",
-   "caption": "probe.arm.looking_at: readout of each entity's angle off the front-camera optical axis (gaze label, degrees, scaled 1/30). readout (inert), address entity, mse. Source: gt sim truth (camera pose + body pose), training-only.",
+   "file": "figures/tiles/probe_arm_looking_at.pdf",
+   "desc_lines": 3,
    "colour": "#2BB3C0",
+   "caption": {
+    "name": "probe.arm.looking\\_at",
+    "colour": "2BB3C0",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of each entity's angle off the front-camera optical axis (gaze label, degrees, scaled 1/30). readout (inert), address entity, mse. Source: gt sim truth (camera pose + body pose), training-only.",
+    "condensed": false,
+    "full": "readout of each entity's angle off the front-camera optical axis (gaze label, degrees, scaled 1/30). readout (inert), address entity, mse. Source: gt sim truth (camera pose + body pose), training-only.",
+    "eq": "$\\angle(\\mathrm{cam\\ axis},\\ p_e-c)$ [deg]",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -2876,12 +3360,11 @@
     },
     "note": "collect.privileged_labels slot_gaze_angle; front camera is the scene camera, not the render view"
    },
-   "labels_ge_min": 3,
+   "labels_ge_min": 4,
    "labels": 6,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.92,
-   "n_scene_text": 9,
-   "n_below_min": 3,
+   "min_scene_text_pt": 4.49,
+   "n_scene_text": 7,
+   "n_below_min": 2,
    "badges": [
     [
      "gt",
@@ -2890,14 +3373,24 @@
    ]
   },
   "probe.arm.observed_effect": {
-   "page": 3,
+   "page": 8,
    "row": 0,
-   "col": 5,
+   "col": 2,
    "family": "probe",
    "status": "computed",
-   "short": "realized 16-tick displacement",
-   "caption": "probe.arm.observed_effect: readout of each entity's realized displacement over the 16-tick chunk (future_disp; cube lifted, others 0). readout (inert), address entity, gauss. Source: gt sim truth (future state), training-only.",
+   "file": "figures/tiles/probe_arm_observed_effect.pdf",
+   "desc_lines": 3,
    "colour": "#2BB3C0",
+   "caption": {
+    "name": "probe.arm.observed\\_effect",
+    "colour": "2BB3C0",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of each entity's realized displacement over the 16-tick chunk (future\\_disp; cube lifted, others 0). readout (inert), address entity, gauss. Source: gt sim truth (future state), training-only.",
+    "condensed": false,
+    "full": "readout of each entity's realized displacement over the 16-tick chunk (future_disp; cube lifted, others 0). readout (inert), address entity, gauss. Source: gt sim truth (future state), training-only.",
+    "eq": "$p_e(t{+}H{-}1)-p_e(t)$, H=16",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -2941,12 +3434,11 @@
     },
     "note": "arrow = world positions at t and t+H-1 (same rigid displacement as the base-frame label)"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 1,
    "labels": 3,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.8,
-   "n_scene_text": 6,
-   "n_below_min": 3,
+   "min_scene_text_pt": 3.59,
+   "n_scene_text": 4,
+   "n_below_min": 2,
    "badges": [
     [
      "gt",
@@ -2955,14 +3447,24 @@
    ]
   },
   "probe.arm.rel_pos": {
-   "page": 3,
+   "page": 8,
    "row": 1,
    "col": 0,
    "family": "probe",
    "status": "computed",
-   "short": "position relative to the TCP",
-   "caption": "probe.arm.rel_pos: readout of entity position relative to the assembly's TCP, (x,y,z) m, world frame. readout (inert), address entity x assembly, gauss (mu, logvar). Source: gt sim truth, training-only.",
+   "file": "figures/tiles/probe_arm_rel_pos.pdf",
+   "desc_lines": 3,
    "colour": "#2BB3C0",
+   "caption": {
+    "name": "probe.arm.rel\\_pos",
+    "colour": "2BB3C0",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of entity position relative to the assembly's TCP, (x,y,z) m, world frame. readout (inert), address entity x assembly, gauss (mu, logvar). Source: gt sim truth, training-only.",
+    "condensed": false,
+    "full": "readout of entity position relative to the assembly's TCP, (x,y,z) m, world frame. readout (inert), address entity x assembly, gauss (mu, logvar). Source: gt sim truth, training-only.",
+    "eq": "$p_e - p_{\\rm tcp}(a)$ [m]",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -3008,9 +3510,8 @@
    },
    "labels_ge_min": 3,
    "labels": 5,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.69,
-   "n_scene_text": 8,
+   "min_scene_text_pt": 3.37,
+   "n_scene_text": 6,
    "n_below_min": 2,
    "badges": [
     [
@@ -3020,14 +3521,24 @@
    ]
   },
   "probe.arm.subtask": {
-   "page": 3,
+   "page": 8,
    "row": 1,
    "col": 1,
    "family": "probe",
    "status": "computed",
-   "short": "active task operator",
-   "caption": "probe.arm.subtask: readout of the active task operator for the assembly (12-way; this episode: grasp -> place -> none). readout (inert), address assembly, ce. Source: public label (task runtime: first ACTIVE event's operator).",
+   "file": "figures/tiles/probe_arm_subtask.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "probe.arm.subtask",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "readout of the active task operator for the assembly (12-way; this episode: grasp -> place -> none). readout (inert), address assembly, ce. Source: public label (task runtime: first ACTIVE event's operator).",
+    "condensed": false,
+    "full": "readout of the active task operator for the assembly (12-way; this episode: grasp -> place -> none). readout (inert), address assembly, ce. Source: public label (task runtime: first ACTIVE event's operator).",
+    "eq": "$\\arg\\,\\mathrm{op}(\\mathrm{active\\ event})$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -3055,12 +3566,11 @@
     ],
     "note": "derived.active_operator(pi); OPERATORS[:12] shown (the head is 12-way)"
    },
-   "labels_ge_min": 1,
+   "labels_ge_min": 13,
    "labels": 13,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.6,
-   "n_scene_text": 16,
-   "n_below_min": 12,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 14,
+   "n_below_min": 0,
    "badges": [
     [
      "public",
@@ -3069,14 +3579,24 @@
    ]
   },
   "probe.arm.visible": {
-   "page": 3,
+   "page": 8,
    "row": 1,
    "col": 2,
    "family": "probe",
    "status": "computed",
-   "short": "visible in the front camera?",
-   "caption": "probe.arm.visible: readout of whether each entity is visible in the front camera (cube occluded by the closing gripper here: 0). readout (inert) on the packet, address entity, bce. Source: gt sim truth, training-only target; deployed = probe estimate.",
+   "file": "figures/tiles/probe_arm_visible.pdf",
+   "desc_lines": 4,
    "colour": "#2BB3C0",
+   "caption": {
+    "name": "probe.arm.visible",
+    "colour": "2BB3C0",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of whether each entity is visible in the front camera (cube occluded by the closing gripper here: 0). readout (inert) on the packet, address entity, bce. Source: gt sim truth, training-only target; deployed = probe estimate.",
+    "condensed": false,
+    "full": "readout of whether each entity is visible in the front camera (cube occluded by the closing gripper here: 0). readout (inert) on the packet, address entity, bce. Source: gt sim truth, training-only target; deployed = probe estimate.",
+    "eq": "$\\mathrm{visible}(e)\\in\\{0,1\\}$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/arm",
     "body": "panda_pg2",
@@ -3105,9 +3625,8 @@
    },
    "labels_ge_min": 4,
    "labels": 4,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 4.0,
-   "n_scene_text": 7,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 5,
    "n_below_min": 0,
    "badges": [
     [
@@ -3117,14 +3636,24 @@
    ]
   },
   "probe.legged.contact": {
-   "page": 3,
-   "row": 1,
-   "col": 3,
+   "page": 8,
+   "row": 2,
+   "col": 0,
    "family": "probe",
    "status": "computed",
-   "short": "foot contact at packet knots",
-   "caption": "probe.legged.contact: readout of each foot's ground contact at the 4 packet knots (+0.1/0.3/0.5/0.7 s) of a trot. readout (inert), address knot x assembly (feet), bce. Source: gt sim truth (future contacts), training-only.",
+   "file": "figures/tiles/probe_legged_contact.pdf",
+   "desc_lines": 3,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "probe.legged.contact",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of each foot's ground contact at the 4 packet knots (+0.1/0.3/0.5/0.7 s) of a trot. readout (inert), address knot x assembly (feet), bce. Source: gt sim truth (future contacts), training-only.",
+    "condensed": false,
+    "full": "readout of each foot's ground contact at the 4 packet knots (+0.1/0.3/0.5/0.7 s) of a trot. readout (inert), address knot x assembly (feet), bce. Source: gt sim truth (future contacts), training-only.",
+    "eq": "$c_{f}(t+\\tau_k)$, $\\tau$=0.1,0.3,0.5,0.7 s",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/legged",
     "body": "go2",
@@ -3193,12 +3722,11 @@
     ],
     "episode_status": "success"
    },
-   "labels_ge_min": 2,
+   "labels_ge_min": 4,
    "labels": 5,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.0,
-   "n_scene_text": 8,
-   "n_below_min": 3,
+   "min_scene_text_pt": 3.9,
+   "n_scene_text": 6,
+   "n_below_min": 1,
    "badges": [
     [
      "gt",
@@ -3207,14 +3735,24 @@
    ]
   },
   "probe.legged.disp": {
-   "page": 3,
-   "row": 1,
-   "col": 4,
+   "page": 8,
+   "row": 2,
+   "col": 1,
    "family": "probe",
    "status": "computed",
-   "short": "base displacement, next 0.8 s",
-   "caption": "probe.legged.disp: readout of the base displacement over the next 0.8 s in the start body frame (xy in 0.5 m units, yaw change in rad). readout (inert), address assembly, gauss (3-d). Source: gt sim truth (future base pose), training-only.",
+   "file": "figures/tiles/probe_legged_disp.pdf",
+   "desc_lines": 4,
    "colour": "#2BB3C0",
+   "caption": {
+    "name": "probe.legged.disp",
+    "colour": "2BB3C0",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of the base displacement over the next 0.8 s in the start body frame (xy in 0.5 m units, yaw change in rad). readout (inert), address assembly, gauss (3-d). Source: gt sim truth (future base pose), training-only.",
+    "condensed": false,
+    "full": "readout of the base displacement over the next 0.8 s in the start body frame (xy in 0.5 m units, yaw change in rad). readout (inert), address assembly, gauss (3-d). Source: gt sim truth (future base pose), training-only.",
+    "eq": "$R_{\\psi_t}^{\\top}(p_{t+H}-p_t)/0.5,\\ \\Delta\\psi$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/legged",
     "body": "go2",
@@ -3245,12 +3783,11 @@
     ],
     "episode_status": "success"
    },
-   "labels_ge_min": 1,
+   "labels_ge_min": 2,
    "labels": 2,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 3.0,
-   "n_scene_text": 5,
-   "n_below_min": 1,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 3,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -3259,14 +3796,24 @@
    ]
   },
   "probe.legged.fall": {
-   "page": 3,
-   "row": 1,
-   "col": 5,
+   "page": 8,
+   "row": 2,
+   "col": 2,
    "family": "probe",
    "status": "computed",
-   "short": "imminent fall",
-   "caption": "probe.legged.fall: readout of an imminent fall: 1 in the last 0.8 s of an episode that ends in a fall (non-foot ground contact, low base or tilt). readout (inert), address assembly, bce. Source: gt sim truth (episode outcome), training-only.",
+   "file": "figures/tiles/probe_legged_fall.pdf",
+   "desc_lines": 3,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "probe.legged.fall",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of an imminent fall: 1 in the last 0.8 s of an episode that ends in a fall (non-foot ground contact, low base or tilt). readout (inert), address assembly, bce. Source: gt sim truth (episode outcome), training-only.",
+    "condensed": false,
+    "full": "readout of an imminent fall: 1 in the last 0.8 s of an episode that ends in a fall (non-foot ground contact, low base or tilt). readout (inert), address assembly, bce. Source: gt sim truth (episode outcome), training-only.",
+    "eq": "$\\tileind[\\mathrm{fell}]\\cdot\\tileind[T_{\\rm end}-t\\leq 0.8\\,\\mathrm{s}]$",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/legged",
     "body": "pquad4",
@@ -3295,9 +3842,8 @@
    },
    "labels_ge_min": 0,
    "labels": 1,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.69,
-   "n_scene_text": 4,
+   "min_scene_text_pt": 3.5,
+   "n_scene_text": 2,
    "n_below_min": 1,
    "badges": [
     [
@@ -3307,14 +3853,24 @@
    ]
   },
   "probe.legged.goal": {
-   "page": 3,
-   "row": 2,
+   "page": 9,
+   "row": 0,
    "col": 0,
    "family": "probe",
    "status": "computed",
-   "short": "goal in the body yaw frame",
-   "caption": "probe.legged.goal: readout of the active event's goal entity (here the waypoint) in the body yaw frame, /2 m, as the PUBLIC context estimates it. readout (inert), address assembly (body row), gauss (2-d). Source: public label (public context estimate).",
+   "file": "figures/tiles/probe_legged_goal.pdf",
+   "desc_lines": 4,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "probe.legged.goal",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "readout of the active event's goal entity (here the waypoint) in the body yaw frame, /2 m, as the PUBLIC context estimates it. readout (inert), address assembly (body row), gauss (2-d). Source: public label (public context estimate).",
+    "condensed": false,
+    "full": "readout of the active event's goal entity (here the waypoint) in the body yaw frame, /2 m, as the PUBLIC context estimates it. readout (inert), address assembly (body row), gauss (2-d). Source: public label (public context estimate).",
+    "eq": "goal$_{\\rm active}$ in body yaw frame / 2 m",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/legged",
     "body": "go2",
@@ -3347,9 +3903,8 @@
    },
    "labels_ge_min": 3,
    "labels": 3,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 4.0,
-   "n_scene_text": 6,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 4,
    "n_below_min": 0,
    "badges": [
     [
@@ -3359,14 +3914,24 @@
    ]
   },
   "probe.legged.subtask": {
-   "page": 3,
-   "row": 2,
+   "page": 9,
+   "row": 0,
    "col": 1,
    "family": "probe",
    "status": "computed",
-   "short": "active task event",
-   "caption": "probe.legged.subtask: readout of which task event is active (walk_to_a, walk_to_b, halt, done) from the public task runtime. readout (inert), address assembly, ce. Source: public label (task runtime).",
+   "file": "figures/tiles/probe_legged_subtask.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "probe.legged.subtask",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcpub",
+    "desc": "readout of which task event is active (walk\\_to\\_a, walk\\_to\\_b, halt, done) from the public task runtime. readout (inert), address assembly, ce. Source: public label (task runtime).",
+    "condensed": false,
+    "full": "readout of which task event is active (walk_to_a, walk_to_b, halt, done) from the public task runtime. readout (inert), address assembly, ce. Source: public label (task runtime).",
+    "eq": "index of the active task event (4-way)",
+    "illus": ""
+   },
    "meta": {
     "env": "mujoco/legged",
     "body": "go2",
@@ -3411,12 +3976,11 @@
     ],
     "episode_status": "success"
    },
-   "labels_ge_min": 1,
+   "labels_ge_min": 5,
    "labels": 6,
-   "formula_pt": 4.334217390448055,
-   "min_scene_text_pt": 1.92,
-   "n_scene_text": 9,
-   "n_below_min": 5,
+   "min_scene_text_pt": 4.3,
+   "n_scene_text": 7,
+   "n_below_min": 1,
    "badges": [
     [
      "public",
@@ -3425,14 +3989,24 @@
    ]
   },
   "probe.pointer.phase": {
-   "page": 3,
-   "row": 2,
+   "page": 9,
+   "row": 0,
    "col": 2,
    "family": "probe",
    "status": "computed",
-   "short": "interaction phase per knot",
-   "caption": "probe.pointer.phase: readout of the interaction phase of the commanded tick (idle, move, press, release, drag, type) at each knot. readout (inert), address knot x assembly, ce. Source: gt teacher command, training-only.",
+   "file": "figures/tiles/probe_pointer_phase.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "probe.pointer.phase",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of the interaction phase of the commanded tick (idle, move, press, release, drag, type) at each knot. readout (inert), address knot x assembly, ce. Source: gt teacher command, training-only.",
+    "condensed": false,
+    "full": "readout of the interaction phase of the commanded tick (idle, move, press, release, drag, type) at each knot. readout (inert), address knot x assembly, ce. Source: gt teacher command, training-only.",
+    "eq": "phase of the commanded tick (6-way)",
+    "illus": ""
+   },
    "meta": {
     "env": "computerworld (cw-site)",
     "task": "cw/fill_form",
@@ -3525,12 +4099,11 @@
     "scene_source": "scripted privileged CWTeacher, stepped from reset; frame rendered before the tick's command",
     "code_path": "DemoTeacher row (slot = env.slots.slots[target], txy = target_px/half, phase = phase_of) -> Demos labels at t+LATE (rel = txy[t+j] - ptr[t])"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 7,
    "labels": 8,
-   "formula_pt": 4.331693590637328,
-   "min_scene_text_pt": 1.6,
-   "n_scene_text": 11,
-   "n_below_min": 8,
+   "min_scene_text_pt": 3.5,
+   "n_scene_text": 9,
+   "n_below_min": 1,
    "badges": [
     [
      "gt",
@@ -3539,14 +4112,24 @@
    ]
   },
   "probe.pointer.rel": {
-   "page": 3,
-   "row": 2,
-   "col": 3,
+   "page": 9,
+   "row": 1,
+   "col": 0,
    "family": "probe",
    "status": "computed",
-   "short": "target relative to pointer",
-   "caption": "probe.pointer.rel: readout of the target point relative to the pointer, normalized screen units (x right, y up), per knot. readout (inert), address knot x assembly, gauss (2-d mean + logvar). Source: gt teacher target, training-only.",
+   "file": "figures/tiles/probe_pointer_rel.pdf",
+   "desc_lines": 3,
    "colour": "#2BB3C0",
+   "caption": {
+    "name": "probe.pointer.rel",
+    "colour": "2BB3C0",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of the target point relative to the pointer, normalized screen units (x right, y up), per knot. readout (inert), address knot x assembly, gauss (2-d mean + logvar). Source: gt teacher target, training-only.",
+    "condensed": false,
+    "full": "readout of the target point relative to the pointer, normalized screen units (x right, y up), per knot. readout (inert), address knot x assembly, gauss (2-d mean + logvar). Source: gt teacher target, training-only.",
+    "eq": "$xy_{\\rm target}(t{+}j)-xy_{\\rm ptr}(t)$ [screen/2]",
+    "illus": ""
+   },
    "meta": {
     "env": "computerworld (cw-site)",
     "task": "cw/fill_form",
@@ -3639,12 +4222,11 @@
     "scene_source": "scripted privileged CWTeacher, stepped from reset; frame rendered before the tick's command",
     "code_path": "DemoTeacher row (slot = env.slots.slots[target], txy = target_px/half, phase = phase_of) -> Demos labels at t+LATE (rel = txy[t+j] - ptr[t])"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 1,
    "labels": 2,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.0,
-   "n_scene_text": 5,
-   "n_below_min": 2,
+   "min_scene_text_pt": 4.3,
+   "n_scene_text": 3,
+   "n_below_min": 1,
    "badges": [
     [
      "gt",
@@ -3653,14 +4235,24 @@
    ]
   },
   "probe.pointer.slot": {
-   "page": 3,
-   "row": 2,
-   "col": 4,
+   "page": 9,
+   "row": 1,
+   "col": 1,
    "family": "probe",
    "status": "computed",
-   "short": "targeted widget slot",
-   "caption": "probe.pointer.slot: readout of WHICH widget the current plan step targets, as its stable slot index (opaque codes only, no widget content). readout (inert), address knot x assembly, ce over 80 slots. Source: gt teacher target, training-only.",
+   "file": "figures/tiles/probe_pointer_slot.pdf",
+   "desc_lines": 3,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "probe.pointer.slot",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of WHICH widget the current plan step targets, as its stable slot index (opaque codes only, no widget content). readout (inert), address knot x assembly, ce over 80 slots. Source: gt teacher target, training-only.",
+    "condensed": false,
+    "full": "readout of WHICH widget the current plan step targets, as its stable slot index (opaque codes only, no widget content). readout (inert), address knot x assembly, ce over 80 slots. Source: gt teacher target, training-only.",
+    "eq": "slot index of the step's target widget (80-way)",
+    "illus": ""
+   },
    "meta": {
     "env": "computerworld (cw-site)",
     "task": "cw/fill_form",
@@ -3753,12 +4345,11 @@
     "scene_source": "scripted privileged CWTeacher, stepped from reset; frame rendered before the tick's command",
     "code_path": "DemoTeacher row (slot = env.slots.slots[target], txy = target_px/half, phase = phase_of) -> Demos labels at t+LATE (rel = txy[t+j] - ptr[t])"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 2,
    "labels": 2,
-   "formula_pt": 4.0,
-   "min_scene_text_pt": 2.8,
-   "n_scene_text": 5,
-   "n_below_min": 2,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 3,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -3767,14 +4358,24 @@
    ]
   },
   "probe.psi0.active_hand": {
-   "page": 3,
-   "row": 2,
-   "col": 5,
+   "page": 9,
+   "row": 1,
+   "col": 2,
    "family": "probe",
    "status": "computed",
-   "short": "which hand binds the target",
-   "caption": "probe.psi0.active_hand: readout of which hand the packet binds to the target (here right); -1 (no contact ever) is masked. readout (inert), address body (per packet), ce over 2. Source: gt sim truth (future contacts), training-only.",
+   "file": "figures/tiles/probe_psi0_active_hand.pdf",
+   "desc_lines": 3,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "probe.psi0.active\\_hand",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of which hand the packet binds to the target (here right); -1 (no contact ever) is masked. readout (inert), address body (per packet), ce over 2. Source: gt sim truth (future contacts), training-only.",
+    "condensed": false,
+    "full": "readout of which hand the packet binds to the target (here right); -1 (no contact ever) is masked. readout (inert), address body (per packet), ce over 2. Source: gt sim truth (future contacts), training-only.",
+    "eq": "hand bound to the target over the packet",
+    "illus": ""
+   },
    "meta": {
     "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
     "task": "G1WholebodyXMovePickTeleop-v0",
@@ -3787,12 +4388,11 @@
     "tick": 148,
     "value": 1
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 3,
    "labels": 3,
-   "formula_pt": 4.0,
-   "min_scene_text_pt": 2.4,
-   "n_scene_text": 6,
-   "n_below_min": 3,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 4,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -3801,14 +4401,24 @@
    ]
   },
   "probe.psi0.base_cmd": {
-   "page": 3,
-   "row": 3,
+   "page": 9,
+   "row": 2,
    "col": 0,
    "family": "probe",
    "status": "computed",
-   "short": "demonstrated base command",
-   "caption": "probe.psi0.base_cmd: readout of the demonstrated base command at each knot (normalized action dims 32 = vx, 34 = turning flag per bodies.g1_simple). readout (inert), address knot x pair (slot 0), gauss (2-d). Source: label from the recorded demonstration actions, training-only.",
+   "file": "figures/tiles/probe_psi0_base_cmd.pdf",
+   "desc_lines": 4,
    "colour": "#8C7CF0",
+   "caption": {
+    "name": "probe.psi0.base\\_cmd",
+    "colour": "8C7CF0",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of the demonstrated base command at each knot (normalized action dims 32 = vx, 34 = turning flag per bodies.g1\\_simple). readout (inert), address knot x pair (slot 0), gauss (2-d). Source: label from the recorded demonstration actions, training-only.",
+    "condensed": false,
+    "full": "readout of the demonstrated base command at each knot (normalized action dims 32 = vx, 34 = turning flag per bodies.g1_simple). readout (inert), address knot x pair (slot 0), gauss (2-d). Source: label from the recorded demonstration actions, training-only.",
+    "eq": "demonstrated (vx, turn) command at knot $k$",
+    "illus": ""
+   },
    "meta": {
     "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
     "task": "G1WholebodyXMovePickTeleop-v0",
@@ -3844,12 +4454,11 @@
     ],
     "note": "nets.add_cmd_labels: actions[:, KNOT_STEPS][..., CMD_DIMS]; the code comment calls dim 34 the yaw-rate command, the g1_simple docstring the turning flag"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 4,
    "labels": 4,
-   "formula_pt": 4.0,
-   "min_scene_text_pt": 2.2,
-   "n_scene_text": 7,
-   "n_below_min": 4,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 5,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -3858,14 +4467,24 @@
    ]
   },
   "probe.psi0.base_disp": {
-   "page": 3,
-   "row": 3,
+   "page": 9,
+   "row": 2,
    "col": 1,
    "family": "probe",
    "status": "computed",
-   "short": "pelvis displacement + yaw",
-   "caption": "probe.psi0.base_disp: readout of the pelvis displacement over the packet (t -> t+29) in the robot frame at t, plus yaw change. readout (inert), address body, gauss (3-d). Source: gt sim truth (pelvis pose), training-only.",
+   "file": "figures/tiles/probe_psi0_base_disp.pdf",
+   "desc_lines": 3,
    "colour": "#2BB3C0",
+   "caption": {
+    "name": "probe.psi0.base\\_disp",
+    "colour": "2BB3C0",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of the pelvis displacement over the packet (t -> t+29) in the robot frame at t, plus yaw change. readout (inert), address body, gauss (3-d). Source: gt sim truth (pelvis pose), training-only.",
+    "condensed": false,
+    "full": "readout of the pelvis displacement over the packet (t -> t+29) in the robot frame at t, plus yaw change. readout (inert), address body, gauss (3-d). Source: gt sim truth (pelvis pose), training-only.",
+    "eq": "pelvis $(\\Delta x,\\Delta y,\\Delta\\psi)$ over 30 ticks",
+    "illus": ""
+   },
    "meta": {
     "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
     "task": "G1WholebodyXMovePickTeleop-v0",
@@ -3882,12 +4501,11 @@
      0.05723278969526291
     ]
    },
-   "labels_ge_min": 1,
+   "labels_ge_min": 3,
    "labels": 3,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 3.0,
-   "n_scene_text": 6,
-   "n_below_min": 2,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 4,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -3896,14 +4514,24 @@
    ]
   },
   "probe.psi0.contact": {
-   "page": 3,
-   "row": 3,
+   "page": 9,
+   "row": 2,
    "col": 2,
    "family": "probe",
    "status": "computed",
-   "short": "hand–target contact per knot",
-   "caption": "probe.psi0.contact: readout of hand-target contact per hand at the 5 knots (here the right hand closes on the target). readout (inert), address knot x pair, bce. Source: gt sim truth (recorded contacts), training-only.",
+   "file": "figures/tiles/probe_psi0_contact.pdf",
+   "desc_lines": 3,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "probe.psi0.contact",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of hand-target contact per hand at the 5 knots (here the right hand closes on the target). readout (inert), address knot x pair, bce. Source: gt sim truth (recorded contacts), training-only.",
+    "condensed": false,
+    "full": "readout of hand-target contact per hand at the 5 knots (here the right hand closes on the target). readout (inert), address knot x pair, bce. Source: gt sim truth (recorded contacts), training-only.",
+    "eq": "$\\tileind[\\mathrm{hand}_h \\mathrm{\\ touches\\ target}](t{+}k)$",
+    "illus": ""
+   },
    "meta": {
     "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
     "task": "G1WholebodyXMovePickTeleop-v0",
@@ -3944,12 +4572,11 @@
      ]
     ]
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 4,
    "labels": 4,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.2,
-   "n_scene_text": 7,
-   "n_below_min": 4,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 5,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -3958,14 +4585,24 @@
    ]
   },
   "probe.psi0.grasp_face": {
-   "page": 3,
-   "row": 3,
-   "col": 3,
+   "page": 10,
+   "row": 0,
+   "col": 0,
    "family": "probe",
    "status": "illustrative",
-   "short": "object face of first contact",
-   "caption": "probe.psi0.grasp_face: readout of the object face (+x,-x,+y,-y,+z,-z) of each hand's first contact. readout (inert), address knot x pair (last knot), ce over 6. Source: gt sim truth, training-only (default OFF). Illustrative: scene real, label value not computable here.",
+   "file": "figures/tiles/probe_psi0_grasp_face.pdf",
+   "desc_lines": 3,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "probe.psi0.grasp\\_face",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of the object face (+x,-x,+y,-y,+z,-z) of each hand's first contact. readout (inert), address knot x pair (last knot), ce over 6. Source: gt sim truth, training-only (default OFF).",
+    "condensed": false,
+    "full": "readout of the object face (+x,-x,+y,-y,+z,-z) of each hand's first contact. readout (inert), address knot x pair (last knot), ce over 6. Source: gt sim truth, training-only (default OFF).",
+    "eq": "$2\\,\\arg\\max|p|+[p_{\\rm ax}<0]$ (6 faces)",
+    "illus": "scene real; the label is not computable here (no contact positions in any recorded replay; needs SIMPLE / Isaac Sim)."
+   },
    "meta": {
     "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
     "task": "G1WholebodyXMovePickTeleop-v0",
@@ -3978,12 +4615,11 @@
     "tick": 165,
     "reason": "no cpos__left/right in any recorded replay npz (EpisodeLabels.grasp is None); computing it needs SIMPLE/Isaac Sim"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 3,
    "labels": 4,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.0,
-   "n_scene_text": 7,
-   "n_below_min": 4,
+   "min_scene_text_pt": 4.3,
+   "n_scene_text": 5,
+   "n_below_min": 1,
    "badges": [
     [
      "gt",
@@ -3992,14 +4628,24 @@
    ]
   },
   "probe.psi0.grasp_pt": {
-   "page": 3,
-   "row": 3,
-   "col": 4,
+   "page": 10,
+   "row": 0,
+   "col": 1,
    "family": "probe",
    "status": "illustrative",
-   "short": "first contact point (obj. frame)",
-   "caption": "probe.psi0.grasp_pt: readout of each hand's FIRST contact point on the target in the object frame (last knot). readout (inert), address knot x pair (last knot), gauss (3-d). Source: gt sim truth, training-only (default OFF). Illustrative: scene real, label value not computable here.",
+   "file": "figures/tiles/probe_psi0_grasp_pt.pdf",
+   "desc_lines": 3,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "probe.psi0.grasp\\_pt",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of each hand's FIRST contact point on the target in the object frame (last knot). readout (inert), address knot x pair (last knot), gauss (3-d). Source: gt sim truth, training-only (default OFF).",
+    "condensed": false,
+    "full": "readout of each hand's FIRST contact point on the target in the object frame (last knot). readout (inert), address knot x pair (last knot), gauss (3-d). Source: gt sim truth, training-only (default OFF).",
+    "eq": "$R(q)^{\\top}(p_{\\rm contact}-p_{\\rm obj})$",
+    "illus": "scene real; the label is not computable here (no contact positions in any recorded replay; needs SIMPLE / Isaac Sim)."
+   },
    "meta": {
     "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
     "task": "G1WholebodyXMovePickTeleop-v0",
@@ -4012,12 +4658,11 @@
     "tick": 165,
     "reason": "no cpos__left/right in any recorded replay npz (EpisodeLabels.grasp is None); computing it needs SIMPLE/Isaac Sim"
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 3,
    "labels": 4,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.0,
-   "n_scene_text": 7,
-   "n_below_min": 4,
+   "min_scene_text_pt": 4.3,
+   "n_scene_text": 5,
+   "n_below_min": 1,
    "badges": [
     [
      "gt",
@@ -4026,14 +4671,24 @@
    ]
   },
   "probe.psi0.hand_dist": {
-   "page": 3,
-   "row": 3,
-   "col": 5,
+   "page": 10,
+   "row": 0,
+   "col": 2,
    "family": "probe",
    "status": "computed",
-   "short": "palm–target distance",
-   "caption": "probe.psi0.hand_dist: readout of each hand's palm-to-target distance at the 5 packet knots (+5..+29 ticks of 20 ms). readout (inert), address knot x pair (pair = L/R hand), gauss. Source: gt sim truth (recorded SIMPLE replay), training-only.",
+   "file": "figures/tiles/probe_psi0_hand_dist.pdf",
+   "desc_lines": 4,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "probe.psi0.hand\\_dist",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of each hand's palm-to-target distance at the 5 packet knots (+5..+29 ticks of 20 ms). readout (inert), address knot x pair (pair = L/R hand), gauss. Source: gt sim truth (recorded SIMPLE replay), training-only.",
+    "condensed": false,
+    "full": "readout of each hand's palm-to-target distance at the 5 packet knots (+5..+29 ticks of 20 ms). readout (inert), address knot x pair (pair = L/R hand), gauss. Source: gt sim truth (recorded SIMPLE replay), training-only.",
+    "eq": "$\\|p_{\\rm palm,h}(t{+}k)-p_{\\rm target}(t{+}k)\\|$",
+    "illus": ""
+   },
    "meta": {
     "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
     "task": "G1WholebodyXMovePickTeleop-v0",
@@ -4074,12 +4729,11 @@
      ]
     ]
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 6,
    "labels": 6,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.2,
-   "n_scene_text": 9,
-   "n_below_min": 6,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 7,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -4088,14 +4742,24 @@
    ]
   },
   "probe.psi0.lift": {
-   "page": 3,
-   "row": 4,
+   "page": 10,
+   "row": 1,
    "col": 0,
    "family": "probe",
    "status": "computed",
-   "short": "target lifted ≥ 3 cm",
-   "caption": "probe.psi0.lift: readout of whether the target is lifted >= 3 cm above its initial height at each knot. readout (inert), address knot x pair (slot 0), bce. Source: gt sim truth (target pose), training-only.",
+   "file": "figures/tiles/probe_psi0_lift.pdf",
+   "desc_lines": 3,
    "colour": "#F2A33A",
+   "caption": {
+    "name": "probe.psi0.lift",
+    "colour": "B87414",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of whether the target is lifted >= 3 cm above its initial height at each knot. readout (inert), address knot x pair (slot 0), bce. Source: gt sim truth (target pose), training-only.",
+    "condensed": false,
+    "full": "readout of whether the target is lifted >= 3 cm above its initial height at each knot. readout (inert), address knot x pair (slot 0), bce. Source: gt sim truth (target pose), training-only.",
+    "eq": "$\\tileind[z_{\\rm target}(t{+}k)\\geq z_0+3\\,\\mathrm{cm}]$",
+    "illus": ""
+   },
    "meta": {
     "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
     "task": "G1WholebodyXMovePickTeleop-v0",
@@ -4128,12 +4792,11 @@
      0.06115245819091797
     ]
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 4,
    "labels": 4,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 2.2,
-   "n_scene_text": 7,
-   "n_below_min": 4,
+   "min_scene_text_pt": 4.5,
+   "n_scene_text": 5,
+   "n_below_min": 0,
    "badges": [
     [
      "gt",
@@ -4142,14 +4805,24 @@
    ]
   },
   "probe.psi0.target_pos": {
-   "page": 3,
-   "row": 4,
+   "page": 10,
+   "row": 1,
    "col": 1,
    "family": "probe",
    "status": "computed",
-   "short": "target position (robot frame)",
-   "caption": "probe.psi0.target_pos: readout of the target's position at each knot in the robot (pelvis yaw) frame at t. readout (inert), address knot x pair (slot 0), gauss (3-d). Source: gt sim truth (target pose), training-only.",
+   "file": "figures/tiles/probe_psi0_target_pos.pdf",
+   "desc_lines": 3,
    "colour": "#2BB3C0",
+   "caption": {
+    "name": "probe.psi0.target\\_pos",
+    "colour": "2BB3C0",
+    "glyphs": "\\tilesrcgt",
+    "desc": "readout of the target's position at each knot in the robot (pelvis yaw) frame at t. readout (inert), address knot x pair (slot 0), gauss (3-d). Source: gt sim truth (target pose), training-only.",
+    "condensed": false,
+    "full": "readout of the target's position at each knot in the robot (pelvis yaw) frame at t. readout (inert), address knot x pair (slot 0), gauss (3-d). Source: gt sim truth (target pose), training-only.",
+    "eq": "$R_{\\psi_t}^{\\top}(p_{\\rm target}(t{+}k)-p_{\\rm pelvis}(t))$",
+    "illus": ""
+   },
    "meta": {
     "env": "SIMPLE (Isaac Sim) recorded replay, read from disk",
     "task": "G1WholebodyXMovePickTeleop-v0",
@@ -4195,12 +4868,11 @@
      ]
     ]
    },
-   "labels_ge_min": 0,
+   "labels_ge_min": 5,
    "labels": 7,
-   "formula_pt": 4.4,
-   "min_scene_text_pt": 1.58,
-   "n_scene_text": 10,
-   "n_below_min": 7,
+   "min_scene_text_pt": 3.9,
+   "n_scene_text": 8,
+   "n_below_min": 2,
    "badges": [
     [
      "gt",
