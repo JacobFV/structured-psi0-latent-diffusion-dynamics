@@ -37,6 +37,8 @@ R2_INIT_PINS: dict[str, str] = {
     "artifacts/runs/humanoid/trk-steps_scan-g1/train_tracker_s1/actor.pt": "9f3bbfcb8508b5fd632c6bf4ad6e9ae22bf3c0816b93c742f770ea4f7c316b40",
     "artifacts/runs/humanoid/trk-steps_scan-h1/train_tracker_s1/actor.pt": "a103fefbf617d1a18c827604c680234f932f5bd7f58407a7941377d963ac11cc",
     "artifacts/runs/humanoid/trk-gap_ring-h1/train_tracker_s1/actor.pt": "dd0a11d01cbd47310a194a3b8fde406b0236b550c1162dabca86ed37b10f2eae",
+    # t1 steps: rule over {t1 v1 (eval 2/100), t1 P2-fix (0/100, lateral drift)} -> t1 v1 (D-147 addendum 2026-10-02 item 3)
+    "artifacts/runs/humanoid/trk-steps_scan-t1/train_tracker_s1/actor.pt": "7a6597a696051d6f677483ad2f2468567d14156c48503446b11365242e7c48ee",
 }
 
 
@@ -382,6 +384,7 @@ for _b in ("op3", "apollo", "adam_lite"):
 _FORCE = dict(force_cap=-2.0, force_cap_bw=2.5, target_margin=0.05, land_vel=-2.0)
 _P2 = dict(episode_s=30.0, level_up=0.6)
 _R2 = dict(reward_set=_R6, clock_gate=True, alpha_schedule="fixed:0.5", init_std=0.3, lr=5e-4, max_lr=1e-3, iters=2000, **_FORCE, **_P2)
+WARP_RECIPES["t1_steps_r2"] = _steps("t1", init_shared="artifacts/runs/humanoid/trk-steps_scan-t1/train_tracker_s1/actor.pt", **_R2)
 WARP_RECIPES["g1_steps_r2"] = _steps("g1", init_shared="artifacts/runs/humanoid/trk-steps_scan-g1/train_tracker_s1/actor.pt", **_R2)
 WARP_RECIPES["h1_steps_r2"] = _steps("h1", init_shared="artifacts/runs/humanoid/trk-steps_scan-h1/train_tracker_s1/actor.pt", **_R2)
 WARP_RECIPES["t1_gap_r2"] = dict(WARP_RECIPES["t1_gap_gpu_v1"], **_R2, init_shared="artifacts/runs/humanoid_p1b_t1_v2ft4/actor.pt")

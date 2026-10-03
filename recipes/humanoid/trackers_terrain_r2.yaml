@@ -3,7 +3,7 @@
 # curriculum fix, warm start = the body's best T1 actor, R2_INIT_PINS). Same gate, same exception rule: `validate` reports the D-112 gate
 # (gate: report, so the task eval always runs) and the install verdict is `rrp.harness.eval.gates.tracker_verdict(validation, task)` on the
 # task's gating trials (TASK_GATE_TRIALS); the eval uses the course-derived task budget (scene `budget_s`). A body / task that still fails is
-# recorded blocked_external and its tasks are excluded from T4. t1 steps joins after its P2-fix retrain (warm start chosen by the same rule).
+# recorded blocked_external and its tasks are excluded from T4. t1 steps joined after its P2-fix retrain (warm start chosen by the same rule: t1 v1).
 # Declarations (D-117, >= 1.35 x measured peak): train 2.5 GB + 3.9 GB GPU -> 5G + 8G; validate 1.82 GB -> 3G; steps eval 5.39 GB -> 8G;
 # gap eval 3.77 GB -> 6G.
 extends: ../templates/humanoid_task.yaml
@@ -20,9 +20,10 @@ global_lineage: 'trk-r2'
 label_prefix: 'hr2_{pt}'
 global_label_prefix: 'hr2'
 matrix:
-  pt: [steps_g1, steps_h1, gap_t1, gap_h1]
+  pt: [steps_t1, steps_g1, steps_h1, gap_t1, gap_h1]
 axis_vars:
   pt:
+    steps_t1: {body: t1, recipe: t1_steps_r2, task: steps}       # warm start t1 v1 (rule over t1 v1 / t1 P2-fix)
     steps_g1: {body: g1, recipe: g1_steps_r2, task: steps}
     steps_h1: {body: h1, recipe: h1_steps_r2, task: steps}
     gap_t1: {body: t1, recipe: t1_gap_r2, task: gap}
@@ -44,6 +45,7 @@ nodes:
     resources: {cpu: 2, mem: 8G, gpu: false, max_seconds: 14400}
     per:
       pt:
+        steps_t1: {options: {h_fracs: [0.10, 0.15, 0.20, 0.25, 0.30]}}
         steps_g1: {options: {h_fracs: [0.10, 0.15, 0.20, 0.25, 0.30]}}
         steps_h1: {options: {h_fracs: [0.10, 0.15, 0.20, 0.25, 0.30]}}
     config:
