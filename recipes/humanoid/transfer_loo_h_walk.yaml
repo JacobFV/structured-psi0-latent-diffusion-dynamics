@@ -1,0 +1,28 @@
+# LEAVE-ONE-OUT dev transfer, task h_walk (D-147 addendum 2026-10-03, item 3; template recipes/templates/humanoid_transfer_loo.yaml).
+# For each held-out dev body X in {t1, g1, h1}: latent semfix (preset:legged / legged-none) and BC train on the T4 SOURCE demos of the other two
+# bodies only (existing run humanoid-transfer-h_walk/collect-src_s0, not re-collected), seeds 0 and 1; zero-shot on X, development scenes.
+# Teacher reference: the scripted teacher over the installed `ub_v1` of X (the tracker of the T4 collect). No sealed body or scene, no adaptation.
+# Run after T5's own nodes for h_walk. SOURCES are labelled per method: teacher = scripted_teacher, latent = learned, bc = bc.
+extends: ../templates/humanoid_transfer_loo.yaml
+name: humanoid_transfer_loo_h_walk
+schema: dag-1
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: h_walk
+bodies: humanoid_pool_v1
+factors: []
+vars: {task: h_walk}
+lists:
+  transfer:
+    name: humanoid_transfer_loo_h_walk
+    task: h_walk
+    latent_kw: {upper: true}
+    methods:
+      reference:
+        - name: teacher
+          level: 0
+          kind: teacher
+          source: scripted_teacher
+          policy: 'teacher:<task>'
+          env_kw: {tracker: '<body>:ub_v1'}

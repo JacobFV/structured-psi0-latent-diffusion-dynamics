@@ -428,3 +428,31 @@ def test_adapt_ppo_finetunes_the_shared_tracker_on_one_sealed_body_only():
                        out="x", init="a.pt")
     with pytest.raises(Exception):                     # a non-adaptation seed on a sealed body
         adapt_ppo_plan(a, dict(recipe="shared_morph_ub", groups='[[["n1"], 1000]]', horizon=25, seed=7), out="x", init="a.pt")
+
+
+@pytest.mark.parametrize("task", ("h_walk", "h_turn"))
+def test_leave_one_out_trains_on_the_other_two_bodies_of_the_t4_source_demos_and_evaluates_the_held_out_one(task, tmp_path):
+    """D-147 addendum 2026-10-03 item 3: per held-out dev body X every method (semfix legged / legged-none, BC) trains on ONE pack of the
+    other two bodies' T4 source demos (no re-collect) and is evaluated zero-shot on X only, dev scenes; no sealed body, no adaptation."""
+    plan = _plan(HUM / f"transfer_loo_{task}.yaml")
+    t4 = {n.rc.out for n in _plan(HUM / f"transfer_{task}.yaml").nodes.values() if n.name == "collect_src"}
+    assert {n.rc.stage for n in plan.nodes.values()} == {"pack", "train_rep", "train_flow", "train_bc", "eval_transfer"}
+    by_out = {n.rc.out: n for n in plan.nodes.values()}
+    cfg = _cfg(plan, "eval@bc.s0")
+    assert set(cfg["bodies"]) == {"t1", "g1", "h1"} and not any(SealedSplit.load().is_sealed_body(b) for b in cfg["bodies"])
+    assert cfg["levels"]["2"]["reference"] == "bc_zeroshot" and not any(m.get("budgeted") for m in cfg["methods"])
+    packs = {}
+    for cell in HE.expand_cells(cfg):
+        m = HE.method_of(cfg, cell["method"])
+        for p in (m.get("kw") or {}).values():
+            node = by_out[HE.fmt(p, body=cell["body"], task=task, seed=cell["train_seed"]).rsplit("/", 1)[0]]
+            assert node.rc.seed == cell["train_seed"]
+            if node.rc.stage == "train_flow":
+                node = by_out["artifacts/" + node.rc.inputs["representation"].split(":")[0]]
+            assert cell["body"] not in node.rc.params["bodies"] and len(node.rc.params["bodies"]) == 2
+            pk = by_out["artifacts/" + node.rc.inputs["data"].split(":")[0]]
+            assert pk.rc.options["bodies"] == node.rc.params["bodies"] and "artifacts/" + pk.rc.inputs["data"] in t4
+            packs.setdefault(cell["body"], set()).add(pk.rc.out)
+    assert all(len(v) == 1 for v in packs.values()) and len(packs) == 3          # matched data: one pack per held-out body
+    cells = HE.run_matrix(cfg, root=tmp_path, out=tmp_path / "o", scope="dev", sealed_flag=False, run=False, pack={})["cells"]
+    assert {c["status"] for c in cells} <= {"pending", "ready"} and all(c["status"] == "ready" for c in cells if c["method"] == "teacher")

@@ -1,0 +1,233 @@
+# TEMPLATE (D-147 addendum 2026-10-03 "adapt the shared tracker, then test; leave-one-out dev transfer", item 3; research/decisions.md):
+# LEAVE-ONE-OUT (LOO) DEV TRANSFER among the humanoid dev bodies t1 / g1 / h1 of ONE task. Instances: recipes/humanoid/transfer_loo_<task>.yaml
+# (h_walk, h_turn) set vars.task, lists.transfer.name / task / latent_kw and the teacher reference tracker.
+#   X (held-out body)  each of t1, g1, h1 in turn. No sealed body, no sealed scene, no adaptation node: a dev-only zero-shot study.
+#   TRAIN data         the existing T4 SOURCE demos of the task (`collect_src` of recipes/humanoid/transfer_<task>.yaml, run
+#                      runs/humanoid/humanoid-transfer-<task>/collect-src_s0: t1 / g1 / h1, seeds 0-99, scripted_teacher over the body's ub_v1
+#                      tracker) restricted to the TWO bodies other than X. Nothing is re-collected: the global node `pack_<X>` (stage `pack`,
+#                      options.bodies = lists.train_ho_<X>) links the first 100 shards (= all of seeds 0-99) of the two bodies under
+#                      `n100/<body>/` and writes pack.json (demos, teacher ticks, seeds per body = the data record of the held-out point).
+#                      The pack's `updates` is a required record field only; no adapting trainer reads this pack (0 = unused).
+#   METHODS            matrix axis `arm` x training seed {0, 1}; per held-out slot X (nodes rep_<X> / flow_<X> / bc_<X>):
+#                        semfix_legged  latent rep -> flow, relation preset `preset:legged`   (lineage humanoid-loo-<task>-semfix-legged)
+#                        semfix_none    the same with `legged-none` (no relation edges)        (lineage humanoid-loo-<task>-semfix-legged-none)
+#                        bc             whole-policy BC, `preset:legged` (the T4 BC arm)       (lineage humanoid-loo-<task>-bc-legged)
+#                      The rep / flow / bc params and factor lists are those of recipes/templates/humanoid_transfer.yaml (semfix variant;
+#                      `rel_preset` switches the preset exactly like its `_legged_none` arm); only data, bodies and trainer names differ.
+#   MATCHED DATA       every method of a held-out point trains on the SAME pack `pack_<X>` (same demos, same two bodies); X never enters training.
+#   EVAL               `eval@<arm>.s<seed>` (stage eval_transfer, scope dev, development scenes [3000000, +100)) evaluates each dev body X ZERO-SHOT
+#                      with the checkpoint that held X out: the method paths carry `ho-<body>` and the driver fills `<body>` with the evaluated
+#                      body, so "train bodies != eval body" needs no driver change. `eval_ref` (global) = the scripted-teacher reference on
+#                      every X over the same scenes. Level-2 table per task: method x held-out body (Wilson CI per cell; Newcombe method - BC,
+#                      reference bc_zeroshot, computed by the driver). Pooled tables: `rrp eval humanoid-transfer --config <transfer_config.json>
+#                      --tables-only` (results_glob = this recipe's eval runs only).
+# Lineages never collide with the T4 transfer runs (`humanoid-loo-*`, not `humanoid-transfer-*`). Resources: the measured T4 declarations.
+# SOURCES: teacher = scripted_teacher, latent = learned, bc = bc; a teacher reference is never a learned result.
+name: humanoid_transfer_loo_template
+schema: dag-1
+family: humanoid
+track: humanoid
+lineage: 'humanoid-loo-{task}-{system}-{rel_preset}'
+global_lineage: 'humanoid-loo-{task}'
+label_prefix: 'hlo_{tg}{seed}'
+global_label_prefix: 'hlo'
+matrix:
+  arm: [semfix_legged, semfix_none, bc]
+  seed: [0, 1]
+axis_vars:
+  arm:
+    semfix_legged: {system: semfix, rel_preset: legged, psw: 0.5, tg: fl}
+    semfix_none: {system: semfix, rel_preset: legged-none, psw: 0.5, tg: fn}
+    bc: {system: bc, rel_preset: legged, psw: 0.0, tg: bc}
+vars:
+  task: SET_IN_CHILD_DAG
+  rep_steps: 12000
+  flow_steps: 12000
+  bc_steps: 20000
+lists:
+  train_ho_t1: [g1, h1]          # the training bodies of held-out X (every method of X trains on exactly these)
+  train_ho_g1: [t1, h1]
+  train_ho_h1: [t1, g1]
+  transfer:
+    name: SET_IN_CHILD_DAG
+    task: SET_IN_CHILD_DAG
+    env: mujoco/legged
+    train_seeds: [0, 1]
+    scenes: 100
+    bodies: {dev: [t1, g1, h1], sealed: []}        # each dev body is the held-out body X of its own checkpoints (paths: ho-<body>)
+    pack: []
+    results_glob: ['artifacts/runs/humanoid/humanoid-loo-<task>-*-legged/eval_transfer*', 'artifacts/runs/humanoid/humanoid-loo-<task>-*-legged-none/eval_transfer*', 'artifacts/runs/humanoid/humanoid-loo-<task>/eval_transfer*']
+    latent_kw: {}
+    levels:
+      '2': {unit: demos, budgets: [], updates: {}, reference: bc_zeroshot}
+    methods:
+      level2:
+        - name: semfix_legged_zeroshot
+          level: 2
+          variant: semfix_legged
+          kind: latent
+          source: learned
+          trained: true
+          producer: train_flow
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-loo-<task>-semfix-legged/train_flow-ho-<body>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-loo-<task>-semfix-legged/train_rep-ho-<body>_s<seed>/representation.pt'}
+        - name: semfix_none_zeroshot
+          level: 2
+          variant: semfix_none
+          kind: latent
+          source: learned
+          trained: true
+          producer: train_flow
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-loo-<task>-semfix-legged-none/train_flow-ho-<body>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-loo-<task>-semfix-legged-none/train_rep-ho-<body>_s<seed>/representation.pt'}
+        - name: bc_zeroshot
+          level: 2
+          variant: bc
+          kind: bc
+          source: bc
+          trained: true
+          producer: train_bc
+          policy: legged_bc
+          kw: {checkpoint: 'artifacts/runs/humanoid/humanoid-loo-<task>-bc-legged/train_bc-ho-<body>_s<seed>/policy.pt'}
+      reference:
+        - name: teacher
+          level: 0
+          kind: teacher
+          source: scripted_teacher
+          policy: 'teacher:<task>'
+defaults:
+  placement: peer
+  retries: 0
+  max_parallel: 4
+  max_parallel_gpu: 2
+  max_cpu: 8
+  max_mem_gib: 28
+  shared_budget: true
+  resources: {cpu: 4, mem: 6G, gpu: false, max_seconds: 14400}
+base:
+  flags: {contact_version: contact_v2}
+nodes:
+  pack_t1:
+    stage: pack
+    tag: ho-t1
+    scope: global
+    resources: {cpu: 1, mem: 2G, max_seconds: 1800}
+    config:
+      inputs: {data: 'runs/humanoid/humanoid-transfer-{task}/collect-src_s0'}     # the existing T4 source collect (not re-collected)
+      options: {task: '{task}', bodies: $train_ho_t1, budgets: [100], updates: {100: 0}}
+  pack_g1:
+    stage: pack
+    tag: ho-g1
+    scope: global
+    resources: {cpu: 1, mem: 2G, max_seconds: 1800}
+    config:
+      inputs: {data: 'runs/humanoid/humanoid-transfer-{task}/collect-src_s0'}
+      options: {task: '{task}', bodies: $train_ho_g1, budgets: [100], updates: {100: 0}}
+  pack_h1:
+    stage: pack
+    tag: ho-h1
+    scope: global
+    resources: {cpu: 1, mem: 2G, max_seconds: 1800}
+    config:
+      inputs: {data: 'runs/humanoid/humanoid-transfer-{task}/collect-src_s0'}
+      options: {task: '{task}', bodies: $train_ho_h1, budgets: [100], updates: {100: 0}}
+  rep_t1:
+    stage: train_rep
+    tag: ho-t1
+    only: {arm: [semfix_legged, semfix_none]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      variant: semfix
+      flags: {qd_dropout: 0.5}
+      inputs: {data: '@pack_t1:n100'}
+      params: {name: 'hlo_{system}_{task}_{rel_preset}_hot1_s{seed}_rep', bodies: $train_ho_t1, latent: {dz: 32, width: 192, factors: [{name: probe.legged.contact, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.goal, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.disp, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.subtask, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.fall, weight: 1.0, params: {lv_min: -4.0}}, 'preset:{rel_preset}'], beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+  rep_g1:
+    stage: train_rep
+    tag: ho-g1
+    only: {arm: [semfix_legged, semfix_none]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      variant: semfix
+      flags: {qd_dropout: 0.5}
+      inputs: {data: '@pack_g1:n100'}
+      params: {name: 'hlo_{system}_{task}_{rel_preset}_hog1_s{seed}_rep', bodies: $train_ho_g1, latent: {dz: 32, width: 192, factors: [{name: probe.legged.contact, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.goal, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.disp, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.subtask, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.fall, weight: 1.0, params: {lv_min: -4.0}}, 'preset:{rel_preset}'], beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+  rep_h1:
+    stage: train_rep
+    tag: ho-h1
+    only: {arm: [semfix_legged, semfix_none]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      variant: semfix
+      flags: {qd_dropout: 0.5}
+      inputs: {data: '@pack_h1:n100'}
+      params: {name: 'hlo_{system}_{task}_{rel_preset}_hoh1_s{seed}_rep', bodies: $train_ho_h1, latent: {dz: 32, width: 192, factors: [{name: probe.legged.contact, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.goal, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.disp, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.subtask, weight: 1.0, params: {lv_min: -4.0}}, {name: probe.legged.fall, weight: 1.0, params: {lv_min: -4.0}}, 'preset:{rel_preset}'], beta_kl: 0.001}, steps: '{rep_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+  flow_t1:
+    stage: train_flow
+    tag: ho-t1
+    only: {arm: [semfix_legged, semfix_none]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      inputs: {representation: '@rep_t1:representation.pt'}
+      params: {name: 'hlo_{system}_{task}_{rel_preset}_hot1_s{seed}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: '{flow_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+  flow_g1:
+    stage: train_flow
+    tag: ho-g1
+    only: {arm: [semfix_legged, semfix_none]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      inputs: {representation: '@rep_g1:representation.pt'}
+      params: {name: 'hlo_{system}_{task}_{rel_preset}_hog1_s{seed}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: '{flow_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+  flow_h1:
+    stage: train_flow
+    tag: ho-h1
+    only: {arm: [semfix_legged, semfix_none]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      inputs: {representation: '@rep_h1:representation.pt'}
+      params: {name: 'hlo_{system}_{task}_{rel_preset}_hoh1_s{seed}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: '{flow_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
+  bc_t1:
+    stage: train_bc
+    tag: ho-t1
+    only: {arm: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      inputs: {data: '@pack_t1:n100'}
+      params: {name: 'hlo_bc_{task}_{rel_preset}_hot1_s{seed}', bodies: $train_ho_t1, model: {width: 192, enc_layers: 2, dec_layers: 3, factors: ['preset:{rel_preset}']}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 5000}
+  bc_g1:
+    stage: train_bc
+    tag: ho-g1
+    only: {arm: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      inputs: {data: '@pack_g1:n100'}
+      params: {name: 'hlo_bc_{task}_{rel_preset}_hog1_s{seed}', bodies: $train_ho_g1, model: {width: 192, enc_layers: 2, dec_layers: 3, factors: ['preset:{rel_preset}']}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 5000}
+  bc_h1:
+    stage: train_bc
+    tag: ho-h1
+    only: {arm: [bc]}
+    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    config:
+      inputs: {data: '@pack_h1:n100'}
+      params: {name: 'hlo_bc_{task}_{rel_preset}_hoh1_s{seed}', bodies: $train_ho_h1, model: {width: 192, enc_layers: 2, dec_layers: 3, factors: ['preset:{rel_preset}']}, steps: '{bc_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 5000}
+  eval:
+    stage: eval_transfer
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped)
+    resources: {cpu: 4, mem: 8G, max_seconds: 21600}
+    per:
+      arm:
+        semfix_legged:
+          inputs: {flow_t1: '@flow_t1:policy.pt', flow_g1: '@flow_g1:policy.pt', flow_h1: '@flow_h1:policy.pt'}
+        semfix_none:
+          inputs: {flow_t1: '@flow_t1:policy.pt', flow_g1: '@flow_g1:policy.pt', flow_h1: '@flow_h1:policy.pt'}
+        bc:
+          inputs: {bc_t1: '@bc_t1:policy.pt', bc_g1: '@bc_g1:policy.pt', bc_h1: '@bc_h1:policy.pt'}
+    config:
+      options: {transfer: $transfer, variant: '{arm}', train_seed: '{seed}'}
+  eval_ref:
+    stage: eval_transfer
+    tag: ref
+    scope: global
+    retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped)
+    resources: {cpu: 4, mem: 8G, max_seconds: 21600}
+    config:
+      options: {transfer: $transfer, variant: '-'}
