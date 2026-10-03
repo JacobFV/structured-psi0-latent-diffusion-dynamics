@@ -140,13 +140,17 @@ class UpperIK:
                 self.bar_kind[s] = "forearm"
                 self.palm_r[s] = float(np.min(h[np.argsort(np.abs(ax))[:2]]))
             self.bar_local[s] = ax
+        # the chest: the deepest common ancestor of the two shoulders (t1: the root Trunk; g1 / h1: the torso above the waist yaw, NOT
+        # the pelvis root) -- the frame the arms move with when the waist twists
+        common = set.intersection(*[_ancestors(m, int(m.body_parentid[int(m.jnt_bodyid[j])])) for j in self.shoulder_j.values()])
+        self.chest_bid = max(common, key=lambda bb: _depth(m, bb)) if common else int(b.root_bid)
 
     def bar_axis(self, d, side: str) -> np.ndarray:
         return d.geom_xmat[self.gid[side]].reshape(3, 3) @ self.bar_local[side]
 
     def record(self) -> dict:
-        return {s: dict(bar=self.bar_kind[s], bar_local=[round(float(x), 3) for x in self.bar_local[s]], palm_r=round(self.palm_r[s], 4),
-                        shoulder=self.m.joint(self.shoulder_j[s]).name) for s in self.gid}
+        return {"chest": self.m.body(self.chest_bid).name, **{s: dict(bar=self.bar_kind[s], bar_local=[round(float(x), 3) for x in self.bar_local[s]], palm_r=round(self.palm_r[s], 4),
+                        shoulder=self.m.joint(self.shoulder_j[s]).name) for s in self.gid}}
 
     def palm(self, side: str) -> np.ndarray:
         return self.d.geom_xpos[self.gid[side]].copy()
@@ -175,7 +179,7 @@ class UpperIK:
             mujoco.mj_jacGeom(m, d, self.jp, self.jr, g)
             err = target - d.geom_xpos[g]
             axis = self.bar_axis(d, side)
-            lat = d.xmat[b.root_bid].reshape(3, 3)[:, 1]                  # the trunk's lateral axis
+            lat = d.xmat[self.chest_bid].reshape(3, 3)[:, 1]              # the chest's lateral axis
             ja = lat @ np.cross(self.jr[:, da].T, axis).T
             rows, res = [self.jp[:, da], axis_w * ja[None]], [err, [-axis_w * float(lat @ axis)]]
             if level_w > 0.0:                                             # bar elevation held at `axis_z` (0: level)
@@ -406,6 +410,18 @@ class SquatPlanner:
         kp = m.actuator_gainprm[b.pol_act, 0]
         return np.clip(np.asarray(pose["legs"], float) + tau / kp, b.lo, b.hi)
 
+    def sway(self, pose: dict, delta: float = 0.01) -> np.ndarray:
+        """d(leg joints) / d(lateral pelvis shift) at `pose` with both feet planted (central difference of the foot-placement IK):
+        the joint direction that slides the pelvis sideways, used by the lateral CoM feedback (`WholebodyTeacher.com_balanced`)."""
+        b, legs = self.b, []
+        for sg in (1.0, -1.0):
+            q = self.q_default.copy()
+            q[b.qa:b.qa + 3] = np.asarray(pose["root_pos"]) + np.array([0.0, sg * delta, 0.0])
+            q[b.qa + 3:b.qa + 7] = pose["root_quat"]
+            q[b.pol_qadr] = pose["legs"]
+            legs.append(self._legs(q)[0])
+        return (legs[0] - legs[1]) / (2.0 * delta)
+
     def stance_pose(self) -> dict:
         """The standing plan: the shallowest root drop (0 .. STANCE_DZ_L x L) whose pose is `ok`. Bodies whose default stance has
         straight knees (g1) cannot slide the CoM over the sole centre without a small knee bend; t1 / h1 get dz = 0."""
@@ -430,14 +446,11 @@ def _wrap(a: float) -> float:
 
 
 _PLANS: dict = {}
-_STANCES: dict = {}
 
 
 def _stance(session) -> BodyStance:
-    key = session.scenario.robots[0].robot_spec.spec_hash
-    if key not in _STANCES:
-        _STANCES[key] = BodyStance(session.model, session.binding)
-    return _STANCES[key]
+    """Not cached across sessions: it holds body ids of THIS compiled scene (scenes add bodies before the robot, e.g. h_place's mark)."""
+    return BodyStance(session.model, session.binding)
 
 
 class WholebodyTeacher:
@@ -480,7 +493,10 @@ class WholebodyTeacher:
         """Joint targets of the `legs` group (policy order): the registered tracker on the base command."""
         return np.asarray(self.bt.act(self.s.data, self.command_values()), float)
 
-    def com_balanced(self, legs: np.ndarray) -> np.ndarray:
+    KPY, KIY = 1.0, 1.0       # lateral CoM feedback: pelvis shift (m) per m of CoM error, and per m s (integral, clipped at LAT_I m s)
+    LAT_I = 0.05
+
+    def com_balanced(self, legs: np.ndarray, sway: np.ndarray | None = None) -> np.ndarray:
         """`legs` (a planned static pose, both feet planted) plus an ankle-pitch feedback on the whole-body CoM x over the middle of the
         soles (P + I + D on the true CoM; the ankle servos alone (kp 50) sag and the open-loop plan topples). Static-support tasks use
         it instead of the tracker: the tracker's own standing height is 0.83 of the default, the plan's is 0.98."""
@@ -492,6 +508,11 @@ class WholebodyTeacher:
         self._com_prev, self._com_int = e, float(np.clip(self._com_int + e * self.dt, -0.3, 0.3))
         legs = np.array(legs, float)
         legs[self.ankle_ix] += -st.sign * (st.KP * e + st.KI * self._com_int + st.KD * de)
+        if sway is not None:                 # lateral: slide the pelvis against the CoM's sideways error (trunk twist, one-arm reach)
+            lat = np.array([-fwd[1], fwd[0]])
+            ey = float(lat @ (d.subtree_com[b.root_bid][:2] - st.support_centre(d)[:2]))
+            self._lat_int = float(np.clip(getattr(self, "_lat_int", 0.0) + ey * self.dt, -self.LAT_I, self.LAT_I))
+            legs += np.asarray(sway, float) * -(self.KPY * ey + self.KIY * self._lat_int)
         return legs
 
     def _feet_yaw(self) -> float:
@@ -551,13 +572,14 @@ class ReachTeacher(WholebodyTeacher):
         super().__init__(session)
         self.ik = UpperIK(self.m, self.b, session.palm_ids())
         pl = SquatPlanner(self.m, self.b)
-        self.q_stand = pl.servo_targets(pl.stance_pose())
+        st = pl.stance_pose()
+        self.q_stand, self.sway_stand = pl.servo_targets(st), pl.sway(st)
         self.side = "left" if self.sc["side"] > 0 else "right"
         self.off = np.zeros(3)
         self.sol = self.b.q0_held[self.ik.arm[self.side]].copy()
 
     def legs_command(self) -> np.ndarray:
-        return self.com_balanced(self.q_stand)              # feet planted: the default stance, CoM-balanced against the reaching arm
+        return self.com_balanced(self.q_stand, sway=self.sway_stand)   # feet planted: the default stance, CoM-balanced against the reaching arm
 
     def upper_target(self) -> np.ndarray:
         d = self.s.data
@@ -690,6 +712,7 @@ class SquatPickTeacher(WholebodyTeacher):
         ws = np.linspace(0.0, 1.0, 9)
         poses = [pl.pose(dz * w, pitch * w) for w in ws]
         _PLANS[key] = dict(dz=dz, pitch=pitch, ik_err=err, axis_z=az, arm_open=arm_open, ws=ws, legs=np.array([pl.servo_targets(p) for p in poses]),
+                           sway=np.array([pl.sway(p) for p in poses]),
                            root_pos=np.array([p["root_pos"] for p in poses]), root_quat=np.array([p["root_quat"] for p in poses]),
                            ok=[bool(p["ok"]) for p in poses])
         return _PLANS[key]
@@ -716,7 +739,8 @@ class SquatPickTeacher(WholebodyTeacher):
 
     def legs_command(self) -> np.ndarray:
         """The planned static pose at squat fraction w (both feet stay planted, so no stepping is needed), CoM-balanced."""
-        return self.com_balanced(self._interp("legs", self.squat_w()))
+        w = self.squat_w()
+        return self.com_balanced(self._interp("legs", w), sway=self._interp("sway", w))
 
     def twist(self) -> float:
         return 0.0
@@ -807,7 +831,7 @@ class SquatPickTeacher(WholebodyTeacher):
         return out
 
     def _chest_yaw(self) -> float:
-        r = self.s.data.xmat[self.b.root_bid].reshape(3, 3)
+        r = self.s.data.xmat[self.ik.chest_bid].reshape(3, 3)
         return math.atan2(r[1, 0], r[0, 0])
 
     def _box_face(self, sd: str) -> np.ndarray:
@@ -842,7 +866,7 @@ class SquatPickTeacher(WholebodyTeacher):
         q = d.qpos.copy()
         for sd, ix in self.ik.arm.items():
             q[self.b.held_qadr[ix]] = up[ix]
-        r = d.xmat[self.b.root_bid].reshape(3, 3)
+        r = d.xmat[self.ik.chest_bid].reshape(3, 3)
         for sd, sg in (("left", 1.0), ("right", -1.0)):
             ix = self.ik.arm[sd]
             inward = -sg * r[:, 1]
