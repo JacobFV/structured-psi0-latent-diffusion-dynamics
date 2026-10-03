@@ -138,3 +138,35 @@ def test_slow_backend_cleanup_never_blocks_heartbeats(tmp_path):
     assert b2.heartbeat(other.lease_id).action == "continue"
     assert time.time() - t0 < 0.5
     th.join()
+
+
+def test_gpu_reservation_keeps_a_slot_for_the_reserved_track_and_binds_older_brokers(tmp_path):
+    """D-147 addendum 2026-10-02: reserve 1 of 2 GPU slots for humanoid labels. Other tracks together hold at most 1 GPU (also when
+    their broker code knows nothing of reservations: the reservation is a GPU pseudo-lease every version counts); humanoid may use both;
+    while a humanoid lease holds the reserved slot the reservation is `held`, so a non-humanoid lease can take the other slot."""
+    clock = Clock()
+    res = {"humanoid": {"slots": 1, "prefixes": ["hss_", "hr2_"]}}
+    mk = lambda r: ResourceBroker(cpu_limit=8, memory_limit_bytes=10_000, backend=fake_enforcement_backend(), gpu_slots=2,
+                                  state_dir=tmp_path, clock=clock, gpu_reserve=r)
+    b, old = mk(res), mk(None)                        # `old` passes no reservation: like a peer code dir on older broker code
+    gpu = lambda label: ResourceRequest(cpu_cores=1, memory_bytes=10, gpu=True, label=label)
+    a1 = old.acquire(gpu("armdiv_train"))             # 1 non-humanoid + the reservation = 2 owners
+    with pytest.raises(CapacityError):
+        old.acquire(gpu("pointer_flow"))              # a second non-humanoid GPU lease is refused, even by the older code path
+    h1 = b.acquire(gpu("hr2_steps_g1_train"))         # humanoid ignores its own reservation
+    assert b.leases()["reserve:humanoid"]["state"] == "held"
+    with pytest.raises(CapacityError):
+        b.acquire(gpu("hss_h1_train"))                # 2 real GPU owners now (armdiv + humanoid)
+    old.release(a1.lease_id)
+    h2 = b.acquire(gpu("hss_h1_train"))               # humanoid may use both slots when no other track holds one
+    with pytest.raises(CapacityError):
+        old.acquire(gpu("pointer_flow"))
+    b.release(h1.lease_id)
+    b.release(h2.lease_id)
+    assert b.leases()["reserve:humanoid"]["state"] == "active"
+    old.acquire(gpu("pointer_flow"))
+    with pytest.raises(CapacityError):
+        old.acquire(gpu("psi0_eval"))                 # the reserved slot stays free for humanoid
+    b.acquire(gpu("hr2_gap_t1_train"))
+    mk({})                                            # an empty reservation config removes the pseudo-lease
+    assert "reserve:humanoid" not in b.leases()

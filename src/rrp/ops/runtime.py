@@ -75,7 +75,7 @@ def make_broker(role: str | None = None, *, require_watchdog: bool = True) -> tu
     br = ResourceBroker(cpu_limit=lim["cpu_cores"], memory_limit_bytes=lim["memory_bytes"], backend=be,
                         state_dir=state_dir(role), lease_expiry_s=cfg.get("lease_expiry_s", 20),
                         gpu_slots=lim.get("gpu_slots", 0), disk_limit_bytes=lim.get("disk_bytes"),
-                        require_watchdog=require_watchdog)
+                        require_watchdog=require_watchdog, gpu_reserve=cfg.get("gpu_reserve"))
     return br, be
 
 

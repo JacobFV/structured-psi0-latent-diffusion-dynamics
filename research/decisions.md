@@ -1680,3 +1680,15 @@ defaults; fp32+TF32 for latent/behavior trainers, bf16 autocast for pointer and 
 there is no run list to add. Runs per compute setting: ALL unstarted and running runs = default. Running track owners need do nothing at their next node.
 Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.json`), humanoid T1 round-2 placed nodes, T7 phase 2, T8/T9 running nodes.
 
+
+### D-147 addendum 2026-10-02 (lead): the humanoid GPU priority is ENFORCED in the peer broker
+- Why: the handoff rule by convention failed; the humanoid queue waited ~5 h (14:35 -> ~19:40) with both peer GPU slots held by other tracks
+  and the host GPU paused.
+- Rule: 1 of the 2 peer GPU slots is reserved for humanoid-track leases (label prefixes `hss_ hgr_ hub_ hsm_ htr_ hr2_ hpin hum_`, config
+  `peer.gpu_reserve` in `ops/resources.local.json`). Non-humanoid leases may hold at most 1 peer GPU slot in total while the reservation is on;
+  humanoid leases may use both slots.
+- Mechanism (`rrp.ops.broker`, test `test_gpu_reservation_keeps_a_slot_for_the_reserved_track_and_binds_older_brokers`): the reservation
+  is a GPU pseudo-lease `reserve:humanoid` in the shared broker state (zero CPU / memory, never expires, created 0 so a newest-first shed
+  never picks it). Every broker version, including the older code in the other tracks' peer code dirs, counts it as a GPU owner. A humanoid
+  request never counts its own reservation. Reconcile (admission, release, every watchdog heartbeat) marks it `held` while a humanoid GPU
+  lease occupies the reserved slot, so another track can use the second slot then. Running leases are untouched: it binds new admissions only.

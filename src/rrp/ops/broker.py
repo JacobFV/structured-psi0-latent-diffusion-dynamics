@@ -88,7 +88,7 @@ class ResourceBroker:
                  state_dir: str | Path | None = None, *, lease_expiry_s: float = 20.0,
                  gpu_slots: int = 0, disk_limit_bytes: int | None = None,
                  require_watchdog: bool = False, watchdog_max_age_s: float = 10.0,
-                 clock=_now):
+                 clock=_now, gpu_reserve: dict | None = None):
         self.backend = backend
         self.lease_expiry_s = lease_expiry_s
         self.clock = clock
@@ -112,6 +112,8 @@ class ResourceBroker:
                 st["startup_limits"] = dict(startup)
                 st["limits"] = dict(startup)
                 fresh = True
+            if gpu_reserve is not None:
+                self._set_reservations(st, gpu_reserve)
         if fresh:
             backend.ensure_parent(cpu_cores=float(cpu_limit), memory_bytes=int(memory_limit_bytes))
 
@@ -162,6 +164,45 @@ class ResourceBroker:
     def _active(st):
         return {k: v for k, v in st["leases"].items() if v["state"] in ("active", "revoke_requested")}
 
+    # ---- GPU slot reservations (D-147 addendum 2026-10-02) ------------------------------------------------------------
+    # A reservation {name: {"slots": k, "prefixes": [label prefixes]}} keeps k GPU slots for leases whose label starts with one of the
+    # prefixes. It is stored as a pseudo-lease `reserve:<name>` (gpu=True, zero CPU / memory, never expires, created 0 so a shed of the
+    # newest lease never picks it), so EVERY broker version, including the older code in other peer code dirs, counts it as a GPU owner
+    # and the other tracks together can hold at most slots - k. Reconcile (on every admission, release and watchdog heartbeat) marks
+    # it `held` (not counted) while a matching GPU lease holds the reserved slot; a matching request never counts its own reservation.
+    RESERVE = "reserve:"
+
+    def _set_reservations(self, st, cfg: dict) -> None:
+        st["gpu_reserve"] = {n: dict(slots=int(c.get("slots", 1)), prefixes=list(c["prefixes"])) for n, c in (cfg or {}).items()}
+        far = self.clock() + 10 * 365 * 86400
+        for n, c in st["gpu_reserve"].items():
+            lid = self.RESERVE + n
+            st["leases"][lid] = dict(lease_id=lid, request=dict(cpu_cores=0.0, memory_bytes=0, gpu=True, label=lid, node="reserve",
+                                                                max_seconds=21600, disk_bytes=0, gpu_memory_bytes=0,
+                                                                reserve_slots=c["slots"], reserve_prefixes=c["prefixes"]),
+                                     created=0.0, expires_at=far, heartbeat_at=self.clock(), state="active")
+        for lid in [k for k in st["leases"] if k.startswith(self.RESERVE) and k[len(self.RESERVE):] not in st["gpu_reserve"]]:
+            st["leases"].pop(lid)
+        self._reconcile(st)
+
+    def _matches(self, st, label: str) -> list[str]:
+        return [n for n, c in (st.get("gpu_reserve") or {}).items() if any(str(label).startswith(p) for p in c["prefixes"])]
+
+    def _reconcile(self, st) -> None:
+        for n, c in (st.get("gpu_reserve") or {}).items():
+            r = st["leases"].get(self.RESERVE + n)
+            if r is None:
+                continue
+            held = sum(1 for k, l in st["leases"].items() if not k.startswith(self.RESERVE) and l["state"] in ("active", "revoke_requested")
+                       and l["request"].get("gpu") and n in self._matches(st, l["request"].get("label", "")))
+            r["state"] = "held" if held >= c["slots"] else "active"
+            r["expires_at"] = max(r["expires_at"], self.clock() + 86400)
+
+    def reconcile_reservations(self) -> None:
+        with self._locked() as st:
+            self._expire(st)
+            self._reconcile(st)
+
     def totals(self) -> dict:
         with self._locked() as st:
             self._expire(st)
@@ -190,7 +231,8 @@ class ResourceBroker:
             cpu = sum(l["request"]["cpu_cores"] for l in act.values()) + request.cpu_cores
             mem = sum(l["request"]["memory_bytes"] + l["request"].get("gpu_memory_bytes", 0)
                       for l in act.values()) + request.memory_bytes + request.gpu_memory_bytes
-            gpu = sum(1 for l in act.values() if l["request"]["gpu"]) + (1 if request.gpu else 0)
+            mine = {self.RESERVE + n for n in self._matches(st, request.label)}
+            gpu = sum(1 for k, l in act.items() if l["request"]["gpu"] and k not in mine) + (1 if request.gpu else 0)
             disk = sum(l["request"].get("disk_bytes", 0) for l in act.values()) + request.disk_bytes
             if cpu > lim["cpu_cores"] + 1e-9:
                 raise CapacityError(f"cpu {cpu:.2f} > aggregate limit {lim['cpu_cores']:.2f}")
@@ -208,6 +250,7 @@ class ResourceBroker:
             st["leases"][lid] = asdict(lease)
             self._log(st, "lease_acquired", lease_id=lid, label=request.label,
                       cpu=request.cpu_cores, mem=request.memory_bytes, gpu=request.gpu)
+            self._reconcile(st)
             return lease
 
     def heartbeat(self, lease_id: str, usage: dict | None = None) -> LeaseDecision:
@@ -268,6 +311,7 @@ class ResourceBroker:
             if l["state"] in ("active", "revoke_requested"):
                 l["state"] = "released"
                 self._log(st, "lease_released", lease_id=lease_id)
+                self._reconcile(st)
             if cleanup_backend:
                 l["backend_removed"] = True
                 self._pending_cleanup.append(lease_id)
@@ -319,6 +363,8 @@ class ResourceBroker:
     def watchdog_beat(self, info: dict | None = None) -> None:
         with self._locked() as st:
             st["watchdog_heartbeat"] = self.clock()
+            self._expire(st)
+            self._reconcile(st)                  # reservations follow lease ends that older broker code processed
             if info:
                 st["watchdog_last"] = info
 
