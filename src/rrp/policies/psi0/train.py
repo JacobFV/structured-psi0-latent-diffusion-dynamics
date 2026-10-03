@@ -465,8 +465,97 @@ def heldout(argv=None):
     Path(a.out).write_text(json.dumps(res, indent=1))
 
 
+def _hand_pred(P, z):
+    lg = N.run_probe(P, z)["active_hand"].float()
+    while lg.dim() > 2:
+        lg = lg.mean(1)
+    return lg.argmax(-1)
+
+
+def flip_rate(seqs) -> float | None:
+    """Fraction of consecutive pairs (within each sequence) whose value changes; None without pairs."""
+    n = f = 0
+    for q in seqs:
+        for x, y in zip(q[:-1], q[1:]):
+            n += 1; f += int(x != y)
+    return f / n if n else None
+
+
+def hand_consistency(argv=None):
+    """DIAGNOSTIC (D-147 T7, not a result): does system i commit to one hand across chunks? An active-hand probe is fit on
+    E(demonstrated chunk) packets (train episodes, as `probes`), then read on held-out chunk-start frames (every `--stride`
+    frames = one executed chunk) from (a) E(chunk) (uses the target actions: oracle side), and (b) `--samples` independent
+    system-i packets per frame (the closed loop re-samples one per chunk). Reports per-frame sample agreement, accuracy vs the
+    label, and consecutive-chunk flip rates of label / E-decode / one-sample-per-chunk decode. Demo states only: it cannot
+    show off-manifold behaviour."""
+    ap = argparse.ArgumentParser(prog="rrp train psi0 handcons")
+    for k in ("--feat-dir", "--labels-dir", "--stage-a", "--train-summary", "--structured", "--run-dir", "--out"):
+        ap.add_argument(k, required=True)
+    ap.add_argument("--steps", type=int, default=3000)
+    ap.add_argument("--samples", type=int, default=8)
+    ap.add_argument("--stride", type=int, default=24)
+    a = ap.parse_args(argv)
+    dev = "cuda"
+    cx = compute.setup("psi0.probes", dev)
+    summ = json.loads(Path(a.train_summary).read_text())
+    A = N.load_stage_a(a.stage_a).to(dev).eval()
+    zs = torch.load(Path(a.stage_a).parent / "z_stats.pt")
+    head = N.StructuredHead(load_model_cfg(a.run_dir), A, zs["mean"], zs["std"])
+    N.load_structured(head, a.structured); head = head.to(dev).eval()
+    ds = CachedDataset(a.feat_dir, a.labels_dir, episodes=set(summ["train_eps"]), load_hidden=False)
+    dv = CachedDataset(a.feat_dir, a.labels_dir, episodes=set(summ["val_eps"]), load_hidden=True)
+    torch.manual_seed(0)
+    P = N.new_probe(specs=A.specs).to(dev)
+    opt = torch.optim.AdamW(P.parameters(), lr=3e-4)
+    dl = torch.utils.data.DataLoader(ds, batch_size=128, shuffle=True, drop_last=True, collate_fn=collate)
+    it = iter(dl)
+    for _ in range(a.steps):
+        try:
+            b = next(it)
+        except StopIteration:
+            it = iter(dl); b = next(it)
+        b = to_dev(b, dev)
+        with torch.no_grad(), cx.autocast():
+            z = zs_of(A, b, None).float()
+        l, _ = N.probe_loss(N.run_probe(P, z), b["labels"], P.specs, lv_min=-4.0)
+        opt.zero_grad(); l.backward(); opt.step()
+    P.eval()
+    idx = sorted((i for i, x in enumerate(dv.items) if x["fr"] % a.stride == 0), key=lambda i: (dv.items[i]["ep"], dv.items[i]["fr"]))
+    gens = [torch.Generator(device=dev).manual_seed(1000 + k) for k in range(a.samples)]
+    rows = []
+    with torch.no_grad():
+        for b0 in range(0, len(idx), 16):
+            ii = idx[b0:b0 + 16]
+            b = to_dev(collate([dv[i] for i in ii]), dev)
+            with cx.autocast():
+                pe = _hand_pred(P, zs_of(A, b, None).float())
+                ps = torch.stack([_hand_pred(P, head.sample_z(b, generator=g).float()) for g in gens], 1)
+            lab = b["labels"]["active_hand"].view(-1)
+            for j, i in enumerate(ii):
+                rows.append(dict(ep=int(dv.items[i]["ep"]), fr=int(dv.items[i]["fr"]), label=int(lab[j]), e=int(pe[j]),
+                                 s=[int(x) for x in ps[j]]))
+    lab_rows = [r for r in rows if r["label"] >= 0]
+    eps = sorted({r["ep"] for r in rows})
+    seq = lambda key: [[key(r) for r in rows if r["ep"] == e and r["label"] >= 0] for e in eps]
+    res = dict(
+        diagnostic="hand_consistency (DIAGNOSTIC; demo states only; E-decode uses the target actions)",
+        frames=len(rows), labelled=len(lab_rows), stride=a.stride, samples=a.samples, val_episodes=eps,
+        acc_E=float(np.mean([r["e"] == r["label"] for r in lab_rows])) if lab_rows else None,
+        acc_sample=float(np.mean([s == r["label"] for r in lab_rows for s in r["s"]])) if lab_rows else None,
+        sample_agreement=float(np.mean([max(r["s"].count(0), r["s"].count(1)) / len(r["s"]) for r in rows])),
+        frac_frames_split=float(np.mean([0 < r["s"].count(1) < len(r["s"]) for r in rows])),
+        flip_label=flip_rate(seq(lambda r: r["label"])), flip_E=flip_rate(seq(lambda r: r["e"])),
+        flip_sample_per_chunk=[flip_rate(seq(lambda r, k=k: r["s"][k])) for k in range(a.samples)],
+        rows=rows)
+    res["flip_sample_per_chunk_mean"] = float(np.mean([x for x in res["flip_sample_per_chunk"] if x is not None]))
+    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+    Path(a.out).write_text(json.dumps(res, indent=1))
+    print("handcons", json.dumps({k: v for k, v in res.items() if k != "rows"}), flush=True)
+    return {k: v for k, v in res.items() if k != "rows"}
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    if argv and argv[0] in ("probes", "gate", "heldout"):
-        return dict(probes=fit_probes, gate=packet_gate, heldout=heldout)[argv[0]](argv[1:])
+    if argv and argv[0] in ("probes", "gate", "heldout", "handcons"):
+        return dict(probes=fit_probes, gate=packet_gate, heldout=heldout, handcons=hand_consistency)[argv[0]](argv[1:])
     return train(argv)

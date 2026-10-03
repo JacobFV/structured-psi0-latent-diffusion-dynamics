@@ -226,3 +226,9 @@ def test_cli_train_psi0_result_dict_is_exit_zero(monkeypatch):
     M = importlib.import_module("rrp.cli.main")
     monkeypatch.setattr(T, "main", lambda argv=None: {"gate": {"passed": True}})
     assert M.main(["train", "psi0", "gate", "--feat-dir", "f"]) == 0
+
+
+def test_flip_rate_counts_changes_within_sequences_only():
+    from rrp.policies.psi0.train import flip_rate
+    assert flip_rate([[0, 0, 1, 1], [1, 0]]) == 2 / 4      # 1 change in 3 pairs + 1 in 1 pair; no pair across sequences
+    assert flip_rate([[0], []]) is None
