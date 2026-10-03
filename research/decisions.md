@@ -1692,3 +1692,14 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
   never picks it). Every broker version, including the older code in the other tracks' peer code dirs, counts it as a GPU owner. A humanoid
   request never counts its own reservation. Reconcile (admission, release, every watchdog heartbeat) marks it `held` while a humanoid GPU
   lease occupies the reserved slot, so another track can use the second slot then. Running leases are untouched: it binds new admissions only.
+
+### D-147 addendum 2026-10-03 (lead): peer /dev/shm guard after the 03:58-04:19 freeze
+- Cause (lead): /dev/shm job outputs are charged to `rrp.slice` (shmem); the slice reached 39.8 GB, `rrp-watchdog-peer` could not create its
+  cgroup (exit 219/CGROUP, 331 restarts) and the broker stopped admitting. The Psi0 track archived 6.5 GB; the lead offloaded 100 cold run dirs
+  to `~/rrp-peer-data/shm-offload/` (symlinks, OFFLOAD_LOG.txt). MemoryMax is NOT raised.
+- Guard: peer unit `rrp-shm-guard` (`~/rrp-peer-data/shm-offload/shm_guard.sh`, in rrp-control.slice): every 60 s, when `rrp.slice`
+  memory.current > 24 GB and its shmem > 8 GB, it moves the oldest COLD run dirs (no file written for 6 h, no process cwd or open file under it)
+  from the shm store to peer disk, verifies them (rsync checksum dry-run equal), replaces them by symlinks, until shmem <= 8 GB. Every move is
+  logged; threshold crossings and "still high, excess is anon of running jobs" go to ALERTS.txt, which the lead's host watcher forwards.
+  First pass at 04:20: slice 35 GB = anon 19.5 + shmem 15.7 + page cache. `armexpert/v4dart/pack-v4dart_s1_H16_s1` is a dangling symlink (that
+  pack was archived to the host on 09-29); the guard copies links as links.
