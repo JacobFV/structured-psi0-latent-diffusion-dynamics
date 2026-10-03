@@ -74,3 +74,11 @@ def test_overlay_matrix_render():
         [("sem", 1, 1706, None), ("sem", 2, 2706, None), ("nosem", 1, 1706, 0), ("nosem", 2, 2706, 0)]
     with pytest.raises(RunConfigError):
         render("{__import__('os')}", {})
+
+
+def test_overlay_merges_int_keyed_tables():
+    """An `extends` child may override one entry of an int-keyed axis_vars table (YAML `1:` keys) of its parent."""
+    from rrp.core.runconfig import overlay
+    base = {"axis_vars": {"seed": {1: {"pin": "PENDING1"}, 2: {"pin": "PENDING2"}}}}
+    out = overlay(base, {"axis_vars": {"seed": {1: {"pin": "abc"}}}})
+    assert out["axis_vars"]["seed"] == {1: {"pin": "abc"}, 2: {"pin": "PENDING2"}}

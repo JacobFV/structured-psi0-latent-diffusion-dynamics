@@ -482,7 +482,7 @@ def overlay(base: dict, over: dict) -> dict:
     addresses a nested key; a value None deletes the key."""
     out = copy.deepcopy(base)
     for k, v in over.items():
-        if "." in k and k not in out:
+        if isinstance(k, str) and "." in k and k not in out:     # YAML int keys (axis_vars seed tables) merge as keys
             head, rest = k.split(".", 1)
             out[head] = overlay(out.get(head) or {}, {rest: v})
             continue

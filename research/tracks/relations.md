@@ -63,7 +63,8 @@ Their open items are collected below, so nothing needs the old notes.
 2. **Control `none`** = the armdiv lineage `arm8div-semfix` seeds 1, 2 (`recipes/armdiv/arm_lineage_v8div.yaml`, FROZEN, T6;
    default factor list = `preset:arm`, verified equal to the explicit `['preset:arm']`). It is the same recipe and seeds, so it is
    read, not re-run (D-140): `artifacts/runs/armdiv/arm8div-semfix/`.
-3. **Treatments** `relations8-<set>` seeds 1, 2 (`recipes/relations/relations_v8div.yaml`, `extends` the v8div recipe).
+3. **Treatments** `relations8-<set>` seeds 1, 2 (instance `recipes/relations/relations_v8div.yaml` -> template
+   `recipes/templates/relations_v8div_factor.yaml`, which `extends` the v8div recipe unchanged).
    - Varied: `params.policy.factors` = preset:arm + the set on F0, Fft, Fgdag1, Fgdag2h (the architecture must match for the
      strict `init_from`); `inputs.relgen` + `params.curriculum` on F0 (ramp 20,000) and Fft (ramp 10,000) only (the pack-trained
      flows; Fgdag2h has no pack rows, so a curriculum would be inert there; Fgdag1 carries the architecture only). Scheduled
