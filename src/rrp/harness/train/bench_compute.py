@@ -33,9 +33,9 @@ SETTINGS = {                                          # name -> Compute (None pr
     "default": Compute(),
     "fp32": Compute(precision="fp32", tf32=False),
     "tf32": Compute(precision="fp32", tf32=True),
-    "bf16": Compute(precision="bf16"),
-    "bf16+compile": Compute(precision="bf16", compile="reduce-overhead", cuda_graphs=True),
-    "bf16+compile-nograph": Compute(precision="bf16", compile="max-autotune"),
+    "bf16": Compute(precision="bf16", tf32=True),
+    "bf16+compile": Compute(precision="bf16", tf32=True, compile="reduce-overhead", cuda_graphs=True),
+    "bf16+compile-nograph": Compute(precision="bf16", tf32=True, compile="max-autotune"),
 }
 LEGGED_FACTORS = [{"name": f"probe.legged.{k}", "weight": 1.0} for k in ("contact", "goal", "disp", "subtask", "fall")] + ["preset:legged"]
 BIG = 10 ** 9
