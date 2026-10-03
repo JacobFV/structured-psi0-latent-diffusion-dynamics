@@ -268,8 +268,12 @@ class WholebodyTeacher:
         self.upper = self.b.q0_held.copy()
         self.r = session.robots[0].meta["legged"]["command_ranges"]
         self.sc = session.scenario.meta
-        jn = [self.m.joint(int(self.m.actuator_trnid[a, 0])).name.lower() for a in self.b.pol_act]
+        jid = [int(self.m.actuator_trnid[a, 0]) for a in self.b.pol_act]
+        jn = [self.m.joint(j).name.lower() for j in jid]
         self.ankle_ix = np.array([i for i, n in enumerate(jn) if "ankle" in n and "pitch" in n], int)
+        if len(self.ankle_ix) == 0:          # single-DoF ankles (h1 `left_ankle`): the ankle hinge about the lateral (y) axis is the pitch joint
+            self.ankle_ix = np.array([i for i, (j, n) in enumerate(zip(jid, jn))
+                                      if "ankle" in n and abs(float(self.m.jnt_axis[j][1])) > 0.9], int)
         if len(self.ankle_ix) != 2:
             raise ValueError(f"{self.name}: expected two ankle pitch joints among the policy joints, got {len(self.ankle_ix)}")
         self._com_prev, self._com_int = None, 0.0
