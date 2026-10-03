@@ -70,6 +70,7 @@ TOOLS: dict[tuple[str, str], tuple[str, str]] = {
     ("video", "arm"): ("rrp.harness.eval.video_arm:main", "labelled arm episode videos (teacher / learned / latent)"),
     ("video", "dual"): ("rrp.harness.eval.video_dual:main", "labelled dual-arm episode videos (with per-slot packet probe)"),
     ("video", "legged"): ("rrp.harness.eval.video_legged:main", "labelled legged / humanoid teacher+tracker clips"),
+    ("video", "psi0"): ("rrp.harness.eval.video_psi0:main", "labelled Psi0 SIMPLE closed-loop clips (released / direct / structured)"),
     ("factors", "list"): ("rrp.policies.relations.base:cli", "relation-factor registry: list [GLOB]"),
     ("factors", "show"): ("rrp.policies.relations.base:cli", "relation-factor registry: show NAME"),
     ("factors", "presets"): ("rrp.policies.relations.base:cli", "relation-factor presets"),

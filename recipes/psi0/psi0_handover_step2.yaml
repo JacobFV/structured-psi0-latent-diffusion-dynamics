@@ -1,0 +1,15 @@
+# Step 2 on G1WholebodyHandoverTeleop-v0 (public data; released ckpt reproduced 7/10 at step 1, published 7|7|10). Bimanual: the active
+# hand changes within an episode (time-varying labels, data.py). Same template, protocol and seeds as tabletop / bendpick (D-147 T7).
+# The older v1 Handover stage A / structured arms (psi1z, pre-P-009) are NOT reused. Labels are recorded by the `labels` node.
+extends: ../templates/psi0_step2.yaml
+name: psi0_handover_step2
+schema: dag-1
+track: psi0
+policy: psi0_structured
+env: simple
+task: simple/G1WholebodyHandoverTeleop-v0
+bodies: g1_simple
+factors: []
+vars:
+  task: G1WholebodyHandoverTeleop-v0
+  task_key: handover
