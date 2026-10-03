@@ -1754,3 +1754,12 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
   1 - 0.05/3), valid only if every scheduled factor reaches competence >= 0.5 at the end of Fft in both seeds. Gate: armdiv G3 lineage gate
   PASS; G3 FAIL makes T9 on v8div moot. One GPU lease at a time; budget 80 GPU lease-hours; `all` combination only within 60 h.
 - Memory declarations from measured peaks (flows 14G + 2G GPU, refits 10G + 3G, collections 10G, relgen 3G, evals 8G); the old 40G + 16G F0 is gone.
+### D-147 addendum 2026-10-03 (owner, via lead): host GPU open to ALL tracks, 30 % of the host kept unused
+- Owner: open the host GPU to all tracks, keeping 30 % of the host unutilized "so we don't crash".
+- Live (`ops/resources.local.json` `host`, main-checkout copy edited in place, backup `host-resources.local.json.bak-20261003-open`; host
+  watchdog restarted, D-133): free-RAM reserve = 30 % of MemTotal = 36.5 GiB (the watchdog's live limit is min(48 GiB, 0.8 x (free + project),
+  free + project - reserve), i.e. at most available - 36.5 GiB, and it emergency-sheds below the reserve); total declared memory incl. GPU memory
+  48 GiB; CPU 8 (<= 70 % of 20 cores; kept at 8); GPU 2 slots, 1 reserved for humanoid labels (`gpu_reserve`, pseudo-lease `reserve:humanoid`,
+  the peer scheme); swap rule unchanged. Back-off to 1 slot is automatic in the lead's host watcher (`hum_watch.sh`) when the GPU reaches 85 C or
+  memory PSI full avg60 >= 20; restoring 2 slots is a lead decision.
+- At the change (10-03 ~06:40): available 83.8 GiB, swap free 6.6 GiB, GPU 50 C idle, watchdog ok, admission open.

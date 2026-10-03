@@ -69,10 +69,25 @@
   },
   "lease_expiry_s": 120,
   "gpu_authorized": true,
-  "memory_reserve_bytes": 25769803776,
+  "memory_reserve_bytes": 39178823270,
   "disk_reserve_bytes": 107374182400,
   "startup_new_disk_bytes": 168020324352,
-  "admission_note": "D-147 addendum (owner 2026-10-01: 'you can also use this machine for training. just be careful to not crash it (mem+gpu mem+cpu usage safety)'; supersedes D-115/D-127): host broker capped at 8 CPU, 32 GiB total declared memory INCLUDING GPU memory (unified), 1 GPU slot; watchdog free-RAM reserve 24 GiB; PSI/OOM watchdog active. D-147 addendum 2026-10-02 (owner): 2 GPU slots, 48 GiB total declared memory incl. GPU memory; reserve 24 GiB unchanged."
+  "admission_note": "D-147 addendum 2026-10-03 (owner): host GPU open to ALL tracks, 30% of the host kept unused: free-RAM reserve = 30% of MemTotal (watchdog emergency-sheds below it; live limit = min(48 GiB, 0.8*(free+project), free+project-reserve)); 48 GiB total declared memory incl. GPU memory; 8 CPU (<= 70% of 20 cores); 2 GPU slots, 1 reserved for humanoid labels (pseudo-lease reserve:humanoid); swap rule unchanged (host GPU resumes only with swap free > 6 GB); back off to 1 slot above 85 C GPU or rising pressure.",
+  "gpu_reserve": {
+   "humanoid": {
+    "slots": 1,
+    "prefixes": [
+     "hss_",
+     "hgr_",
+     "hub_",
+     "hsm_",
+     "htr_",
+     "hr2_",
+     "hpin",
+     "hum_"
+    ]
+   }
+  }
  },
  "peer": {
   "measurement": {
