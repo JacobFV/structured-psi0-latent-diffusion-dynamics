@@ -1778,3 +1778,20 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
   slot (humanoid keeps it) and other tracks go to the host's shared slot.
 - T3 validate re-declared 6G (apollo peaked 3.6 GB under the 0.8 x 4G throttle and was shed as a memory culprit); the other five validate
   outputs were adopted across the watchdog / broker code change (no evaluation code changed).
+
+### D-147 addendum 2026-10-03 (owner, via lead): T3 installed under a labelled exception; sealed-body teacher check — PRE-REGISTERED before any sealed-body run
+1. `shared:morph_v2_ub` INSTALLED (sha 6fd9c187e574a151, decision `accepted_d147_exception`), validated bodies t1 / g1 / h1 (D-147 exception: t1 peak
+   force 3.48 BW; g1 joint margin 0.012; h1 joint margin 0.0082). Gate failures recorded VERBATIM in the install label and carried by every downstream
+   result: **op3** forward ratio 0.01 (does not walk forward); **adam_lite** falls (no-fall 0.83), stand fails, joint margin -0.0015, robust mu_lo forward
+   -0.03; **apollo** (re-validated at 6G) lab forward check fails, CoT 18 (barely moves forward).
+2. Sealed-body teacher check, BEFORE any sealed transfer cell: the scripted teacher of each T4 task over `shared:morph_v2_ub` (the T3 tracker driving
+   the sealed body) on each sealed body that task's transfer recipe lists. Tasks now: h_walk, h_turn (the T4 tasks; tasks that pass the T4 gate later,
+   e.g. after the teacher fix, get the same check before their sealed cells). Bodies: n1, berkeley, toddlerbot_2xc (`sealed_bodies` of the h_walk / h_turn
+   recipes); g1_hands only for the manipulation tasks (split: S1 is manipulation-only); phum sealed is not planned in any recipe (HR) and stays out;
+   toddlerbot_2xm is in the split but in no recipe and stays out.
+   **Seeds (deviation from the lead's wording, recorded):** the first 20 TARGET-ADAPTATION seeds [1000000, 1000020), not development seeds: the D-138
+   split forbids development seeds on sealed bodies ("dev seeds only on non-sealed bodies") and `SealedSplit` refuses them; adaptation seeds are the
+   seeds the sealed collection (`collect_sealed`) uses anyway, and the sealed EVALUATION scenes [2000000, 2100000) are never touched.
+   **Rule:** per (body, task) teacher success >= 16/20 (0.8); a (body, task) below it is excluded from that task's sealed cells; a body that fails every
+   T4 task is `blocked_external` and excluded. Source label of every cell: scripted_teacher (privileged) over learned_tracker shared:morph_v2_ub
+   (D-147 owner exception).

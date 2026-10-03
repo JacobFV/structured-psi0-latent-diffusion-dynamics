@@ -1,0 +1,25 @@
+# D-147 sealed-body teacher check (pre-registered in the D-147 addendum of 2026-10-03, before any sealed-body run): the scripted teacher of a T4 task
+# over the T3 shared tracker `shared:morph_v2_ub` on one sealed body, 20 TARGET-ADAPTATION seeds (D-138 allows them on sealed bodies; development and
+# evaluation seeds are never used). Stage `collect` (the sealed collection path, SealedSplit-guarded); the per-episode success of its manifest is the check.
+# Gate: >= 16/20 per (body, task). Instances set the matrix.
+name: humanoid_sealed_check_template
+schema: dag-1
+family: humanoid
+track: humanoid
+lineage: 'sealed-check-{task}-{body}'
+label_prefix: 'hsc_{task}_{body}'
+global_label_prefix: 'hsc'
+vars: {task: SET_IN_CHILD_DAG, body: SET_IN_CHILD_DAG}
+defaults:
+  placement: peer
+  retries: 1
+  max_parallel: 3
+  resources: {cpu: 2, mem: 6G, gpu: false, max_seconds: 14400}
+base:
+  flags: {contact_version: contact_v2}
+nodes:
+  check:
+    stage: collect
+    tag: sealed-check
+    config:
+      options: {task: '{task}', bodies: ['{body}'], trackers: {'{body}': 'shared:morph_v2_ub'}, seeds: '1000000-1000019', workers: 2}

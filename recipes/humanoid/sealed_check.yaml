@@ -1,0 +1,15 @@
+# D-147 sealed-body teacher check instance (template recipes/templates/humanoid_sealed_check.yaml): T4 tasks h_walk, h_turn x the sealed bodies of
+# their transfer recipes (n1, berkeley, toddlerbot_2xc), over shared:morph_v2_ub. Gate >= 16/20 per (body, task).
+extends: ../templates/humanoid_sealed_check.yaml
+name: humanoid_sealed_check
+schema: dag-1
+track: humanoid
+policy: teacher
+env: mujoco/legged
+task: h_walk
+bodies: humanoid_sealed_v1
+factors: []
+matrix:
+  task: [h_walk, h_turn]
+  body: [n1, berkeley, toddlerbot_2xc]
+vars: {task: null, body: null}     # task and body come from the matrix point

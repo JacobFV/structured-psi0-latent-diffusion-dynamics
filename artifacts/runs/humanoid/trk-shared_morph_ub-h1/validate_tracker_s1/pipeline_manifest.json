@@ -1,0 +1,102 @@
+{
+ "config_hash": "9bb71b48edf49a50",
+ "episodes": [],
+ "finished": 1791037668.6608603,
+ "inputs": {
+  "actor": [
+   {
+    "digest": "6fd9c187e574a151",
+    "path": "artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt"
+   }
+  ]
+ },
+ "manifest_hash": "6bc3696adb7173ec",
+ "metrics": {
+  "body": "h1",
+  "contact_gate": true,
+  "gate": {
+   "failed": [
+    "joint_limit_margin=0.008153067078808123 (threshold >= 0.02)"
+   ],
+   "not_evaluated": [],
+   "verdict": "fail"
+  },
+  "tracker_sha": "6fd9c187e574a151",
+  "tracker_version": "learned_tracker:shared_morph_v2:h1:iter2999:contact_v2"
+ },
+ "n_episodes": 0,
+ "name": "runs/humanoid/trk-shared_morph_ub-h1/validate_tracker_s1",
+ "native_config": {
+  "actor": "artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1/actor.pt",
+  "name": "humanoid_trk-shared_morph_ub-h1_validate_tracker_s1",
+  "out_dir": "artifacts/runs/humanoid/trk-shared_morph_ub-h1/validate_tracker_s1"
+ },
+ "outputs": {
+  "validation": {
+   "digest": "e8cfa0efcc5fe62d",
+   "path": "artifacts/runs/humanoid/trk-shared_morph_ub-h1/validate_tracker_s1/validation.json"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": false,
+   "git_sha": "68d7af5a9478709b49098a77c31e155591a33666",
+   "src_tree": "03f62e71a83cc592c37a1940d506aca86f558b11",
+   "tree": "3073d6f20a0f8cf6e1377caf566547824a8d4b83"
+  },
+  "created_at": 1791037668.6604896,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v2"
+  },
+  "legacy": false,
+  "notes": "pipeline legged/validate_tracker runs/humanoid/trk-shared_morph_ub-h1/validate_tracker_s1",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned_tracker",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/humanoid/trk-shared_morph_ub-h1/validate_tracker_s1",
+ "runconfig": {
+  "family": "legged",
+  "flags": {
+   "contact_version": "contact_v2",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {
+   "actor": "runs/humanoid/trk-shared_morph_ub/train_tracker_s1:actor.pt"
+  },
+  "legacy": null,
+  "lineage": "trk-shared_morph_ub-h1",
+  "note": "",
+  "options": {
+   "body": "h1",
+   "gate": "report",
+   "kind": "learned",
+   "robust": true,
+   "seeds": 10,
+   "task": null
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 1,
+  "stage": "validate_tracker",
+  "tag": null,
+  "track": "humanoid",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1791037590.8896403,
+ "status_counts": {}
+}

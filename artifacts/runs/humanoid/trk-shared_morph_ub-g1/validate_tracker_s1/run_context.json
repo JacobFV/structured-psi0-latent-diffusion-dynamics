@@ -1,0 +1,32 @@
+{
+ "schema_version": "runconfig-1",
+ "family": "legged",
+ "stage": "validate_tracker",
+ "variant": "na",
+ "seed": 1,
+ "lineage": "trk-shared_morph_ub-g1",
+ "track": "humanoid",
+ "tag": null,
+ "inputs": {
+  "actor": "runs/humanoid/trk-shared_morph_ub/train_tracker_s1:actor.pt"
+ },
+ "flags": {
+  "zero_prev_action": null,
+  "realizer_anchor": null,
+  "realizer_drop_qd": null,
+  "probe_lv_min": null,
+  "qd_dropout": null,
+  "contact_version": "contact_v2"
+ },
+ "params": {},
+ "options": {
+  "task": null,
+  "body": "g1",
+  "kind": "learned",
+  "seeds": 10,
+  "robust": true,
+  "gate": "report"
+ },
+ "note": "",
+ "legacy": null
+}

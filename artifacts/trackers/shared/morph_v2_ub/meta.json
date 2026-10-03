@@ -1,0 +1,1152 @@
+{
+ "body": "shared",
+ "obs_dim": 540,
+ "priv_dim": 42,
+ "act_dim": 14,
+ "control_dt": 0.02,
+ "hidden": [
+  512,
+  512,
+  256
+ ],
+ "kind": "humanoid",
+ "algo": "ppo_asymmetric_actor_critic",
+ "actor_inputs": "public: imu gyro, imu gravity, command, joint pos/vel, last action, gait clock, upper-body joint state (morph_v2: padded q - q0, qdot + static slot descriptors)",
+ "critic_inputs": "public + privileged: base lin vel, height, foot contacts, friction, push flag + reward-schedule alpha, payload fraction, upper-body target offset",
+ "source_label": "learned_tracker:shared_morph_v2 (trained with privileged critic)",
+ "args": {
+  "recipe": "shared_morph_ub",
+  "body": null,
+  "out": "artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1",
+  "nworld": 0,
+  "iters": 3000,
+  "horizon": 24,
+  "epochs": 5,
+  "minibatches": 16,
+  "lr": 0.001,
+  "desired_kl": 0.01,
+  "min_lr": 1e-05,
+  "max_lr": 0.003,
+  "gamma": 0.99,
+  "lam": 0.95,
+  "clip": 0.2,
+  "vf_coef": 1.0,
+  "ent_coef": 0.005,
+  "init_std": 0.6,
+  "hidden": "512,512,256",
+  "episode_s": 20.0,
+  "seed": 1,
+  "ckpt_every": 50,
+  "resume": true,
+  "reward_set": "clearance_floor=-2,yaw_slip=-2,turn_step=2,turn_lin=1.5,sigma_ang=0.03,stance_cap=-1,ref_step=1.0,ref_gait=clock,ref_lift=1.0,ref_contact=0.5,limit_margin=-8.0,limit_margin_agg=max,yaw_progress_cap=1.0,yaw_overshoot=-2.0,stand_vel=-3.0,stand_contact=2.0,stand_still=-1.0,impact=-4.0,yaw_lin_all=1,yaw_lin_all_max=0.5",
+  "cmd_mix": "teacher",
+  "turn_frac": 0.35,
+  "clock_gate": true,
+  "target_margin": 0.03,
+  "land_vel": -2.0,
+  "force_cap": 0.0,
+  "force_cap_bw": 2.5,
+  "teacher_stop": 0.3,
+  "slow_frac": 0.2,
+  "alpha_schedule": "gated",
+  "alpha_warmup": 300,
+  "alpha_every": 25,
+  "alpha_step": 0.1,
+  "alpha_advance": "track_rel_err=0.5,fall_rate=0.25,slip_ratio=0.3",
+  "alpha_backoff": "track_rel_err=0.65,fall_rate=0.4,slip_ratio=0.45",
+  "no_push": false,
+  "nconmax": 48,
+  "njmax": 320,
+  "task": null,
+  "terrain_scan": false,
+  "upper_body": true,
+  "upper_amp": 0.4,
+  "upper_speed": 1.5,
+  "payload_frac": 0.08,
+  "upper_amp0": 0.1,
+  "upper_ramp": 0.3,
+  "level_every": 25,
+  "level_up": 0.7,
+  "level_down": 0.3,
+  "level0": 0.0,
+  "init_shared": null,
+  "init_shared_sha256": null,
+  "groups": [
+   [
+    [
+     "t1"
+    ],
+    1024
+   ],
+   [
+    [
+     "g1"
+    ],
+    1024
+   ],
+   [
+    [
+     "h1"
+    ],
+    1024
+   ],
+   [
+    [
+     "op3"
+    ],
+    1024
+   ],
+   [
+    [
+     "apollo"
+    ],
+    1024
+   ],
+   [
+    [
+     "adam_lite"
+    ],
+    1024
+   ],
+   [
+    [
+     "phum_196",
+     "phum_403",
+     "phum_405",
+     "phum_455",
+     "phum_478",
+     "phum_526",
+     "phum_570",
+     "phum_599",
+     "phum_719",
+     "phum_737",
+     "phum_745",
+     "phum_807",
+     "phum_907",
+     "phum_964",
+     "phum_1000",
+     "phum_1078",
+     "phum_1160",
+     "phum_1188",
+     "phum_1292",
+     "phum_1312",
+     "phum_1319",
+     "phum_1346",
+     "phum_1443",
+     "phum_1627",
+     "phum_1650",
+     "phum_1667",
+     "phum_1671",
+     "phum_1997",
+     "phum_2056",
+     "phum_2074",
+     "phum_2163",
+     "phum_2243"
+    ],
+    2048
+   ],
+   [
+    [
+     "phum_132",
+     "phum_224",
+     "phum_225",
+     "phum_295",
+     "phum_340",
+     "phum_432",
+     "phum_435",
+     "phum_627",
+     "phum_712",
+     "phum_723",
+     "phum_725",
+     "phum_767",
+     "phum_889",
+     "phum_962",
+     "phum_983",
+     "phum_1239",
+     "phum_1378",
+     "phum_1468",
+     "phum_1535",
+     "phum_1545",
+     "phum_1639",
+     "phum_1656",
+     "phum_1768",
+     "phum_1805",
+     "phum_1889",
+     "phum_1907",
+     "phum_2008",
+     "phum_2062",
+     "phum_2068",
+     "phum_2095",
+     "phum_2105",
+     "phum_2206"
+    ],
+    2048
+   ]
+  ]
+ },
+ "contact_model": "contact_v2",
+ "reward_version": "gait_v2",
+ "init_from": null,
+ "init_sha256": null,
+ "ref_ff": 0.0,
+ "actuator_limits": "sourced_v1",
+ "actuator": null,
+ "alpha_schedule": "gated",
+ "trainer": "warp_tracker_ppo_v1",
+ "env_version": "warp_tracker_env_v1",
+ "sim_engine": "mujoco_warp 3.14.0",
+ "sim_adaptations": [
+  {
+   "name": "leg_cross_collision",
+   "description": "robot collides with the ground, and left-leg geoms with right-leg geoms; other self-contacts off"
+  }
+ ],
+ "env_differences": "per-world randomisation resampled at reset; see rrp.envs.warp_tracker_env docstring",
+ "reward_options": {
+  "yaw_progress_cap": 1.0,
+  "yaw_lin_all_max": 0.5,
+  "yaw_overshoot": -2.0,
+  "limit_margin_agg": "max",
+  "ref_gait": "clock",
+  "ref_lift": 1.0,
+  "ref_contact": 0.5
+ },
+ "recipe": {
+  "name": "shared_morph_ub",
+  "module": "rrp.harness.train.tracker_recipes",
+  "sha256": "f84747a2c6257c8769f314feb11ff7f2a62f5b84f2f7640348287eddd418e3d3",
+  "options": {
+   "nworld": 0,
+   "iters": 3000,
+   "horizon": 24,
+   "hidden": "512,512,256",
+   "init_std": 0.6,
+   "lr": 0.001,
+   "max_lr": 0.003,
+   "seed": 1,
+   "reward_set": "clearance_floor=-2,yaw_slip=-2,turn_step=2,turn_lin=1.5,sigma_ang=0.03,stance_cap=-1,ref_step=1.0,ref_gait=clock,ref_lift=1.0,ref_contact=0.5,limit_margin=-8.0,limit_margin_agg=max,yaw_progress_cap=1.0,yaw_overshoot=-2.0,stand_vel=-3.0,stand_contact=2.0,stand_still=-1.0,impact=-4.0,yaw_lin_all=1,yaw_lin_all_max=0.5",
+   "cmd_mix": "teacher",
+   "turn_frac": 0.35,
+   "slow_frac": 0.2,
+   "minibatches": 16,
+   "alpha_schedule": "gated",
+   "alpha_warmup": 300,
+   "alpha_advance": "track_rel_err=0.5,fall_rate=0.25,slip_ratio=0.3",
+   "alpha_backoff": "track_rel_err=0.65,fall_rate=0.4,slip_ratio=0.45",
+   "groups": [
+    [
+     [
+      "t1"
+     ],
+     1024
+    ],
+    [
+     [
+      "g1"
+     ],
+     1024
+    ],
+    [
+     [
+      "h1"
+     ],
+     1024
+    ],
+    [
+     [
+      "op3"
+     ],
+     1024
+    ],
+    [
+     [
+      "apollo"
+     ],
+     1024
+    ],
+    [
+     [
+      "adam_lite"
+     ],
+     1024
+    ],
+    [
+     [
+      "phum_196",
+      "phum_403",
+      "phum_405",
+      "phum_455",
+      "phum_478",
+      "phum_526",
+      "phum_570",
+      "phum_599",
+      "phum_719",
+      "phum_737",
+      "phum_745",
+      "phum_807",
+      "phum_907",
+      "phum_964",
+      "phum_1000",
+      "phum_1078",
+      "phum_1160",
+      "phum_1188",
+      "phum_1292",
+      "phum_1312",
+      "phum_1319",
+      "phum_1346",
+      "phum_1443",
+      "phum_1627",
+      "phum_1650",
+      "phum_1667",
+      "phum_1671",
+      "phum_1997",
+      "phum_2056",
+      "phum_2074",
+      "phum_2163",
+      "phum_2243"
+     ],
+     2048
+    ],
+    [
+     [
+      "phum_132",
+      "phum_224",
+      "phum_225",
+      "phum_295",
+      "phum_340",
+      "phum_432",
+      "phum_435",
+      "phum_627",
+      "phum_712",
+      "phum_723",
+      "phum_725",
+      "phum_767",
+      "phum_889",
+      "phum_962",
+      "phum_983",
+      "phum_1239",
+      "phum_1378",
+      "phum_1468",
+      "phum_1535",
+      "phum_1545",
+      "phum_1639",
+      "phum_1656",
+      "phum_1768",
+      "phum_1805",
+      "phum_1889",
+      "phum_1907",
+      "phum_2008",
+      "phum_2062",
+      "phum_2068",
+      "phum_2095",
+      "phum_2105",
+      "phum_2206"
+     ],
+     2048
+    ]
+   ],
+   "teacher_stop": 0.3,
+   "clock_gate": true,
+   "target_margin": 0.03,
+   "land_vel": -2.0,
+   "upper_body": true,
+   "upper_amp": 0.4,
+   "upper_speed": 1.5,
+   "payload_frac": 0.08,
+   "upper_amp0": 0.1,
+   "upper_ramp": 0.3
+  },
+  "notes": {
+   "_what": "ONE morphology-conditioned wholebody tracker (obs morph_v2: legs + padded upper joint state + static slot descriptors) over the menagerie pool and 2 phum topologies with arms; random upper-body targets + payload on a ramp",
+   "_why": "D-146 R2 HS2: the shared tracker had no upper-body block, so wholebody (`*_ub`) existed per body only",
+   "_gate": "per pool body: the D-112 tracker gate with the upper body held AND moving, in C MuJoCo; sealed bodies once"
+  }
+ },
+ "task": null,
+ "clock_gate": true,
+ "target_margin": 0.03,
+ "land_vel": -2.0,
+ "force_cap": 0.0,
+ "force_cap_bw": 2.5,
+ "extra_obs_dim": 0,
+ "gpu": "NVIDIA GB10",
+ "extra_obs": "none",
+ "public_extra": [],
+ "upper_obs": true,
+ "upper_body": {
+  "groups": {
+   "t1": {
+    "source": "random",
+    "targets": "goal every 1-3 s (20% rest), slew-limited, clipped to the actuator range",
+    "amp": 0.4,
+    "speed": 1.5,
+    "payload_frac": 0.08,
+    "payload_bodies": [
+     7,
+     11
+    ],
+    "obs": "q - q0, qdot * 0.05 (noise 0.01 / 0.05)"
+   },
+   "g1": {
+    "source": "random",
+    "targets": "goal every 1-3 s (20% rest), slew-limited, clipped to the actuator range",
+    "amp": 0.4,
+    "speed": 1.5,
+    "payload_frac": 0.08,
+    "payload_bodies": [
+     23,
+     30
+    ],
+    "obs": "q - q0, qdot * 0.05 (noise 0.01 / 0.05)"
+   },
+   "h1": {
+    "source": "random",
+    "targets": "goal every 1-3 s (20% rest), slew-limited, clipped to the actuator range",
+    "amp": 0.4,
+    "speed": 1.5,
+    "payload_frac": 0.08,
+    "payload_bodies": [
+     16,
+     20
+    ],
+    "obs": "q - q0, qdot * 0.05 (noise 0.01 / 0.05)"
+   },
+   "op3": {
+    "source": "random",
+    "targets": "goal every 1-3 s (20% rest), slew-limited, clipped to the actuator range",
+    "amp": 0.4,
+    "speed": 1.5,
+    "payload_frac": 0.08,
+    "payload_bodies": [
+     6,
+     9
+    ],
+    "obs": "q - q0, qdot * 0.05 (noise 0.01 / 0.05)"
+   },
+   "apollo": {
+    "source": "random",
+    "targets": "goal every 1-3 s (20% rest), slew-limited, clipped to the actuator range",
+    "amp": 0.4,
+    "speed": 1.5,
+    "payload_frac": 0.08,
+    "payload_bodies": [
+     16,
+     23
+    ],
+    "obs": "q - q0, qdot * 0.05 (noise 0.01 / 0.05)"
+   },
+   "adam_lite": {
+    "source": "random",
+    "targets": "goal every 1-3 s (20% rest), slew-limited, clipped to the actuator range",
+    "amp": 0.4,
+    "speed": 1.5,
+    "payload_frac": 0.08,
+    "payload_bodies": [
+     21,
+     26
+    ],
+    "obs": "q - q0, qdot * 0.05 (noise 0.01 / 0.05)"
+   },
+   "phum_196+31": {
+    "source": "random",
+    "targets": "goal every 1-3 s (20% rest), slew-limited, clipped to the actuator range",
+    "amp": 0.4,
+    "speed": 1.5,
+    "payload_frac": 0.08,
+    "payload_bodies": [
+     4,
+     4,
+     4,
+     4,
+     6,
+     6,
+     6,
+     6
+    ],
+    "obs": "q - q0, qdot * 0.05 (noise 0.01 / 0.05)"
+   },
+   "phum_132+31": {
+    "source": "random",
+    "targets": "goal every 1-3 s (20% rest), slew-limited, clipped to the actuator range",
+    "amp": 0.4,
+    "speed": 1.5,
+    "payload_frac": 0.08,
+    "payload_bodies": [
+     5,
+     5,
+     5,
+     5,
+     7,
+     7,
+     7,
+     7
+    ],
+    "obs": "q - q0, qdot * 0.05 (noise 0.01 / 0.05)"
+   }
+  },
+  "amp": 0.4,
+  "speed": 1.5,
+  "payload_frac": 0.08
+ },
+ "upper_ramp": {
+  "amp0": 0.1,
+  "amp": 0.4,
+  "payload_frac": 0.08,
+  "ramp": 0.3,
+  "iters": 3000
+ },
+ "obs_format": "morph_v2",
+ "groups": [
+  [
+   [
+    "t1"
+   ],
+   1024
+  ],
+  [
+   [
+    "g1"
+   ],
+   1024
+  ],
+  [
+   [
+    "h1"
+   ],
+   1024
+  ],
+  [
+   [
+    "op3"
+   ],
+   1024
+  ],
+  [
+   [
+    "apollo"
+   ],
+   1024
+  ],
+  [
+   [
+    "adam_lite"
+   ],
+   1024
+  ],
+  [
+   [
+    "phum_196",
+    "phum_403",
+    "phum_405",
+    "phum_455",
+    "phum_478",
+    "phum_526",
+    "phum_570",
+    "phum_599",
+    "phum_719",
+    "phum_737",
+    "phum_745",
+    "phum_807",
+    "phum_907",
+    "phum_964",
+    "phum_1000",
+    "phum_1078",
+    "phum_1160",
+    "phum_1188",
+    "phum_1292",
+    "phum_1312",
+    "phum_1319",
+    "phum_1346",
+    "phum_1443",
+    "phum_1627",
+    "phum_1650",
+    "phum_1667",
+    "phum_1671",
+    "phum_1997",
+    "phum_2056",
+    "phum_2074",
+    "phum_2163",
+    "phum_2243"
+   ],
+   2048
+  ],
+  [
+   [
+    "phum_132",
+    "phum_224",
+    "phum_225",
+    "phum_295",
+    "phum_340",
+    "phum_432",
+    "phum_435",
+    "phum_627",
+    "phum_712",
+    "phum_723",
+    "phum_725",
+    "phum_767",
+    "phum_889",
+    "phum_962",
+    "phum_983",
+    "phum_1239",
+    "phum_1378",
+    "phum_1468",
+    "phum_1535",
+    "phum_1545",
+    "phum_1639",
+    "phum_1656",
+    "phum_1768",
+    "phum_1805",
+    "phum_1889",
+    "phum_1907",
+    "phum_2008",
+    "phum_2062",
+    "phum_2068",
+    "phum_2095",
+    "phum_2105",
+    "phum_2206"
+   ],
+   2048
+  ]
+ ],
+ "train_bodies": [
+  "adam_lite",
+  "apollo",
+  "g1",
+  "h1",
+  "op3",
+  "phum_1000",
+  "phum_1078",
+  "phum_1160",
+  "phum_1188",
+  "phum_1239",
+  "phum_1292",
+  "phum_1312",
+  "phum_1319",
+  "phum_132",
+  "phum_1346",
+  "phum_1378",
+  "phum_1443",
+  "phum_1468",
+  "phum_1535",
+  "phum_1545",
+  "phum_1627",
+  "phum_1639",
+  "phum_1650",
+  "phum_1656",
+  "phum_1667",
+  "phum_1671",
+  "phum_1768",
+  "phum_1805",
+  "phum_1889",
+  "phum_1907",
+  "phum_196",
+  "phum_1997",
+  "phum_2008",
+  "phum_2056",
+  "phum_2062",
+  "phum_2068",
+  "phum_2074",
+  "phum_2095",
+  "phum_2105",
+  "phum_2163",
+  "phum_2206",
+  "phum_224",
+  "phum_2243",
+  "phum_225",
+  "phum_295",
+  "phum_340",
+  "phum_403",
+  "phum_405",
+  "phum_432",
+  "phum_435",
+  "phum_455",
+  "phum_478",
+  "phum_526",
+  "phum_570",
+  "phum_599",
+  "phum_627",
+  "phum_712",
+  "phum_719",
+  "phum_723",
+  "phum_725",
+  "phum_737",
+  "phum_745",
+  "phum_767",
+  "phum_807",
+  "phum_889",
+  "phum_907",
+  "phum_962",
+  "phum_964",
+  "phum_983",
+  "t1"
+ ],
+ "shared": true,
+ "alpha": 0.0,
+ "reward_weights": {
+  "track_lin": 2.5,
+  "track_ang": 2.0,
+  "lin_z": -2.0,
+  "ang_xy": -0.05,
+  "orient": -5.0,
+  "torque": -0.02,
+  "action_rate": -0.02,
+  "limits": -2.0,
+  "air_time": 1.0,
+  "stand_still": -1.0,
+  "alive": 0.3,
+  "contact_phase": 1.0,
+  "height": -20.0,
+  "feet_slip": 0.0,
+  "termination": -10.0,
+  "stand_contact": 2.0,
+  "sigma": 0.1,
+  "slip": -1.0,
+  "clearance": 1.0,
+  "smooth": -0.01,
+  "power": -0.02,
+  "impact": -4.0,
+  "clearance_floor": -2.0,
+  "floor_frac": 0.6,
+  "yaw_slip": -2.0,
+  "turn_step": 2.0,
+  "stance_cap": -1.0,
+  "stance_cap_frac": 0.75,
+  "ref_step": 1.0,
+  "ref_amp": 0.2,
+  "turn_lin": 1.5,
+  "yaw_lin_all": 1.0,
+  "stand_vel": -3.0,
+  "limit_margin": -8.0,
+  "yaw_progress_cap": 1.0,
+  "yaw_lin_all_max": 0.5,
+  "yaw_overshoot": -2.0,
+  "ref_lift": 1.0,
+  "ref_contact": 0.5,
+  "sigma_ang": 0.03
+ },
+ "gate_history": [
+  {
+   "iter": 1774,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9742098125288935,
+   "fall_rate": 0.5248464544946957,
+   "slip_ratio": 0.0885681226654342
+  },
+  {
+   "iter": 1799,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9565171390884137,
+   "fall_rate": 0.5309512972234866,
+   "slip_ratio": 0.08757989327147087
+  },
+  {
+   "iter": 1824,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9594641799493284,
+   "fall_rate": 0.5192546583850932,
+   "slip_ratio": 0.0873626258801838
+  },
+  {
+   "iter": 1849,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.949695632049286,
+   "fall_rate": 0.5205510645565297,
+   "slip_ratio": 0.08644758023493253
+  },
+  {
+   "iter": 1874,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9521920298487896,
+   "fall_rate": 0.5322293843076239,
+   "slip_ratio": 0.08739509603119834
+  },
+  {
+   "iter": 1899,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9591584391288188,
+   "fall_rate": 0.543035296737557,
+   "slip_ratio": 0.08914543988158649
+  },
+  {
+   "iter": 1924,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9664145734942723,
+   "fall_rate": 0.5390118488710038,
+   "slip_ratio": 0.08965987639167748
+  },
+  {
+   "iter": 1949,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9651917412535723,
+   "fall_rate": 0.5368866139979971,
+   "slip_ratio": 0.08947559496479487
+  },
+  {
+   "iter": 1974,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9549416155136935,
+   "fall_rate": 0.5489578810247503,
+   "slip_ratio": 0.08990777523790716
+  },
+  {
+   "iter": 1999,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9670022706095497,
+   "fall_rate": 0.5513245033112583,
+   "slip_ratio": 0.09135202564639958
+  },
+  {
+   "iter": 2024,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9730449085086419,
+   "fall_rate": 0.5689673508454749,
+   "slip_ratio": 0.09157379906519249
+  },
+  {
+   "iter": 2049,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9729694907667263,
+   "fall_rate": 0.552426009461987,
+   "slip_ratio": 0.0927046523042255
+  },
+  {
+   "iter": 2074,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9587878357038472,
+   "fall_rate": 0.5479556328838625,
+   "slip_ratio": 0.09235738532586728
+  },
+  {
+   "iter": 2099,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9639439616611954,
+   "fall_rate": 0.5570375189763609,
+   "slip_ratio": 0.09146498796400936
+  },
+  {
+   "iter": 2124,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9643426622899209,
+   "fall_rate": 0.5617039964866052,
+   "slip_ratio": 0.09061586914328354
+  },
+  {
+   "iter": 2149,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9623069690748308,
+   "fall_rate": 0.553776238909327,
+   "slip_ratio": 0.09163700482826298
+  },
+  {
+   "iter": 2174,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9777511929411964,
+   "fall_rate": 0.5580838323353293,
+   "slip_ratio": 0.09250961079665118
+  },
+  {
+   "iter": 2199,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.960636998033879,
+   "fall_rate": 0.5594112591319296,
+   "slip_ratio": 0.09041670476389611
+  },
+  {
+   "iter": 2224,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9546111600814379,
+   "fall_rate": 0.5738887095038209,
+   "slip_ratio": 0.09077073732430066
+  },
+  {
+   "iter": 2249,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9646094493169156,
+   "fall_rate": 0.5553094895360425,
+   "slip_ratio": 0.09238540325845064
+  },
+  {
+   "iter": 2274,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9769080423034633,
+   "fall_rate": 0.5558176943699732,
+   "slip_ratio": 0.09360173981510049
+  },
+  {
+   "iter": 2299,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9616706471470267,
+   "fall_rate": 0.5257168358808435,
+   "slip_ratio": 0.09141059682320772
+  },
+  {
+   "iter": 2324,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9682695148206605,
+   "fall_rate": 0.5214821550352353,
+   "slip_ratio": 0.09116866240579971
+  },
+  {
+   "iter": 2349,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9634517421069599,
+   "fall_rate": 0.518270944741533,
+   "slip_ratio": 0.09244758312543344
+  },
+  {
+   "iter": 2374,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9727765410162496,
+   "fall_rate": 0.5223521320495186,
+   "slip_ratio": 0.09324576105061683
+  },
+  {
+   "iter": 2399,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9533432012102221,
+   "fall_rate": 0.5130425005621767,
+   "slip_ratio": 0.09063407766954731
+  },
+  {
+   "iter": 2424,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9584143450722707,
+   "fall_rate": 0.5175340629886085,
+   "slip_ratio": 0.09144793430960323
+  },
+  {
+   "iter": 2449,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9535684019949983,
+   "fall_rate": 0.5363666555961475,
+   "slip_ratio": 0.09096116492751137
+  },
+  {
+   "iter": 2474,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.941804672706254,
+   "fall_rate": 0.5220281690140846,
+   "slip_ratio": 0.09088035125991571
+  },
+  {
+   "iter": 2499,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.949542157850453,
+   "fall_rate": 0.5062126092959043,
+   "slip_ratio": 0.09317386410013329
+  },
+  {
+   "iter": 2524,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9386611379552595,
+   "fall_rate": 1.0,
+   "slip_ratio": 0.09272545706544325
+  },
+  {
+   "iter": 2549,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9547787072115386,
+   "fall_rate": 0.422130764194182,
+   "slip_ratio": 0.09301931331951376
+  },
+  {
+   "iter": 2574,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9523475089944613,
+   "fall_rate": 0.7614253755193352,
+   "slip_ratio": 0.09077708241481758
+  },
+  {
+   "iter": 2599,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9700748638945231,
+   "fall_rate": 0.43101780185758515,
+   "slip_ratio": 0.0903066222132474
+  },
+  {
+   "iter": 2624,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9502980634683243,
+   "fall_rate": 0.45639852838818734,
+   "slip_ratio": 0.0907015225846513
+  },
+  {
+   "iter": 2649,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9463686397894749,
+   "fall_rate": 0.6326408608578687,
+   "slip_ratio": 0.0923906192032226
+  },
+  {
+   "iter": 2674,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9502968756881167,
+   "fall_rate": 0.4281465746149761,
+   "slip_ratio": 0.09292658626193498
+  },
+  {
+   "iter": 2699,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9520832258273177,
+   "fall_rate": 0.5721564307353346,
+   "slip_ratio": 0.09270873210067239
+  },
+  {
+   "iter": 2724,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9428071533958066,
+   "fall_rate": 0.42449425915800987,
+   "slip_ratio": 0.090658796021378
+  },
+  {
+   "iter": 2749,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9444971643855096,
+   "fall_rate": 0.42302267549094064,
+   "slip_ratio": 0.09072565538368438
+  },
+  {
+   "iter": 2774,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.942242414772485,
+   "fall_rate": 0.5529972752043597,
+   "slip_ratio": 0.08905430694515827
+  },
+  {
+   "iter": 2799,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9625613084298884,
+   "fall_rate": 0.4691526133864041,
+   "slip_ratio": 0.0939399610675614
+  },
+  {
+   "iter": 2824,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9976360859223116,
+   "fall_rate": 0.5551264482371995,
+   "slip_ratio": 0.092627794628338
+  },
+  {
+   "iter": 2849,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9697318870905671,
+   "fall_rate": 0.4364120190708504,
+   "slip_ratio": 0.092549111121466
+  },
+  {
+   "iter": 2874,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9624955204064359,
+   "fall_rate": 0.4385313080537646,
+   "slip_ratio": 0.09010377982984391
+  },
+  {
+   "iter": 2899,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9524531530950924,
+   "fall_rate": 0.5269709543568465,
+   "slip_ratio": 0.08961605334620626
+  },
+  {
+   "iter": 2924,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9495227607882619,
+   "fall_rate": 0.4370132844709116,
+   "slip_ratio": 0.0890929828185788
+  },
+  {
+   "iter": 2949,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9432929051143384,
+   "fall_rate": 0.503913768766842,
+   "slip_ratio": 0.08853438548936603
+  },
+  {
+   "iter": 2974,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9454811839712329,
+   "fall_rate": 0.4333560399636694,
+   "slip_ratio": 0.08836257842175682
+  },
+  {
+   "iter": 2999,
+   "action": "hold",
+   "alpha": 0.0,
+   "track_rel_err": 0.9433949034233852,
+   "fall_rate": 0.4220675490643542,
+   "slip_ratio": 0.08760642364026618
+  }
+ ],
+ "iter": 2999,
+ "sha256": "6fd9c187e574a151663adf199cbb41882702ff94aa5eaff23839daf74648d913",
+ "install_label": "T3 shared morph_v2_ub (D-147 owner exception 2026-10-03): t1/g1/h1 D-147 exception (t1 peak force 3.48 BW; g1 joint margin 0.012; h1 joint margin 0.0082); GATE FAILURES, verbatim: op3 forward ratio 0.01 (does not walk); adam_lite falls (no-fall 0.83), stand fails, joint margin -0.0015; apollo forward ratio check fails (lab forward False), CoT 18; every downstream result carries this label [D-147 exception: peak_foot_force_bw 3.48] [D-147 exception: joint_limit_margin 0.012] [D-147 exception: joint_limit_margin 0.00815]",
+ "decision": "accepted_d147_exception",
+ "installed": "2026-10-03",
+ "installed_from": "artifacts/runs/humanoid/trk-shared_morph_ub/train_tracker_s1",
+ "validations": [
+  {
+   "file": "validation.json",
+   "body": "t1",
+   "verdict": "exception"
+  },
+  {
+   "file": "validation.json",
+   "body": "g1",
+   "verdict": "exception"
+  },
+  {
+   "file": "validation.json",
+   "body": "h1",
+   "verdict": "exception"
+  }
+ ]
+}
