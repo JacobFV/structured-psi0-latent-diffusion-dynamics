@@ -1,0 +1,952 @@
+{
+ "host": "promaxgb10-4dfb",
+ "torch": "2.14.0+cu130",
+ "gpu": null,
+ "steps": 50,
+ "seed": 0,
+ "tol": {
+  "median_block": 0.05,
+  "last_blocks": 0.1,
+  "last_n": 4,
+  "dev_rel": 0.25,
+  "dev_abs": 0.01
+ },
+ "block": 25,
+ "results": [
+  {
+   "trainer": "arm_rep",
+   "runs": {
+    "ref": {
+     "trainer": "arm_rep",
+     "setting": "default",
+     "seed": 0,
+     "status": "ok",
+     "error": null,
+     "losses": [
+      24.47847557067871,
+      23.37116813659668,
+      19.38857650756836,
+      15.409980773925781,
+      13.563281059265137,
+      12.389164924621582,
+      11.143446922302246,
+      10.55143928527832,
+      10.728761672973633,
+      10.326647758483887,
+      10.107084274291992,
+      11.05220890045166,
+      9.759868621826172,
+      9.823423385620117,
+      10.560965538024902,
+      9.248016357421875,
+      11.550642967224121,
+      11.288359642028809,
+      9.547733306884766,
+      10.152969360351562,
+      10.122420310974121,
+      9.185379981994629,
+      9.140753746032715,
+      9.63793659210205,
+      9.538948059082031,
+      9.289695739746094,
+      9.159594535827637,
+      8.476968765258789,
+      8.258587837219238,
+      8.715093612670898,
+      8.455946922302246,
+      8.58260726928711,
+      8.438652038574219,
+      8.387126922607422,
+      8.243117332458496,
+      7.910682678222656,
+      8.655356407165527,
+      8.497708320617676,
+      7.943020820617676,
+      8.584630966186523,
+      7.646470546722412,
+      7.744552135467529,
+      8.119234085083008,
+      7.986477851867676,
+      8.835099220275879,
+      8.649227142333984,
+      7.464328289031982,
+      9.359589576721191,
+      8.058883666992188,
+      7.882910251617432
+     ],
+     "dev": {
+      "eval.realize_mse": 0.0322943203151226,
+      "eval.zero_action_mse": 0.05395221983393033,
+      "eval.probes.visible": 0.9032791162912064,
+      "eval.probes.visible_pos": 1.0,
+      "eval.probes.focused_on": 0.5424023658345656,
+      "eval.probes.focused_on_pos": 0.0,
+      "eval.probes.held_by": 0.8534400278333478,
+      "eval.probes.held_by_pos": 0.0,
+      "eval.probes.acting_on": 0.8517874228059493,
+      "eval.probes.acting_on_pos": 0.0,
+      "eval.probes.rel_pos_err_m": 0.182126642714752,
+      "eval.probes.observed_effect_err_m": 0.025312662850444895,
+      "eval.probes.desired_delta_err_m": 0.025312662850444895,
+      "eval.probes.subtask": 0.5059895833333333,
+      "eval.probes_shuffled_z.visible": 0.9032791162912064,
+      "eval.probes_shuffled_z.visible_pos": 1.0,
+      "eval.probes_shuffled_z.focused_on": 0.5424023658345656,
+      "eval.probes_shuffled_z.focused_on_pos": 0.0,
+      "eval.probes_shuffled_z.held_by": 0.8534400278333478,
+      "eval.probes_shuffled_z.held_by_pos": 0.0,
+      "eval.probes_shuffled_z.acting_on": 0.8517874228059493,
+      "eval.probes_shuffled_z.acting_on_pos": 0.0,
+      "eval.probes_shuffled_z.rel_pos_err_m": 0.18252676752864708,
+      "eval.probes_shuffled_z.observed_effect_err_m": 0.025375706720032816,
+      "eval.probes_shuffled_z.desired_delta_err_m": 0.025375706720032816,
+      "eval.probes_shuffled_z.subtask": 0.46380208333333334,
+      "eval.binding_counterfactual.cf_visible": 0.9032791162912064,
+      "eval.binding_counterfactual.cf_visible_pos": 1.0,
+      "eval.binding_counterfactual.cf_focused_on": 0.5424023658345656,
+      "eval.binding_counterfactual.cf_focused_on_pos": 0.0,
+      "eval.binding_counterfactual.cf_held_by": 0.8534400278333478,
+      "eval.binding_counterfactual.cf_held_by_pos": 0.0,
+      "eval.binding_counterfactual.cf_acting_on": 0.8517874228059493,
+      "eval.binding_counterfactual.cf_acting_on_pos": 0.0,
+      "eval.binding_counterfactual.cf_rel_pos_err_m": 0.18212747221315717,
+      "eval.binding_counterfactual.cf_observed_effect_err_m": 0.02531191522353233,
+      "eval.binding_counterfactual.cf_desired_delta_err_m": 0.02531191522353233,
+      "eval.binding_counterfactual.cf_subtask": 0.5059895833333333,
+      "eval.binding_counterfactual.cf_rel_z_dist": 0.00013455343093179788,
+      "eval.binding_counterfactual.cf_focus_follows": 0.0
+     },
+     "effective": {
+      "precision": "fp32",
+      "precision_source": "legacy",
+      "fp32_islands": false,
+      "tf32": null,
+      "device_type": "cpu"
+     },
+     "compiled": {
+      "E": {
+       "status": "off"
+      },
+      "R": {
+       "status": "off"
+      }
+     },
+     "wall_s": 134.8
+    },
+    "ref2": {
+     "trainer": "arm_rep",
+     "setting": "default",
+     "seed": 0,
+     "status": "ok",
+     "error": null,
+     "losses": [
+      24.47847557067871,
+      23.37116813659668,
+      19.38857650756836,
+      15.409980773925781,
+      13.563281059265137,
+      12.389164924621582,
+      11.143446922302246,
+      10.55143928527832,
+      10.728761672973633,
+      10.326647758483887,
+      10.107084274291992,
+      11.05220890045166,
+      9.759868621826172,
+      9.823423385620117,
+      10.560965538024902,
+      9.248016357421875,
+      11.550642967224121,
+      11.288359642028809,
+      9.547733306884766,
+      10.152969360351562,
+      10.122420310974121,
+      9.185379981994629,
+      9.140753746032715,
+      9.63793659210205,
+      9.538948059082031,
+      9.289695739746094,
+      9.159594535827637,
+      8.476968765258789,
+      8.258587837219238,
+      8.715093612670898,
+      8.455946922302246,
+      8.58260726928711,
+      8.438652038574219,
+      8.387126922607422,
+      8.243117332458496,
+      7.910682678222656,
+      8.655356407165527,
+      8.497708320617676,
+      7.943020820617676,
+      8.584630966186523,
+      7.646470546722412,
+      7.744552135467529,
+      8.119234085083008,
+      7.986477851867676,
+      8.835099220275879,
+      8.649227142333984,
+      7.464328289031982,
+      9.359589576721191,
+      8.058883666992188,
+      7.882910251617432
+     ],
+     "dev": {
+      "eval.realize_mse": 0.0322943203151226,
+      "eval.zero_action_mse": 0.05395221983393033,
+      "eval.probes.visible": 0.9032791162912064,
+      "eval.probes.visible_pos": 1.0,
+      "eval.probes.focused_on": 0.5424023658345656,
+      "eval.probes.focused_on_pos": 0.0,
+      "eval.probes.held_by": 0.8534400278333478,
+      "eval.probes.held_by_pos": 0.0,
+      "eval.probes.acting_on": 0.8517874228059493,
+      "eval.probes.acting_on_pos": 0.0,
+      "eval.probes.rel_pos_err_m": 0.182126642714752,
+      "eval.probes.observed_effect_err_m": 0.025312662850444895,
+      "eval.probes.desired_delta_err_m": 0.025312662850444895,
+      "eval.probes.subtask": 0.5059895833333333,
+      "eval.probes_shuffled_z.visible": 0.9032791162912064,
+      "eval.probes_shuffled_z.visible_pos": 1.0,
+      "eval.probes_shuffled_z.focused_on": 0.5424023658345656,
+      "eval.probes_shuffled_z.focused_on_pos": 0.0,
+      "eval.probes_shuffled_z.held_by": 0.8534400278333478,
+      "eval.probes_shuffled_z.held_by_pos": 0.0,
+      "eval.probes_shuffled_z.acting_on": 0.8517874228059493,
+      "eval.probes_shuffled_z.acting_on_pos": 0.0,
+      "eval.probes_shuffled_z.rel_pos_err_m": 0.18252676752864708,
+      "eval.probes_shuffled_z.observed_effect_err_m": 0.025375706720032816,
+      "eval.probes_shuffled_z.desired_delta_err_m": 0.025375706720032816,
+      "eval.probes_shuffled_z.subtask": 0.46380208333333334,
+      "eval.binding_counterfactual.cf_visible": 0.9032791162912064,
+      "eval.binding_counterfactual.cf_visible_pos": 1.0,
+      "eval.binding_counterfactual.cf_focused_on": 0.5424023658345656,
+      "eval.binding_counterfactual.cf_focused_on_pos": 0.0,
+      "eval.binding_counterfactual.cf_held_by": 0.8534400278333478,
+      "eval.binding_counterfactual.cf_held_by_pos": 0.0,
+      "eval.binding_counterfactual.cf_acting_on": 0.8517874228059493,
+      "eval.binding_counterfactual.cf_acting_on_pos": 0.0,
+      "eval.binding_counterfactual.cf_rel_pos_err_m": 0.18212747221315717,
+      "eval.binding_counterfactual.cf_observed_effect_err_m": 0.02531191522353233,
+      "eval.binding_counterfactual.cf_desired_delta_err_m": 0.02531191522353233,
+      "eval.binding_counterfactual.cf_subtask": 0.5059895833333333,
+      "eval.binding_counterfactual.cf_rel_z_dist": 0.00013455343093179788,
+      "eval.binding_counterfactual.cf_focus_follows": 0.0
+     },
+     "effective": {
+      "precision": "fp32",
+      "precision_source": "legacy",
+      "fp32_islands": false,
+      "tf32": null,
+      "device_type": "cpu"
+     },
+     "compiled": {
+      "E": {
+       "status": "off"
+      },
+      "R": {
+       "status": "off"
+      }
+     },
+     "wall_s": 95.3
+    },
+    "seednoise": {
+     "trainer": "arm_rep",
+     "setting": "default",
+     "seed": 1,
+     "status": "ok",
+     "error": null,
+     "losses": [
+      14.455382347106934,
+      14.209792137145996,
+      13.31164836883545,
+      12.36946964263916,
+      11.58032512664795,
+      10.0742769241333,
+      9.818678855895996,
+      8.25941276550293,
+      13.015681266784668,
+      10.56790542602539,
+      17.97113800048828,
+      18.31370735168457,
+      10.697455406188965,
+      14.599560737609863,
+      14.9409761428833,
+      11.401700019836426,
+      9.23387622833252,
+      9.562270164489746,
+      9.524445533752441,
+      9.430514335632324,
+      8.736431121826172,
+      8.420975685119629,
+      8.758610725402832,
+      9.123492240905762,
+      8.714924812316895,
+      8.87757396697998,
+      8.29002571105957,
+      8.57293701171875,
+      8.570005416870117,
+      8.999463081359863,
+      7.657405853271484,
+      8.062013626098633,
+      8.615045547485352,
+      8.443402290344238,
+      8.032712936401367,
+      8.020000457763672,
+      7.519259452819824,
+      7.371157169342041,
+      7.6269049644470215,
+      8.09311294555664,
+      7.69383430480957,
+      7.742865562438965,
+      7.43224573135376,
+      7.599191188812256,
+      8.429167747497559,
+      8.07164478302002,
+      7.730623722076416,
+      8.075035095214844,
+      7.565610408782959,
+      7.7893242835998535
+     ],
+     "dev": {
+      "eval.realize_mse": 0.03519162175556024,
+      "eval.zero_action_mse": 0.05395221983393033,
+      "eval.probes.visible": 0.9032791162912064,
+      "eval.probes.visible_pos": 1.0,
+      "eval.probes.focused_on": 0.5424023658345656,
+      "eval.probes.focused_on_pos": 0.0,
+      "eval.probes.held_by": 0.8534400278333478,
+      "eval.probes.held_by_pos": 0.0,
+      "eval.probes.acting_on": 0.8517874228059493,
+      "eval.probes.acting_on_pos": 0.0,
+      "eval.probes.rel_pos_err_m": 0.18432210965541027,
+      "eval.probes.observed_effect_err_m": 0.022510147907635,
+      "eval.probes.desired_delta_err_m": 0.022510147907635,
+      "eval.probes.subtask": 0.5453125,
+      "eval.probes_shuffled_z.visible": 0.9032791162912064,
+      "eval.probes_shuffled_z.visible_pos": 1.0,
+      "eval.probes_shuffled_z.focused_on": 0.5424023658345656,
+      "eval.probes_shuffled_z.focused_on_pos": 0.0,
+      "eval.probes_shuffled_z.held_by": 0.8534400278333478,
+      "eval.probes_shuffled_z.held_by_pos": 0.0,
+      "eval.probes_shuffled_z.acting_on": 0.8517874228059493,
+      "eval.probes_shuffled_z.acting_on_pos": 0.0,
+      "eval.probes_shuffled_z.rel_pos_err_m": 0.18479702934510003,
+      "eval.probes_shuffled_z.observed_effect_err_m": 0.022538428121186695,
+      "eval.probes_shuffled_z.desired_delta_err_m": 0.022538428121186695,
+      "eval.probes_shuffled_z.subtask": 0.47265625,
+      "eval.binding_counterfactual.cf_visible": 0.9032791162912064,
+      "eval.binding_counterfactual.cf_visible_pos": 1.0,
+      "eval.binding_counterfactual.cf_focused_on": 0.5424023658345656,
+      "eval.binding_counterfactual.cf_focused_on_pos": 0.0,
+      "eval.binding_counterfactual.cf_held_by": 0.8534400278333478,
+      "eval.binding_counterfactual.cf_held_by_pos": 0.0,
+      "eval.binding_counterfactual.cf_acting_on": 0.8517874228059493,
+      "eval.binding_counterfactual.cf_acting_on_pos": 0.0,
+      "eval.binding_counterfactual.cf_rel_pos_err_m": 0.18432183061214677,
+      "eval.binding_counterfactual.cf_observed_effect_err_m": 0.022509822080661455,
+      "eval.binding_counterfactual.cf_desired_delta_err_m": 0.022509822080661455,
+      "eval.binding_counterfactual.cf_subtask": 0.5453125,
+      "eval.binding_counterfactual.cf_rel_z_dist": 0.00022382198318761463,
+      "eval.binding_counterfactual.cf_focus_follows": 0.0
+     },
+     "effective": {
+      "precision": "fp32",
+      "precision_source": "legacy",
+      "fp32_islands": false,
+      "tf32": null,
+      "device_type": "cpu"
+     },
+     "compiled": {
+      "E": {
+       "status": "off"
+      },
+      "R": {
+       "status": "off"
+      }
+     },
+     "wall_s": 104.4
+    },
+    "bf16": {
+     "trainer": "arm_rep",
+     "setting": "bf16",
+     "seed": 0,
+     "status": "ok",
+     "error": null,
+     "losses": [
+      24.466278076171875,
+      23.367021560668945,
+      19.41130828857422,
+      15.411066055297852,
+      13.565635681152344,
+      12.386066436767578,
+      11.141578674316406,
+      10.54922103881836,
+      10.737146377563477,
+      10.334817886352539,
+      10.285686492919922,
+      10.894553184509277,
+      9.591574668884277,
+      9.720172882080078,
+      9.514217376708984,
+      10.851923942565918,
+      9.592703819274902,
+      10.198216438293457,
+      9.978707313537598,
+      9.57871150970459,
+      9.290843963623047,
+      8.440725326538086,
+      8.712836265563965,
+      9.023024559020996,
+      8.84499740600586,
+      9.068205833435059,
+      8.982945442199707,
+      8.029454231262207,
+      8.129627227783203,
+      8.605498313903809,
+      8.531052589416504,
+      8.669623374938965,
+      8.505302429199219,
+      8.353092193603516,
+      8.350942611694336,
+      7.823610782623291,
+      8.543103218078613,
+      8.403770446777344,
+      7.811008930206299,
+      8.563230514526367,
+      7.6151885986328125,
+      7.715831279754639,
+      8.070646286010742,
+      7.92825174331665,
+      8.764500617980957,
+      8.570596694946289,
+      7.442805767059326,
+      9.278061866760254,
+      8.00428581237793,
+      7.859376907348633
+     ],
+     "dev": {
+      "eval.realize_mse": 0.03127338923513889,
+      "eval.zero_action_mse": 0.05395221983393033,
+      "eval.probes.visible": 0.9032791162912064,
+      "eval.probes.visible_pos": 1.0,
+      "eval.probes.focused_on": 0.5424023658345656,
+      "eval.probes.focused_on_pos": 0.0,
+      "eval.probes.held_by": 0.8534400278333478,
+      "eval.probes.held_by_pos": 0.0,
+      "eval.probes.acting_on": 0.8517874228059493,
+      "eval.probes.acting_on_pos": 0.0,
+      "eval.probes.rel_pos_err_m": 0.18278752267490297,
+      "eval.probes.observed_effect_err_m": 0.022292267791994905,
+      "eval.probes.desired_delta_err_m": 0.022292267791994905,
+      "eval.probes.subtask": 0.5018229166666667,
+      "eval.probes_shuffled_z.visible": 0.9032791162912064,
+      "eval.probes_shuffled_z.visible_pos": 1.0,
+      "eval.probes_shuffled_z.focused_on": 0.5424023658345656,
+      "eval.probes_shuffled_z.focused_on_pos": 0.0,
+      "eval.probes_shuffled_z.held_by": 0.8534400278333478,
+      "eval.probes_shuffled_z.held_by_pos": 0.0,
+      "eval.probes_shuffled_z.acting_on": 0.8517874228059493,
+      "eval.probes_shuffled_z.acting_on_pos": 0.0,
+      "eval.probes_shuffled_z.rel_pos_err_m": 0.18321804495555397,
+      "eval.probes_shuffled_z.observed_effect_err_m": 0.022437567502257616,
+      "eval.probes_shuffled_z.desired_delta_err_m": 0.022437567502257616,
+      "eval.probes_shuffled_z.subtask": 0.46015625,
+      "eval.binding_counterfactual.cf_visible": 0.9032791162912064,
+      "eval.binding_counterfactual.cf_visible_pos": 1.0,
+      "eval.binding_counterfactual.cf_focused_on": 0.5424023658345656,
+      "eval.binding_counterfactual.cf_focused_on_pos": 0.0,
+      "eval.binding_counterfactual.cf_held_by": 0.8534400278333478,
+      "eval.binding_counterfactual.cf_held_by_pos": 0.0,
+      "eval.binding_counterfactual.cf_acting_on": 0.8517874228059493,
+      "eval.binding_counterfactual.cf_acting_on_pos": 0.0,
+      "eval.binding_counterfactual.cf_rel_pos_err_m": 0.1827881965594073,
+      "eval.binding_counterfactual.cf_observed_effect_err_m": 0.02229146230756858,
+      "eval.binding_counterfactual.cf_desired_delta_err_m": 0.02229146230756858,
+      "eval.binding_counterfactual.cf_subtask": 0.5018229166666667,
+      "eval.binding_counterfactual.cf_rel_z_dist": 0.00013476759389353295,
+      "eval.binding_counterfactual.cf_focus_follows": 0.0
+     },
+     "effective": {
+      "precision": "bf16",
+      "precision_source": "explicit",
+      "fp32_islands": true,
+      "tf32": true,
+      "device_type": "cpu"
+     },
+     "compiled": {
+      "E": {
+       "status": "off"
+      },
+      "R": {
+       "status": "off"
+      }
+     },
+     "wall_s": 138.9
+    }
+   },
+   "determinism": {
+    "ok": true,
+    "finite": true,
+    "blocks": 2,
+    "median_block": 0.0,
+    "last_blocks_max": 0.0,
+    "max_block": 0.0,
+    "scale": 10.22826
+   },
+   "seed_noise": {
+    "curve": {
+     "ok": true,
+     "finite": true,
+     "blocks": 2,
+     "median_block": 0.04583,
+     "last_blocks_max": 0.05856,
+     "max_block": 0.05856,
+     "scale": 10.22826
+    },
+    "dev": {
+     "n": 40,
+     "failed": [],
+     "ok": true,
+     "rows": {
+      "eval.binding_counterfactual.cf_acting_on": {
+       "ref": 0.851787,
+       "acc": 0.851787,
+       "ok": true
+      },
+      "eval.binding_counterfactual.cf_acting_on_pos": {
+       "ref": 0.0,
+       "acc": 0.0,
+       "ok": true
+      },
+      "eval.binding_counterfactual.cf_desired_delta_err_m": {
+       "ref": 0.025312,
+       "acc": 0.02251,
+       "ok": true
+      },
+      "eval.binding_counterfactual.cf_focus_follows": {
+       "ref": 0.0,
+       "acc": 0.0,
+       "ok": true
+      },
+      "eval.binding_counterfactual.cf_focused_on": {
+       "ref": 0.542402,
+       "acc": 0.542402,
+       "ok": true
+      },
+      "eval.binding_counterfactual.cf_focused_on_pos": {
+       "ref": 0.0,
+       "acc": 0.0,
+       "ok": true
+      },
+      "eval.binding_counterfactual.cf_held_by": {
+       "ref": 0.85344,
+       "acc": 0.85344,
+       "ok": true
+      },
+      "eval.binding_counterfactual.cf_held_by_pos": {
+       "ref": 0.0,
+       "acc": 0.0,
+       "ok": true
+      },
+      "eval.binding_counterfactual.cf_observed_effect_err_m": {
+       "ref": 0.025312,
+       "acc": 0.02251,
+       "ok": true
+      },
+      "eval.binding_counterfactual.cf_rel_pos_err_m": {
+       "ref": 0.182127,
+       "acc": 0.184322,
+       "ok": true
+      },
+      "eval.binding_counterfactual.cf_rel_z_dist": {
+       "ref": 0.000135,
+       "acc": 0.000224,
+       "ok": true
+      },
+      "eval.binding_counterfactual.cf_subtask": {
+       "ref": 0.50599,
+       "acc": 0.545312,
+       "ok": true
+      },
+      "eval.binding_counterfactual.cf_visible": {
+       "ref": 0.903279,
+       "acc": 0.903279,
+       "ok": true
+      },
+      "eval.binding_counterfactual.cf_visible_pos": {
+       "ref": 1.0,
+       "acc": 1.0,
+       "ok": true
+      },
+      "eval.probes.acting_on": {
+       "ref": 0.851787,
+       "acc": 0.851787,
+       "ok": true
+      },
+      "eval.probes.acting_on_pos": {
+       "ref": 0.0,
+       "acc": 0.0,
+       "ok": true
+      },
+      "eval.probes.desired_delta_err_m": {
+       "ref": 0.025313,
+       "acc": 0.02251,
+       "ok": true
+      },
+      "eval.probes.focused_on": {
+       "ref": 0.542402,
+       "acc": 0.542402,
+       "ok": true
+      },
+      "eval.probes.focused_on_pos": {
+       "ref": 0.0,
+       "acc": 0.0,
+       "ok": true
+      },
+      "eval.probes.held_by": {
+       "ref": 0.85344,
+       "acc": 0.85344,
+       "ok": true
+      },
+      "eval.probes.held_by_pos": {
+       "ref": 0.0,
+       "acc": 0.0,
+       "ok": true
+      },
+      "eval.probes.observed_effect_err_m": {
+       "ref": 0.025313,
+       "acc": 0.02251,
+       "ok": true
+      },
+      "eval.probes.rel_pos_err_m": {
+       "ref": 0.182127,
+       "acc": 0.184322,
+       "ok": true
+      },
+      "eval.probes.subtask": {
+       "ref": 0.50599,
+       "acc": 0.545312,
+       "ok": true
+      },
+      "eval.probes.visible": {
+       "ref": 0.903279,
+       "acc": 0.903279,
+       "ok": true
+      },
+      "eval.probes.visible_pos": {
+       "ref": 1.0,
+       "acc": 1.0,
+       "ok": true
+      },
+      "eval.probes_shuffled_z.acting_on": {
+       "ref": 0.851787,
+       "acc": 0.851787,
+       "ok": true
+      },
+      "eval.probes_shuffled_z.acting_on_pos": {
+       "ref": 0.0,
+       "acc": 0.0,
+       "ok": true
+      },
+      "eval.probes_shuffled_z.desired_delta_err_m": {
+       "ref": 0.025376,
+       "acc": 0.022538,
+       "ok": true
+      },
+      "eval.probes_shuffled_z.focused_on": {
+       "ref": 0.542402,
+       "acc": 0.542402,
+       "ok": true
+      },
+      "eval.probes_shuffled_z.focused_on_pos": {
+       "ref": 0.0,
+       "acc": 0.0,
+       "ok": true
+      },
+      "eval.probes_shuffled_z.held_by": {
+       "ref": 0.85344,
+       "acc": 0.85344,
+       "ok": true
+      },
+      "eval.probes_shuffled_z.held_by_pos": {
+       "ref": 0.0,
+       "acc": 0.0,
+       "ok": true
+      },
+      "eval.probes_shuffled_z.observed_effect_err_m": {
+       "ref": 0.025376,
+       "acc": 0.022538,
+       "ok": true
+      },
+      "eval.probes_shuffled_z.rel_pos_err_m": {
+       "ref": 0.182527,
+       "acc": 0.184797,
+       "ok": true
+      },
+      "eval.probes_shuffled_z.subtask": {
+       "ref": 0.463802,
+       "acc": 0.472656,
+       "ok": true
+      },
+      "eval.probes_shuffled_z.visible": {
+       "ref": 0.903279,
+       "acc": 0.903279,
+       "ok": true
+      },
+      "eval.probes_shuffled_z.visible_pos": {
+       "ref": 1.0,
+       "acc": 1.0,
+       "ok": true
+      },
+      "eval.realize_mse": {
+       "ref": 0.032294,
+       "acc": 0.035192,
+       "ok": true
+      },
+      "eval.zero_action_mse": {
+       "ref": 0.053952,
+       "acc": 0.053952,
+       "ok": true
+      }
+     }
+    }
+   },
+   "accel": {
+    "bf16": {
+     "curve": {
+      "ok": true,
+      "finite": true,
+      "blocks": 2,
+      "median_block": 0.01546,
+      "last_blocks_max": 0.02416,
+      "max_block": 0.02416,
+      "scale": 10.22826
+     },
+     "dev": {
+      "n": 40,
+      "failed": [],
+      "ok": true,
+      "rows": {
+       "eval.binding_counterfactual.cf_acting_on": {
+        "ref": 0.851787,
+        "acc": 0.851787,
+        "ok": true
+       },
+       "eval.binding_counterfactual.cf_acting_on_pos": {
+        "ref": 0.0,
+        "acc": 0.0,
+        "ok": true
+       },
+       "eval.binding_counterfactual.cf_desired_delta_err_m": {
+        "ref": 0.025312,
+        "acc": 0.022291,
+        "ok": true
+       },
+       "eval.binding_counterfactual.cf_focus_follows": {
+        "ref": 0.0,
+        "acc": 0.0,
+        "ok": true
+       },
+       "eval.binding_counterfactual.cf_focused_on": {
+        "ref": 0.542402,
+        "acc": 0.542402,
+        "ok": true
+       },
+       "eval.binding_counterfactual.cf_focused_on_pos": {
+        "ref": 0.0,
+        "acc": 0.0,
+        "ok": true
+       },
+       "eval.binding_counterfactual.cf_held_by": {
+        "ref": 0.85344,
+        "acc": 0.85344,
+        "ok": true
+       },
+       "eval.binding_counterfactual.cf_held_by_pos": {
+        "ref": 0.0,
+        "acc": 0.0,
+        "ok": true
+       },
+       "eval.binding_counterfactual.cf_observed_effect_err_m": {
+        "ref": 0.025312,
+        "acc": 0.022291,
+        "ok": true
+       },
+       "eval.binding_counterfactual.cf_rel_pos_err_m": {
+        "ref": 0.182127,
+        "acc": 0.182788,
+        "ok": true
+       },
+       "eval.binding_counterfactual.cf_rel_z_dist": {
+        "ref": 0.000135,
+        "acc": 0.000135,
+        "ok": true
+       },
+       "eval.binding_counterfactual.cf_subtask": {
+        "ref": 0.50599,
+        "acc": 0.501823,
+        "ok": true
+       },
+       "eval.binding_counterfactual.cf_visible": {
+        "ref": 0.903279,
+        "acc": 0.903279,
+        "ok": true
+       },
+       "eval.binding_counterfactual.cf_visible_pos": {
+        "ref": 1.0,
+        "acc": 1.0,
+        "ok": true
+       },
+       "eval.probes.acting_on": {
+        "ref": 0.851787,
+        "acc": 0.851787,
+        "ok": true
+       },
+       "eval.probes.acting_on_pos": {
+        "ref": 0.0,
+        "acc": 0.0,
+        "ok": true
+       },
+       "eval.probes.desired_delta_err_m": {
+        "ref": 0.025313,
+        "acc": 0.022292,
+        "ok": true
+       },
+       "eval.probes.focused_on": {
+        "ref": 0.542402,
+        "acc": 0.542402,
+        "ok": true
+       },
+       "eval.probes.focused_on_pos": {
+        "ref": 0.0,
+        "acc": 0.0,
+        "ok": true
+       },
+       "eval.probes.held_by": {
+        "ref": 0.85344,
+        "acc": 0.85344,
+        "ok": true
+       },
+       "eval.probes.held_by_pos": {
+        "ref": 0.0,
+        "acc": 0.0,
+        "ok": true
+       },
+       "eval.probes.observed_effect_err_m": {
+        "ref": 0.025313,
+        "acc": 0.022292,
+        "ok": true
+       },
+       "eval.probes.rel_pos_err_m": {
+        "ref": 0.182127,
+        "acc": 0.182788,
+        "ok": true
+       },
+       "eval.probes.subtask": {
+        "ref": 0.50599,
+        "acc": 0.501823,
+        "ok": true
+       },
+       "eval.probes.visible": {
+        "ref": 0.903279,
+        "acc": 0.903279,
+        "ok": true
+       },
+       "eval.probes.visible_pos": {
+        "ref": 1.0,
+        "acc": 1.0,
+        "ok": true
+       },
+       "eval.probes_shuffled_z.acting_on": {
+        "ref": 0.851787,
+        "acc": 0.851787,
+        "ok": true
+       },
+       "eval.probes_shuffled_z.acting_on_pos": {
+        "ref": 0.0,
+        "acc": 0.0,
+        "ok": true
+       },
+       "eval.probes_shuffled_z.desired_delta_err_m": {
+        "ref": 0.025376,
+        "acc": 0.022438,
+        "ok": true
+       },
+       "eval.probes_shuffled_z.focused_on": {
+        "ref": 0.542402,
+        "acc": 0.542402,
+        "ok": true
+       },
+       "eval.probes_shuffled_z.focused_on_pos": {
+        "ref": 0.0,
+        "acc": 0.0,
+        "ok": true
+       },
+       "eval.probes_shuffled_z.held_by": {
+        "ref": 0.85344,
+        "acc": 0.85344,
+        "ok": true
+       },
+       "eval.probes_shuffled_z.held_by_pos": {
+        "ref": 0.0,
+        "acc": 0.0,
+        "ok": true
+       },
+       "eval.probes_shuffled_z.observed_effect_err_m": {
+        "ref": 0.025376,
+        "acc": 0.022438,
+        "ok": true
+       },
+       "eval.probes_shuffled_z.rel_pos_err_m": {
+        "ref": 0.182527,
+        "acc": 0.183218,
+        "ok": true
+       },
+       "eval.probes_shuffled_z.subtask": {
+        "ref": 0.463802,
+        "acc": 0.460156,
+        "ok": true
+       },
+       "eval.probes_shuffled_z.visible": {
+        "ref": 0.903279,
+        "acc": 0.903279,
+        "ok": true
+       },
+       "eval.probes_shuffled_z.visible_pos": {
+        "ref": 1.0,
+        "acc": 1.0,
+        "ok": true
+       },
+       "eval.realize_mse": {
+        "ref": 0.032294,
+        "acc": 0.031273,
+        "ok": true
+       },
+       "eval.zero_action_mse": {
+        "ref": 0.053952,
+        "acc": 0.053952,
+        "ok": true
+       }
+      }
+     },
+     "effective": {
+      "precision": "bf16",
+      "precision_source": "explicit",
+      "fp32_islands": true,
+      "tf32": true,
+      "device_type": "cpu"
+     },
+     "compiled": {
+      "E": {
+       "status": "off"
+      },
+      "R": {
+       "status": "off"
+      }
+     }
+    }
+   }
+  }
+ ]
+}

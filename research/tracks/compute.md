@@ -165,3 +165,51 @@ E3. Nodes already in a ledger (any state but `planned`) are never changed (run-d
     per-node/base `compute:` overlay in the recipe of the unstarted family; goldens for the changed recipes are re-recorded.
 E4. Everything stays one explicit, recorded option: the block hashes into the node's config, stamped in `compute.json`, pinned in `stage_versions`.
 E5. `precision: bf16` carries a tf32 flag (true) for the fp32 islands' matmuls on CUDA; the fp32 islands themselves stay fp32 (unit prec).
+
+### enable: results and decision (unit enable, 2026-10-02; the protocol above was committed before any measurement and was not edited)
+All numbers below are from the peer (promaxgb10-4dfb, torch 2.14.0+cu130) on CPU-only leases (`--env CUDA_VISIBLE_DEVICES=`, 4 cpu): both peer GPU slots
+were held by pointer and relations, the humanoid GPU nodes were queued (humanoid-first rule forbids a third lease), and host GPU admission is paused.
+So these are bf16-autocast-on-CPU NUMERICS checks (E1); NO GPU speedup was measured by this unit and none is claimed. Raw outputs (per-step losses,
+block D, dev-metric rows, effective compute, compile status) are in `research/tracks/compute_enable/*.json`.
+
+Commands (peer, from `/dev/shm/rrp-brandonin/wt/accel-enable`, `RRP_PEER_PYTHONPATH=/home/brandonin/work/ext/cw-site`):
+`ops/bin/peer_run.sh --cpu 4 --mem 18G --label enable_equiv_legged --max-seconds 7200 --env CUDA_VISIBLE_DEVICES= --env BENCH_LEGGED_PACK=artifacts/datasets/compute_enable_legged -- PY -m rrp.cli train bench-compute -- --equiv --cases legged_rep,legged_flow,legged_bc --settings default,bf16 --steps 300 --budget-s 6000 --out /dev/shm/rrp-brandonin/enable_legged.json`
+(the legged pack is 20 fresh g1 `h_walk` shards, tracker g1:ub_v1, collected on a CPU lease because the peer's older legged packs are in an obsolete format).
+
+| trainer (real trainer, same seed and data) | steps | determinism D (default twice) | seed-noise D median / last4 max | bf16 D median / last4 max / max | dev-metric gate | verdict |
+|---|---|---|---|---|---|---|
+| legged_rep (g1 h_walk, latent rep) | 300 | 0.000 / 0.000 (bit-exact) | 0.094 / 0.098 | 0.169 / 0.276 / 0.386 | 18 leaves, 0 failed (trainer reports no held-out numbers beyond its own) | FAILED (median > 0.05 and last4 > 0.10) |
+| arm_rep (50-step smoke only, tool validation) | 50 | 0.000 | 0.046 / 0.059 | 0.015 / 0.024 | 40 leaves, 0 failed | smoke only, NOT a gate pass (2 blocks) |
+| legged_flow | 300 | not completed (default ref run only; lease stopped by the broker `live_limit_reduced`) | - | - | - | not_checked |
+| legged_bc, arm_rep/flow/bc at 300, pointer_rep/flow/bc | - | - | - | - | - | not_checked (see below) |
+
+Reading of the one completed gate: the default fp32 path is deterministic, so the difference is real. bf16 block means end lower (better) than fp32
+(rep loss -12.6 vs -10.9 at the last block) but the gap (D 0.17-0.28) is larger than the seed-to-seed spread of this short, unconverged curve (0.09-0.10),
+so under the pre-registered rule the bf16 legged representation trainer is NOT shown equivalent to fp32. This is a failed numerics check on CPU, not a
+statement about GPU bf16 (different kernels); it is also not evidence of a quality problem, only of no equivalence at 300 steps.
+Wall clock on the CPU device: default 789-1192 s per 300 steps (load dependent), bf16 autocast 2494 s (CPU bf16 is ~3x SLOWER; this is irrelevant for the GPU).
+
+Why the rest is not_checked (and why it does not change any decision):
+- Peer incident 17:22-17:44: PSI memory `full` avg10 ~87 % across the peer; the campaign watchdog heartbeat stalled (`mem_cgroup_handle_over_high`) and
+  admission stopped. It was caused by the peer's aggregate load, my arm lease was a small part of it, but I stopped my arm and pointer equivalence leases
+  immediately (SIGKILL of my own processes) and relaunched only the family that matters (legged) after the pressure cleared. The arm_flow case
+  additionally loads a 24 GB packed dir, which I did not re-attempt on a thrashing peer.
+- Every remaining check could not change an outcome: relations T9 stays at the default by E2 (base/geo arms already ran fp32), pointer and Psi0 already
+  use bf16 autocast by default (an explicit `precision: bf16` would only change the hash), armdiv T6 is untouched, and the humanoid transfer family
+  needs ALL of rep/flow/bc to pass (E2: switching only the latent arms would confound system with precision against the BC arm) and rep already failed.
+
+### enable decision (final; E1-E5)
+| family | decision | reason |
+|---|---|---|
+| humanoid T4/T5 transfer templates (`recipes/templates/humanoid_transfer*.yaml`; all unstarted, no ledger exists for any `transfer_h_*` instance) | NOT switched; default (fp32 + TF32 on) stays | legged_rep bf16 equivalence FAILED on the pre-registered gate; flow/bc not checked. A dry-run of the intended overlay (`compute: {precision: bf16, tf32: true}` on the 3 trainer stages, 10 train nodes per instance changed hash, nothing else) worked and was reverted. |
+| relations T9 remaining unlaunched nodes | default | E2: base/geo arms already ran fp32 |
+| pointer seeds/ui rounds, Psi0 remaining nodes | default | legacy default is already bf16 autocast; compile/cuda_graphs need GPU evidence (E1), none obtainable |
+| latent arm / armdiv T6 | untouched | frozen, pre-registered |
+| `compile`, `cuda_graphs` | off everywhere | never run on a GPU |
+| `eval_backend: warp` | cpu everywhere | Warp parity passed only on the Warp CPU device (F1 arm, F2 hexapod6); the CUDA path and the humanoid F3 parity were never run |
+| `seeds_per_job` | not enabled | the seeds unit is not merged to main (branch `track/accel-seeds`) |
+
+Resume, when a GPU window opens with no humanoid GPU node queued (ONE lease, <= 20 min, declared memory >= 1.35x measured peak): run the same command with
+`--settings default,bf16,bf16+compile` for `legged_rep,legged_flow,legged_bc` without the CPU env (also yields the first GPU step-time numbers), and for the
+dev-metric/step-time of `arm_*`/`pointer_*`; a GPU pass of all three legged trainers would justify the template overlay documented above (then: goldens
+re-recorded, D-147 addendum with the run list, STATUS note). Until then every recipe runs at today's behaviour.
