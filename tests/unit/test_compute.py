@@ -176,3 +176,47 @@ def test_no_trainer_keeps_its_own_autocast():
     bad = [str(f.relative_to(root)) for f in files if f.name not in ("adapt.py", "bench_compute.py")       # adapt.py forces TF32 OFF (likelihood ratios); the benchmark resets flags between runs
            and ("torch.autocast" in f.read_text() or "allow_tf32" in f.read_text())]
     assert not bad, bad
+
+
+# ------------------------------------------------------------------------------------------- equivalence tool (bench_compute --equiv)
+def test_equiv_compare_curves_gate():
+    from rrp.harness.train import bench_compute as bc
+    ref = [1.0 - 0.001 * i for i in range(200)]
+    same = [x * 1.01 for x in ref]                       # 1% apart everywhere: inside the declared tolerance
+    off = [x * 1.5 for x in ref]                         # 50% apart: outside
+    nan = ref[:100] + [float("nan")] * 100
+    assert bc.compare_curves(ref, same)["ok"]
+    assert not bc.compare_curves(ref, off)["ok"]
+    assert not bc.compare_curves(ref, nan)["ok"]
+    assert not bc.compare_curves(ref, [])["ok"]
+
+
+def test_equiv_compare_dev_gate():
+    from rrp.harness.train import bench_compute as bc
+    ok = bc.compare_dev({"eval.mse": 0.10, "eval.acc": 0.95}, {"eval.mse": 0.11, "eval.acc": 0.94})
+    bad = bc.compare_dev({"eval.mse": 0.10}, {"eval.mse": 0.20})
+    assert ok["ok"] and ok["n"] == 2
+    assert not bad["ok"] and bad["failed"] == ["eval.mse"]
+    assert bc.compare_dev({}, {"x": 1.0})["ok"] is None
+
+
+def test_equiv_loss_tap_sums_backward_scalars_per_optimizer_step():
+    import torch
+    from torch.optim.optimizer import register_optimizer_step_post_hook
+    from rrp.harness.train import bench_compute as bc
+    m = torch.nn.Linear(2, 1)
+    opt = torch.optim.SGD(m.parameters(), lr=0.1)
+    tap = bc._LossTap()
+    h = register_optimizer_step_post_hook(tap.step)
+    try:
+        with tap:
+            for _ in range(3):
+                x = torch.ones(4, 2)
+                (m(x).pow(2).mean()).backward()
+                (m(x).pow(2).mean()).backward()          # two losses before one step: summed
+                opt.step()
+                opt.zero_grad()
+    finally:
+        h.remove()
+    assert len(tap.losses) == 3 and all(l > 0 for l in tap.losses)
+    assert torch.Tensor.backward.__name__ == "backward" and not hasattr(torch.Tensor.backward, "__wrapped__")

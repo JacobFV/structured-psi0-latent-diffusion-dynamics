@@ -138,3 +138,30 @@ Findings:
 Caveats / not resolved:
 - Only the t1 and h1 4096 points were mostly solo (2.3-2.5x faster than the contended ones; the GPU is already ~94-96% busy with one job at 4096). There is no solo 8192/16384 point, so the exact solo knee is unmeasured: one lease at a time, and the competitor reappeared. Resume: one lease, `peer_run.sh` with a waiter that starts only when `nvidia-smi` shows no other process, t1 and h1 at 4096/8192/16384.
 - T3 shared morph (8 groups, 10240 worlds) was not benchmarked; extrapolating 0.8-1.8 MiB/world gives 8-18 GiB, which the declared 24G covers, but this is not verified.
+
+## enable: equivalence protocol and enable rules (unit enable, 2026-10-02; PRE-REGISTERED before any paired measurement; not to be edited after measuring)
+
+Scope: switch the `compute` block ON only for UNSTARTED campaign nodes, one recorded decision per family. Never touched: armdiv T6 (recipes/armdiv/*,
+presets/eval-armdiv_v1.json), any node already placed/running/completed in a ledger, T7 phase 2, T8/T9 nodes already running, tracker PPO.
+
+### paired equivalence check (`rrp train bench-compute --equiv`)
+Per trainer case (real trainer, real store data, same seed, same data order): N = 300 optimizer steps under `default` (the reference; also run twice =
+determinism floor, and once with seed+1 = seed-noise reference) and under the candidate setting (`bf16`; later `bf16+compile`). The loss of a step is the
+sum of the scalars passed to `Tensor.backward` since the previous optimizer step.
+1. Training-loss curve: block means over 25 steps; per block D = |L_cand - L_ref| / scale, scale = mean |L_ref block mean|. PASS iff all values are finite
+   AND median(D) <= 0.05 AND max(D over the last 4 blocks) <= 0.10. The seed-noise D and the determinism D are reported next to it.
+2. Dev metric (cheap, where the trainer finishes on its own and reports held-out `eval` numbers): every numeric leaf under the result's `eval`/`dev`
+   that both runs report passes iff |cand - ref| <= max(0.25 |ref|, 0.01). Short-training dev numbers are noisy, so this is a sanity gate that the
+   candidate has not broken a metric (it is not a quality claim); the seed-noise difference is reported alongside.
+A trainer whose check cannot run (data missing, trainer error) is `not_checked`, never `passed`.
+
+### enable rules
+E1. A family is switched only if its equivalence check PASSED on its trainers. CPU-device passes (bf16 autocast on CPU) validate numerics only; GPU
+    passes are required for `compile` / `cuda_graphs` (never enabled on CPU evidence) and for `eval_backend: warp` (Warp parity gate on CUDA).
+E2. Comparability: never switch a subset of the arms of a contrast whose other arms ran (or are placed) under another setting. A contrast is switched
+    only if EVERY node of every arm is unstarted; otherwise it keeps the default and the reason is recorded. Recipes that change get a D-147 addendum
+    row listing exactly which runs use which compute settings.
+E3. Nodes already in a ledger (any state but `planned`) are never changed (run-dag refuses a config-hash change for them anyway). Switching is by a
+    per-node/base `compute:` overlay in the recipe of the unstarted family; goldens for the changed recipes are re-recorded.
+E4. Everything stays one explicit, recorded option: the block hashes into the node's config, stamped in `compute.json`, pinned in `stage_versions`.
+E5. `precision: bf16` carries a tf32 flag (true) for the fp32 islands' matmuls on CUDA; the fp32 islands themselves stay fp32 (unit prec).
