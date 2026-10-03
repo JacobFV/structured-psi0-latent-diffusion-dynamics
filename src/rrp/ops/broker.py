@@ -198,6 +198,10 @@ class ResourceBroker:
             r["state"] = "held" if held >= c["slots"] else "active"
             r["expires_at"] = max(r["expires_at"], self.clock() + 86400)
 
+    def reserved_prefixes(self) -> list[str]:
+        with self._locked() as st:
+            return [p for c in (st.get("gpu_reserve") or {}).values() for p in c["prefixes"]]
+
     def reconcile_reservations(self) -> None:
         with self._locked() as st:
             self._expire(st)

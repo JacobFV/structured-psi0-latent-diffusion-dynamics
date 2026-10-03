@@ -72,7 +72,37 @@ def test_disk_and_thermal():
     assert evaluate(ok_sample(thermal_c=98.0, cpu_freq_ratio=1.0), cfg(), WatchdogState()).level == "stop_admission"
     assert evaluate(ok_sample(thermal_c=93.0, cpu_freq_ratio=0.5), cfg(), WatchdogState()).level == "shed"
     assert evaluate(ok_sample(thermal_c=101.0), cfg(), WatchdogState()).level == "shed"
-    assert evaluate(ok_sample(gpu_thermal_throttle=True), cfg(), WatchdogState()).level == "shed"
+    # D-147 (2026-10-03): a thermal-slowdown flag stops admission only; it never sheds by itself
+    assert evaluate(ok_sample(gpu_thermal_throttle=True, gpu_temp_c=86.0), cfg(), WatchdogState()).level == "stop_admission"
+
+
+def test_gpu_shed_needs_a_sustained_critical_temperature():
+    c = cfg()
+    st = WatchdogState()
+    need = int(c.gpu_critical_window_s / c.sample_interval_s)
+    levels = [evaluate(ok_sample(gpu_temp_c=91.0, gpu_thermal_throttle=True), c, st).level for _ in range(need)]
+    assert levels[:-1] == ["stop_admission"] * (need - 1) and levels[-1] == "shed"
+    st = WatchdogState()                                             # a dip below 90 C restarts the window
+    for _ in range(need - 1):
+        evaluate(ok_sample(gpu_temp_c=91.0), c, st)
+    assert evaluate(ok_sample(gpu_temp_c=88.0), c, st).level == "ok"
+    assert evaluate(ok_sample(gpu_temp_c=91.0), c, st).level == "stop_admission"
+
+
+def test_thermal_shed_takes_the_newest_non_reserved_gpu_lease_and_never_a_reservation(tmp_path):
+    from rrp.ops.watchdog import thermal_victims
+    now = [1000.0]
+    be = fake_enforcement_backend()
+    b = ResourceBroker(cpu_limit=8, memory_limit_bytes=8 * G, backend=be, state_dir=tmp_path / "b", gpu_slots=3,
+                       clock=lambda: now[0], gpu_reserve={"humanoid": {"slots": 1, "prefixes": ["hss_"]}})
+    old = b.acquire(ResourceRequest(cpu_cores=1, memory_bytes=G, gpu=True, label="psi0_eval"))
+    now[0] += 5.0
+    hum = b.acquire(ResourceRequest(cpu_cores=1, memory_bytes=G, gpu=True, label="hss_t1_train"))
+    act = sorted(((k, l) for k, l in b.leases().items() if l["state"] in ("active", "revoke_requested") and not k.startswith("reserve:")),
+                 key=lambda kv: -kv[1]["created"])
+    order = [k for k, _ in thermal_victims(act, b.reserved_prefixes())]
+    assert order == [old.lease_id, hum.lease_id]                       # the newer humanoid lease goes after every other track's
+    assert all(not k.startswith("reserve:") for k in order)
 
 
 def test_loop_revokes_only_owned_leases_and_hard_stops_after_grace(tmp_path):

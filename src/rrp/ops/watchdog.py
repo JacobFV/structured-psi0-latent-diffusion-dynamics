@@ -49,6 +49,11 @@ class WatchdogConfig:
     thermal_shed_c: float = 100.0          # hard ceiling (no firmware trip points exposed on GB10)
     thermal_stop_admission_c: float = 97.0
     gpu_thermal_shed_c: float = 95.0
+    # D-147 (2026-10-03): a GPU thermal-slowdown flag (HW/SW thermal bits of clocks_throttle_reasons) only STOPS ADMISSION; a running
+    # lease is shed only when the GPU stays >= gpu_critical_c for gpu_critical_window_s (consecutive samples), and then the newest
+    # NON-reserved-track GPU lease goes first (the reserved track, e.g. humanoid, keeps its slot; reservation pseudo-leases are never shed).
+    gpu_critical_c: float = 90.0
+    gpu_critical_window_s: float = 60.0
     cpu_freq_throttle_ratio: float = 0.7   # shed if hot AND clocks dropped below this fraction of max
     stable_window_samples: int = 15
     project_disk_limit_bytes: int | None = None
@@ -73,6 +78,7 @@ class WatchdogState:
     project_psi_high_count: int = 0
     stable_count: int = 0
     last_cpu_usage_usec: int | None = None
+    gpu_hot_count: int = 0
     last_t: float | None = None
     shmem_excess_count: int = 0           # consecutive samples with a RAM-store-caused excess under memory pressure
     lease_high: dict = field(default_factory=dict)   # lease id -> last seen memory.events `high` count (D-117)
@@ -90,6 +96,13 @@ class Verdict:
     live_cpu_cores: float | None = None
     victims: list | None = None       # shed: these lease ids only (culprits); None = the default policy (newest lease)
     raise_high: list | None = None    # opt-in: raise memory.high to memory.max for these lease ids (no shed this sample)
+
+
+def thermal_victims(active: list, reserved_prefixes: list[str]) -> list:
+    """GPU leases, newest first, the reserved track's (label prefix) after every other track's (D-147)."""
+    gpu = [(k, l) for k, l in active if l["request"].get("gpu")]
+    mine = lambda l: any(str(l["request"].get("label", "")).startswith(p) for p in reserved_prefixes)
+    return [kl for kl in gpu if not mine(kl[1])] + [kl for kl in gpu if mine(kl[1])]
 
 
 def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
@@ -187,10 +200,16 @@ def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
     elif t is not None and t >= cfg.thermal_stop_admission_c:
         bump("stop_admission", f"cpu_hot:{t}")
     g = sample.get("gpu_temp_c")
-    if sample.get("gpu_thermal_throttle"):
-        bump("shed", "gpu_thermal_slowdown_active")
-    elif g is not None and g > cfg.gpu_thermal_shed_c:
-        bump("shed", f"gpu_thermal:{g}")
+    st.gpu_hot_count = st.gpu_hot_count + 1 if (g is not None and g >= cfg.gpu_critical_c) else 0
+    need_hot = max(1, int(math.ceil(cfg.gpu_critical_window_s / cfg.sample_interval_s)))
+    if g is not None and g > cfg.gpu_thermal_shed_c:
+        bump("shed", f"gpu_thermal:{g}")                           # hard ceiling: immediate
+    elif st.gpu_hot_count >= need_hot:
+        bump("shed", f"gpu_thermal_sustained:{g}C_{cfg.gpu_critical_window_s:.0f}s")
+    elif sample.get("gpu_thermal_throttle"):
+        bump("stop_admission", f"gpu_thermal_slowdown_active:{g}C")
+    elif g is not None and g >= cfg.gpu_critical_c:
+        bump("stop_admission", f"gpu_hot:{g}C")
     live_cpu = None
     if sample.get("idle_cores") is not None:
         live_cpu = live_cpu_limit(startup_limit=cfg.startup_cpu_cores, idle_now=sample["idle_cores"],
@@ -362,10 +381,13 @@ def run_loop(broker, backend, cfg: WatchdogConfig, *, interval_s: float = 2.0, l
                     print(f"[watchdog] raise memory.high of lease {lid} failed: {e}", flush=True)
         if v.level in ("shed", "emergency"):
             leases = broker.leases()
-            active = sorted(((k, l) for k, l in leases.items() if l["state"] in ("active", "revoke_requested")),
+            active = sorted(((k, l) for k, l in leases.items() if l["state"] in ("active", "revoke_requested")
+                             and not k.startswith(broker.RESERVE)),                    # a reservation is never shed
                             key=lambda kv: -kv[1]["created"])
             if v.level == "shed" and v.victims is not None:        # D-127 addendum: the throttled culprits only
                 victims = [(k, l) for k, l in active if k in set(v.victims)]
+            elif v.level == "shed" and all(r.startswith("gpu_thermal") for r in v.reasons):
+                victims = thermal_victims(active, broker.reserved_prefixes())[:1]      # D-147: newest non-reserved GPU lease
             else:
                 victims = active if v.level == "emergency" else active[:1]
             for lid, l in victims:

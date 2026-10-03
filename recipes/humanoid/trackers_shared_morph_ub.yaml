@@ -37,7 +37,7 @@ nodes:
   eval: null
   validate:
     stage: validate_tracker
-    resources: {cpu: 1, mem: 4G, gpu: false, max_seconds: 7200}
+    resources: {cpu: 1, mem: 6G, gpu: false, max_seconds: 7200}    # D-117: apollo validate peaked 3.6 GB (shed at 0.8 x 4G)
     retries: 0
     config:
       inputs: {actor: '@train:actor.pt'}
