@@ -393,11 +393,13 @@ def test_suite_relations_compare_tables_depth_and_paired_interference(tmp_path, 
                                         {"step": 1000, "level": {"geo.depth3d": 2}, "signals": {"geo.depth3d": {"competence": 0.9}}}])
         ok = {"base": [1, 1, 0, 0], "geo": [1, 1, 1, 0]}[s]
         jl(root / f"relations-{s}" / "eval_r2-dev_s1" / "bodyA" / "generated_dev_s1.jsonl",
-           [{"seed": 10 + i, "privileged_success": bool(v)} for i, v in enumerate(ok)])
+           [{"seed": 10 + i, "privileged_success": bool(v), "failed_stage": None if v else "approach",
+            "min_tcp_cube_m": 0.1 if v else 0.2} for i, v in enumerate(ok)])
     curriculum_cli.compare_main(["--root", str(root), "--sets", "geo", "--seeds", "1"])
     t = json.loads((root / "tables" / "tables.json").read_text())
     assert {(r["factor"], r["depth"]) for r in t["competence_by_depth"]} == {("geo.depth3d", 1), ("geo.depth3d", 2)}
     pooled = [r for r in t["vs_base"] if r["body"] == "pooled"][0]
     assert pooled["n_pairs"] == 4 and pooled["set_only"] == 1 and pooled["base_only"] == 0
+    assert pooled["stage_rank_delta"]["mean"] == 1.25 and abs(pooled["min_tcp_cube_m_delta"]["mean"] + 0.025) < 1e-9
     assert pooled["rate_set"] == 0.75 and pooled["rate_base"] == 0.5 and pooled["delta"]["mean"] == 0.25
     assert "competence by factor" in capsys.readouterr().out

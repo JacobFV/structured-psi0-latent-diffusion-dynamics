@@ -71,7 +71,7 @@ nodes:
       options: {steps: 6000, out_name: probes_rep.json}
   F0:
     stage: train_flow
-    resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 24G, max_seconds: 14400}
+    resources: {gpu: true, gpu_mem: 16G, cpu: 4, mem: 40G, max_seconds: 14400}
     per:
       fset:
         geo: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_geo}, curriculum: {factors: ['geo.depth3d', 'geo.normal_align'], interval: 1000, ramp_steps: 20000, share_max: 0.25}}}
