@@ -70,6 +70,9 @@ def main(argv=None):
     ap.add_argument("--frame-every", type=int, default=1, help="record one frame every N native steps (memory)")
     ap.add_argument("--task", default="waypoint_contact", help="waypoint_contact (scripted teacher) | h_steps | h_gap (rl_expert)")
     ap.add_argument("--actor", default=None, help="h_steps / h_gap: tracker spec <body>:<version> or an actor.pt file")
+    ap.add_argument("--teacher", action="store_true", help="h_* task: the task's SCRIPTED TEACHER (privileged) over --actor as the "
+                    "tracker (what the sealed-body checks run); default: the tracker alone (rl_expert)")
+    ap.add_argument("--label", default="", help="extra caption line (e.g. the gate verdict of this checkpoint)")
     ap.add_argument("--scene", default=None, help="h_steps / h_gap: scene JSON, e.g. '{\"h_frac\": 0.2}' or '{\"level\": 1.0}'")
     a = ap.parse_args(argv)
     a.cam_scale = {k: float(v) for k, v in (kv.split("=") for kv in a.cam_scale.split(","))}
@@ -128,10 +131,16 @@ def task_clips(a, out: Path) -> int:
     from rrp.policies.teachers.humanoid import make_rl_expert
     if not a.actor:
         raise SystemExit("--task h_steps / h_gap needs --actor")
+    from rrp.core.sealed import SealedSplit
     scene = json.loads(a.scene) if a.scene else None
+    SealedSplit.load().assert_train_allowed(a.bodies.split(","), list(parse_seed_spec(a.seeds)), what="video")   # sealed: adaptation seeds only
     for body in a.bodies.split(","):
         spec = resolve_actor(body, a.actor)
-        pol = make_rl_expert(arg=spec)
+        if a.teacher:
+            from rrp.policies.base import make_policy
+            pol = make_policy(f"teacher:{a.task}")
+        else:
+            pol = make_rl_expert(arg=spec)
         for sd in parse_seed_spec(a.seeds):
             frames, rend = [], {}
 
@@ -157,18 +166,19 @@ def task_clips(a, out: Path) -> int:
             stride = max(1, int(np.ceil(len(frames) / max(1, n_max))))
             fr = frames[::stride] + ([frames[-1]] if frames and len(frames) % stride != 1 and stride > 1 else [])
             speed = ep.time / max(1e-6, len(fr) / a.fps)
-            src = f"{_expert_source(pol)} | tracker {spec}"
+            src0 = "SCRIPTED TEACHER (privileged)" if a.teacher else _expert_source(pol)
+            src = f"{src0} | tracker {spec}"
             l2 = f"{body} | {a.task} {json.dumps(scene) if scene else ''} | seed {sd}"
             l_out = f"outcome: {st.upper()} (task judge, privileged evaluator), {ep.time:.1f}s sim"
-            imgs = [caption(f, [src, l2, f"{t} | playback {speed:.1f}x", l_out], outcome_color=oc) for f, t in fr]
+            lines = [src, l2] + ([a.label] if a.label else []) + [f"{t} | playback {speed:.1f}x", l_out]
+            imgs = [caption(f, lines, outcome_color=oc) for f, t in fr]
             imgs += [imgs[-1]] * a.fps
-            src0 = _expert_source(pol)
-            label = ("privileged_rl_expert" if src0.startswith("privileged") else
+            label = "scripted_teacher_over_learned_tracker" if a.teacher else ("privileged_rl_expert" if src0.startswith("privileged") else
                      "learned_tracker_blind" if "(blind)" in src0 else "learned_rl_expert")
             name = f"{dt.date.today()}_{label}{('_' + a.tag) if a.tag else ''}_{body}_{a.task}_s{sd}_{tag}.mp4"
             imageio.mimsave(out / name, imgs, fps=a.fps, quality=a.quality, macro_block_size=8)
             with open(out / "INDEX.md", "a") as f:
-                f.write(f"- `{name}` — source={_expert_source(pol)} tracker={spec} actor={a.actor} robot={body} task={a.task} "
+                f.write(f"- `{name}` — source={src0} tracker={spec} label={a.label!r} actor={a.actor} robot={body} task={a.task} "
                         f"scene={json.dumps(scene) if scene else 'default'} seed={sd} outcome={st} (task judge); playback {speed:.1f}x\n")
             print(json.dumps(dict(body=body, seed=sd, outcome=st, sim_time=round(ep.time, 1), frames=len(imgs), video=name)), flush=True)
     return 0
