@@ -1959,3 +1959,22 @@ before any level-2 rollout exists.
   at L2, and each arm's L0 -> L2 drop with Wilson CIs (tests the covariate-shift reading of the tabletop diagnosis: if structured's deficit is
   off-manifold fragility, its L0 -> L2 drop should exceed direct's). "No worse" is never claimed from overlapping CIs.
 - After this, T7 step 2 is closed for seed 0: any further structured-arm change is a new decision with its own pre-registration.
+### D-147 addendum 2026-10-04 (T8 pointer owner): operating under the owner's autonomy rule (Main relay, 2026-10-04)
+Owner rule: research decisions (retries, re-plans, round go/no-go, sealed runs, priorities) are taken by the track owner from the
+pre-registration and AGENTS.md, recorded here, and reported after. Hard limits unchanged. T8 applies it as follows, written before any
+further T8 result:
+1. Retries. An attempt killed by infrastructure before or during training (watchdog shed, import / environment error, lease expiry from
+   an admission or host back-off) gets ONE infrastructure retry with unchanged settings, after its declared memory is checked against
+   1.35 x the measured peak (raised if the peak was censored at the cap). The same node failing a second time for infrastructure gets
+   one more attempt on whichever machine has more free memory; a third stop -> blocked_external. A training or eval run that ends with a
+   code error or a bad metric is NOT retried: failed / failed_hypothesis, recorded, and the round carries on. Settings of finished cells
+   are never changed.
+2. Coordinator. `rrp-t8-chain2` still pauses on a non-completed GPU node; the owner of T8 (this agent) classifies the failure under
+   rule 1 and resumes it the same turn, without waiting for anyone. It is not restarted while a lease is held.
+3. Rounds. pointer_ui (round 3) starts automatically after pointer_seeds (already chained); no go/no-go gate (the pre-registration has none).
+4. Sealed. As pre-registered (research/tracks/pointer.md, "Roadmap and pre-registration"): after the DEV tables of all three rounds are
+   written down in research/tracks/pointer.md, every arm and seed is evaluated ONCE on the v2 sealed sets, whatever dev says:
+   `pointer_sealed` (pointer_seeds: semfix, nosem, eng.v1, BC), `pointer_ui_sealed` (pointer_ui), and a run-once instance for the
+   pointer_copy arms (eng.v2 free, eng.v2 copy, BC copy) on sealed_id and sealed_heldout, with the same SealedSplit guard; that instance is
+   written and dry-run before any sealed node starts. The pre-registered decision rules (P-SEEDS, P-UI, P-COPY, P-KEY) are applied to the
+   sealed numbers as written; nothing is re-run after a sealed result.
