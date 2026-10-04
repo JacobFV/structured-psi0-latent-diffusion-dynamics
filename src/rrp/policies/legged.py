@@ -599,6 +599,12 @@ class _LeggedPolicy:
         # clock origin = the collector's (legged_latent_collect.collect_episode): wholebody demos start the gait clock at 0 after
         # the reset settle (D-147 10-04: eval started them at settle_ticks = 15, a 0.375-cycle phase offset -> every learned
         # humanoid cell fell). Legs-control checkpoints keep settle_ticks (their pinned behaviour, test_deploy_eval golden).
+        tname = str(getattr(task, "name", task) or "")
+        if s.control == "legs" and tname.startswith("h_"):
+            # OPEN ITEM (D-147 10-04): direct `legs` humanoid demos start the clock at 0 (collector since 288b3779) but this path
+            # keeps settle_ticks for the pinned quadruped golden; a legs-control humanoid eval must decide its origin first.
+            raise NotImplementedError(f"legs-control humanoid eval ({tname}): the gait-clock origin is unresolved (D-147 2026-10-04 "
+                                      "open item); set it from the training pack before evaluating")
         self.ad.ticks = 0 if s.control == "wholebody" else s.settle_ticks
         self.ad.armed = True
 

@@ -1991,3 +1991,20 @@ further T8 result:
   recorded arm6-semfix prefix copied to the host (sha256 tree equal), plus each node's completed dependency closure before its race (so the
   host run-dag never re-runs a dependency).
 - Unchanged: recipe, config hashes, data, seeds, criterion, budget (80 GPU lease-hours counted across both machines), resumable-stop rule.
+### D-147 addendum 2026-10-04 (owner / lead): T5 so far VOID; DART pilot; n1 x h_turn sealed cells approved; full autonomy
+- **Every T5 number so far is void.** The humanoid latent collector never applied DART (one seed per shard -> sigma 0 for all 300 h_walk and
+  300 h_turn episodes, against the declared `--sigmas 0,0.1,0.2,0.3`), and the eval adapter started the wholebody gait clock 15 ticks
+  (0.375 cycle) after the collector's origin. Both are fixed (3378370a). The old collections, packs and every checkpoint / eval built on them
+  are renamed `*.INVALID_sigma0_20261004` (kept, not deleted) and never enter a table.
+- **Pilot (approved)**: re-collect h_turn on t1 / g1 / h1 (seeds 0-99) with both fixes; before training, the new pack's provenance must show
+  episodes at each declared sigma (count per level); retrain preset:legged semfix s0 rep + flow under the same recipe; t1 zero-shot on 6, then
+  100 dev scenes. Humanoid GPU reservation; everything else stays on hold. If t1 comes off 0: re-collect h_walk, h_turn (full), h_reach,
+  h_squat_pick and retrain every arm (legged / legged-none / legged-none+scan / BC), then LOO, under the same pre-registered recipes. If t1
+  stays 0: investigate the privileged base-hold suspect (the h_turn teacher holds the TRUE start position) and report before more compute.
+- **Owner approval (2026-10-04)**: the n1 x h_turn sealed cells. Install `n1:morph_v2_ub_ft` (labelled: T3 owner exception + adapted check
+  h_turn 16/20, h_walk 0/20); each sealed cell runs exactly once, logged (sealed_log); gated on valid dev T5 h_turn tables from the RETRAINED
+  (DART) policies.
+- **Standing rule (owner, 2026-10-04)**: research is fully autonomous: decide by the pre-registration and AGENTS.md, act, log here, report
+  after; hard limits unchanged (AGENTS.md updated).
+- Infra: `test_rollout_frees_each_group_of_closed_envs` carries the `menagerie` skip marker (failed with KeyError panda_pg2 in worktrees without
+  assets). The legs-control humanoid clock origin is an explicit NotImplementedError until decided (test).

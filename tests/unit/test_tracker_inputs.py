@@ -349,3 +349,23 @@ def test_eval_clock_origin_matches_the_collector_for_direct_control():
     src = inspect.getsource(PL._LeggedPolicy.reset)
     assert 'self.ad.ticks = 0 if s.control == "wholebody" else s.settle_ticks' in src
     assert "rt.ticks = 0" in inspect.getsource(LC.collect_episode)
+
+
+def test_legs_control_humanoid_eval_fails_loudly_until_its_clock_origin_is_decided():
+    """D-147 open item: a legs-control humanoid (h_*) eval must not silently use settle_ticks as the clock origin."""
+    from types import SimpleNamespace as NS
+    from rrp.policies import legged as PL
+    pol = PL._LeggedPolicy.__new__(PL._LeggedPolicy)
+    pol.controls = ("legs", "wholebody")
+    pol.ctl = NS(bind=lambda *a: None)
+    s = NS(control="legs", model=None, binding=None, scenario=NS(robots=[NS(robot_spec=NS(spec_hash="x"))]), settle_ticks=15)
+    import rrp.policies.legged as mod
+    orig = mod.LeggedMorph
+    mod.LeggedMorph = lambda *a, **k: None
+    pol.adapter_cls = lambda *a, **k: NS(ticks=None, armed=False)
+    try:
+        with pytest.raises(NotImplementedError, match="clock origin"):
+            pol.reset(None, NS(name="h_walk"), [0], envs=[s])
+        pol.reset(None, NS(name="waypoint_contact"), [0], envs=[s])          # quadruped legs path unchanged
+    finally:
+        mod.LeggedMorph = orig

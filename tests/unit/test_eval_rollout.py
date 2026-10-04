@@ -334,6 +334,7 @@ def test_end_when_and_recorder_hooks_are_registered():
     assert ep.steps == 3 and ep.failure_reason == "three" and len(seen) == 3
 
 
+@pytest.mark.menagerie
 def test_rollout_frees_each_group_of_closed_envs():
     """D-147 (2026-10-04): closed envs sit in reference cycles holding ~100 MB of MjData each; without a collection per group they
     piled up (10 GB per 100-scene humanoid cell). With the automatic gc disabled, a group's envs must be gone when the next starts."""

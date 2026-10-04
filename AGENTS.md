@@ -77,7 +77,10 @@ are BASELINES ONLY. Integration branch: `main`.
   separately from new controller training.
 - Train real models. Label sources unmistakably in UI and reports: scripted_teacher / privileged / oracle (diagnostic) /
   learned:<ckpt> / bc / random / mock.
-- Make reversible routine decisions autonomously; ask only for genuinely unavailable permissions/credentials.
+- Fully autonomous research (owner, 2026-10-04): do not wait on owner or lead decisions for research, compute, pilots, retrains, holds,
+  re-plans or sealed-split runs. Decide by the pre-registration and these rules, act, log the decision as a decisions.md addendum, report
+  it after. Sealed cells still run exactly once each, pre-registered and logged. Hard limits unchanged: no paid compute, no sudo or network
+  changes, no credentials, never touch other projects, no physical robots.
 - At context/session limits, checkpoint state and write exact resume steps. Do not restart completed experiments.
 - Implement the WHOLE declared scope; a first toy demo or small profile is a gate, not the deliverable. Use a dedicated
   repository and isolated environments; the resource preflight only measures, heavy jobs need tested enforcement (broker
