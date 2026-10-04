@@ -50,6 +50,15 @@ def register_actor_file(body: str, actor) -> str:
     TRACKERS.update(scan_trackers(store.parent.parent))
     return f"{body}:{version}"
 
+def tick_once(sensors, data) -> None:
+    """Tick each public sensor at most once per simulation time (D-147: under legs / wholebody both the body tracker, when a teacher
+    drives it, and the direct slot of a policy-requested scan may tick the same sensor; a second tick would drop its one-tick latency)."""
+    t = float(data.time)
+    for x in sensors:
+        if getattr(x, "_tick_t", None) != t:
+            x.tick(data)
+            x._tick_t = t
+
 def wire_public_sensors(tracker, binding, terrain: bool | None = None, ring: bool | None = None):
     """D-146 / HS1: build the public terrain-scan and range-ring sensors a tracker's actor takes and wire them to it (sampled once per
     tracker tick just before it acts; the actor gets their values as its extra block, scan first). `terrain` / `ring`: None = exactly
@@ -70,8 +79,7 @@ def wire_public_sensors(tracker, binding, terrain: bool | None = None, ring: boo
         act = tracker.act
 
         def act_with_sensors(data, cmd):
-            for x in live:
-                x.tick(data)
+            tick_once(live, data)
             return act(data, cmd)
         tracker.act = act_with_sensors
         feed = [sensors[n] for n in needs]

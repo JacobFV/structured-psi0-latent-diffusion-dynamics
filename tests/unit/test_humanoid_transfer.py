@@ -173,3 +173,11 @@ def test_config_level_env_kw_reaches_every_method(monkeypatch):
     monkeypatch.setattr("rrp.policies.base.make_policy", lambda *a, **k: type("P", (), {"info": type("I", (), {"source": "bc"})()})())
     _, env_kw = HE.build_policy(cfg, dict(method="m", body="g1", task="h_turn", budget=None, train_seed=0), root=None)
     assert env_kw == {"tracker": "g1:ub_v1", "x": 1}
+
+
+def test_config_caveats_are_printed_before_any_number():
+    """D-147 (2026-10-04): a transfer config's labelled caveats (e.g. the legged vs legged-none fair-input caveat) head tables.md."""
+    from rrp.harness.eval import humanoid_eval as HE
+    t = dict(name="x", task="h_walk", coverage={}, not_done=[], accounting_violations=[], tables={}, caveats=["FAIR-INPUT CAVEAT: legged reads the scan"])
+    md = HE.tables_markdown(t)
+    assert md.index("FAIR-INPUT CAVEAT") < md.index("coverage")

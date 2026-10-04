@@ -808,3 +808,6 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
   on it. Result: every preset:legged eval cell is `Incompatible: needs env capability 'terrain_scan'`; the legged-none arm is unaffected. Peer
   preset:legged coordinators run training nodes only until decided. Options: (A) let a policy-requested public scan exist under wholebody (the
   collector's sensor model; parity with training), (B) a terrain-free preset for flat tasks (changes the pre-registered preset).
+- 2026-10-04 **terrain_scan eval blocker resolved (lead option A, D-146 amendment)**: the wholebody eval session serves the public scan sensor
+  model on request; held `preset:legged` T5 evals released. **Fair input: legged-none never had the scan** -> labelled caveat on every T5 / LOO table;
+  `legged-none+scan` control proposed (not launched).

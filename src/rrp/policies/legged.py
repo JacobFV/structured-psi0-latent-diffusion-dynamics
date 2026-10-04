@@ -599,6 +599,16 @@ class _LeggedPolicy:
         self.ad.ticks = s.settle_ticks
         self.ad.armed = True
 
+    def _terrain_or_raise(self, obs):
+        """The PUBLIC scan of this tick, from the observation's declared channel `0:terrain_scan` only (never the simulator's ground
+        truth, never a privileged field). A missing channel raises here: the adapters swallow generation errors as "packet_rejected",
+        which would hide it."""
+        ch = next((c for o in obs.values() for c in o.declared_sensor_channels if c.name == TERRAIN_CHANNEL), None)
+        if ch is None:
+            raise RuntimeError(f"this checkpoint's factors {[f.name for f in self.ctl.specs if f.name in TERRAIN_FACTORS]} "
+                               f"read the terrain scan but the observation has no {TERRAIN_CHANNEL!r} channel")
+        return np.asarray(ch.values, np.float32), np.asarray(ch.mask, bool)
+
     def act(self, obs):
         if self.subs is not None:
             return {i: self.subs[i].act({i: o})[i] for i, o in obs.items()}
@@ -606,13 +616,7 @@ class _LeggedPolicy:
         from rrp.policies.base import Act
         s, ad = self.env, self.ad
         if getattr(self.ctl, "needs_terrain", False):
-            # the PUBLIC scan of this tick, from the observation's declared channel (never the simulator's ground truth). A
-            # missing channel raises here: the adapters swallow generation errors as "packet_rejected", which would hide it.
-            ch = next((c for o in obs.values() for c in o.declared_sensor_channels if c.name == TERRAIN_CHANNEL), None)
-            if ch is None:
-                raise RuntimeError(f"this checkpoint's factors {[f.name for f in self.ctl.specs if f.name in TERRAIN_FACTORS]} "
-                                   f"read the terrain scan but the observation has no {TERRAIN_CHANNEL!r} channel")
-            ad.terrain = (np.asarray(ch.values, np.float32), np.asarray(ch.mask, bool))
+            ad.terrain = self._terrain_or_raise(obs)
         n0 = ad.stats["packets"]
         tgt = ad.act(s.data, None)
         new = ad.stats["packets"] > n0

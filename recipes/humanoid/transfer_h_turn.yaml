@@ -17,7 +17,8 @@ lists:
   sealed_bodies: [n1, berkeley, toddlerbot_2xc]
   trackers: {t1: 't1:ub_v1', g1: 'g1:ub_v1', h1: 'h1:ub_v1'}
   transfer:
-    env_kw: {tracker: '<body>:ub_v1'}    # D-147 (10-04): every method runs on the body tracker its demos were collected with
+    env_kw: {tracker: '<body>:ub_v1', terrain_scan: true}    # D-147 (10-04): the collection body tracker + the PUBLIC terrain scan (D-146 amendment, option A: the sensor model the collector recorded; the legged preset reads it)
+    caveats: ['FAIR-INPUT CAVEAT (D-147 10-04): preset:legged policies read the public terrain scan (cells) and limb / foot tokens; legged-none and the BC legged-none arm read neither, so legged vs legged-none mixes the relation factors with extra input; proposed control: legged-none + scan (not run)']
     name: humanoid_transfer_h_turn
     task: h_turn
     latent_kw: {upper: true}

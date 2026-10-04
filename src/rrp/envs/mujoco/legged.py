@@ -192,8 +192,9 @@ class LeggedSession(Session):
         a scan-input actor with terrain_scan=False raises TrackerMismatch. range_ring (HS1): the PUBLIC horizontal range sensor (16
         rays at the base origin, declared channel `0:range_ring`, capability `range_ring`); None = on exactly when the actor takes it
         (extra_obs_dim 93 = scan + ring), same rules as terrain_scan. What the actor declares decides, in every control mode (under "legs" /
-        "wholebody" the sensors tick with the body tracker's acts, i.e. while a teacher or rl_expert drives `body_tracker`); an explicit
-        True is refused there.
+        "wholebody" the sensors tick with the body tracker's acts, i.e. while a teacher or rl_expert drives `body_tracker`). D-147 option
+        A: under "legs" / "wholebody" an explicit terrain_scan=True (a POLICY input, e.g. a latent net whose factors read terrain cells)
+        builds the same sensor and ticks it from the direct slot every tick, once per tick; range_ring=True stays refused there.
         Every StepResult carries `energy_j`: the mechanical energy (sum |actuator force x velocity| of the policy actuators, integrated
         over every physics substep) of that step; None where the tick is replaced (rrp.envs.mujoco.perturb.install_legged, which owns
         the substeps; its on_substep hook is the place to integrate there)."""
@@ -202,9 +203,12 @@ class LeggedSession(Session):
         self.control = control
         self.tracker_spec = tracker
         self._terrain_req, self._ring_req = terrain_scan, range_ring
-        if (terrain_scan or range_ring) and control != "base_velocity":
-            raise ValueError('terrain_scan=True / range_ring=True are refused under control="legs" / "wholebody": there the public sensors '
-                             'exist exactly when the body tracker\'s actor declares them as inputs (None), in every control mode')
+        if range_ring and control != "base_velocity":
+            raise ValueError('range_ring=True is refused under control="legs" / "wholebody": there the range ring exists exactly when the body '
+                             'tracker\'s actor declares it as an input (None), in every control mode')
+        # D-146 amendment (D-147, 2026-10-04, option A): under "legs" / "wholebody" a POLICY may request the public terrain scan
+        # (terrain_scan=True): the same TerrainScan sensor model the collector recorded (noise, dropout, one-tick latency, ground only),
+        # served as the declared channel `0:terrain_scan`; never the simulator's ground truth. It does not feed the body tracker.
         self._step_energy = 0.0
         from rrp.bodies.actuator import resolve_mode
         from rrp.envs.mujoco.state_estimator import BASE_STATE_SOURCES
@@ -244,6 +248,16 @@ class LeggedSession(Session):
         if self.control in DIRECT_CONTROLS:
             self.tracker = DirectTargets(self.binding)
             self.tracker_version_str = f"{jt.id}:{jt.version}:{self.control}_direct:{mr.robot_spec.spec_hash}"
+            if self._terrain_req and self.terrain is not None:
+                # D-147 option A: a policy-requested scan ticks with the slot that executes every tick (a learned policy never drives
+                # the body tracker), once per tick (`tick_once`, shared with the body tracker's wrapper)
+                from rrp.envs.mujoco.legged_tracker import tick_once
+                slot_act, live = self.tracker.act, [self.terrain]
+
+                def act_with_scan(data, cmd):
+                    tick_once(live, data)
+                    return slot_act(data, cmd)
+                self.tracker.act = act_with_scan
         if self.actuator_mode != "ideal":
             from rrp.bodies.actuator import ActuatorModel
             self.actuator_model = ActuatorModel(m, self.binding, 1, None, name=mr.meta["name"], randomize=False,
@@ -296,6 +310,7 @@ class LeggedSession(Session):
         for x in (self.terrain, self.ring):
             if x is not None:
                 x.reset(self.data, seed)
+                x._tick_t = None                    # tick_once: a new episode restarts the clock
         self.cmd = np.zeros(3)
         self.env_rng = np.random.default_rng([seed, 1])
         self.sampler_rng = np.random.default_rng([seed, 2])

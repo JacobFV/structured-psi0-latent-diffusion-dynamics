@@ -100,13 +100,48 @@ def test_disabling_a_sensor_the_actor_takes_is_refused_in_every_mode(tmp_path, r
 
 
 @pytest.mark.menagerie
-def test_a_plain_actor_under_wholebody_attaches_no_sensor_and_an_explicit_request_still_refuses(tmp_path, registry):
+def test_a_plain_actor_under_wholebody_attaches_no_sensor_unless_a_policy_requests_the_scan(tmp_path, registry):
     s = _carry(tmp_path, registry, "h_carry", upper=True)
     assert s.terrain is None and s.ring is None and s.body_tracker.extra_kind == "none"
     assert "terrain_scan" not in s.spec.capabilities
     from rrp.envs.mujoco.humanoid_scenes import make_humanoid_session
-    with pytest.raises(ValueError, match="terrain_scan=True"):
-        make_humanoid_session(task="h_carry", body=BODY, seed=0, tracker=f"{BODY}:stub", tracker_kind="learned", terrain_scan=True)
+    with pytest.raises(ValueError, match="range_ring=True"):                  # the ring stays refused under wholebody
+        make_humanoid_session(task="h_carry", body=BODY, seed=0, tracker=f"{BODY}:stub", tracker_kind="learned", range_ring=True)
+
+
+@pytest.mark.menagerie
+def test_policy_requested_scan_under_wholebody_is_the_sensor_model_and_ticks_every_step(tmp_path, registry):
+    """D-147 option A (D-146 amendment, 2026-10-04): terrain_scan=True under wholebody serves the PUBLIC sensor (the collector's
+    TerrainScan: noise, dropout, one-tick latency) as `0:terrain_scan`, ticked once per tick by the direct slot; never the ground truth."""
+    from rrp.core.action import NativeCommand
+    from rrp.envs.mujoco.humanoid_scenes import make_humanoid_session
+    _put_actor(tmp_path, _binding(_scene()), upper=True)
+    registry()
+    s = make_humanoid_session(task="h_walk", body=BODY, seed=3, tracker=f"{BODY}:stub", tracker_kind="learned", terrain_scan=True)
+    assert "terrain_scan" in s.spec.capabilities and s.terrain is not None
+    o = s.reset(3)
+    t_before = s.terrain._tick_t
+    legs = s.binding.q0.copy()
+    s.step(NativeCommand(controller_version=s.controller_version(), groups={"legs": legs.tolist()}, source="scripted_teacher"))
+    assert s.terrain._tick_t is not None and s.terrain._tick_t != t_before        # the direct slot ticked it
+    o = s.observe()
+    ch = next(c for c in o.declared_sensor_channels if c.name == "0:terrain_scan")
+    exact = s.terrain.exact(s.data)
+    assert ch.values.shape == exact.shape and not np.array_equal(ch.values, exact)  # sensor model (noise / latency), not ground truth
+
+
+def test_latent_policy_refuses_terrain_without_the_declared_public_channel():
+    """The deploy guard: a policy whose factors read terrain cells takes ONLY the observation's declared `0:terrain_scan` channel; an
+    observation without it (e.g. only a privileged ground-truth height field) raises instead of falling back to anything else."""
+    from types import SimpleNamespace as NS
+    from rrp.policies import legged as PL
+    pol = PL.LeggedLatentPolicy.__new__(PL.LeggedLatentPolicy)
+    pol.ctl = NS(needs_terrain=True, specs=[NS(name="leg.foothold")])
+    obs = {0: NS(declared_sensor_channels=[NS(name="0:height_field_truth", values=np.zeros(77), mask=np.ones(77, bool))],
+                 privileged={"terrain_truth": np.zeros(77)})}
+    with pytest.raises(RuntimeError, match="0:terrain_scan"):
+        pol._terrain_or_raise(obs)
+
 
 
 # ---------------------------------------------------------------- (4) morph_v2
@@ -272,3 +307,15 @@ def test_validation_bench_feeds_the_public_sensors_of_a_scan_actor(tmp_path, rin
     row = TV.run_episode(model, b, tr, dict(T=0.2, cmd=[0.2, 0.0, 0.0]), seed=3)
     assert row is not None
     assert terrain.values is not None and terrain.values.shape == (LC.SCAN_DIM,)
+
+
+def test_deploy_guard_still_rejects_the_ground_truth_terrain_field():
+    """D-146 amendment (option A, 2026-10-04): serving the public scan under wholebody changes nothing in the deploy guard. preset:legged
+    (terrain factors on their public sources) deploys; the same terrain factors on the simulator's ground-truth field (`control: gt`) do not."""
+    from rrp.policies.relations import base as RB
+    from rrp.policies.relations.base import FactorError, PrivilegedInput, resolve
+    RB.assert_deployable(resolve(["preset:legged"]))
+    with pytest.raises(PrivilegedInput):                                          # foothold label from the true heightfield
+        RB.assert_deployable(resolve(["preset:legged", {"name": "leg.foothold", "source": "gt"}]))
+    with pytest.raises(FactorError, match="not in"):                              # over_cell reads given scan cells only: no gt path exists
+        resolve(["preset:legged", {"name": "edge.over_cell", "source": "gt"}])

@@ -593,7 +593,7 @@ def make_tables(cfg: dict, results: list[dict]) -> dict:
     cover = Counter((r["scope"], r["status"]) for r in last.values())
     missing = sorted(r["key"] for r in last.values() if r["status"] not in ("done",))
     return dict(name=cfg["name"], task=cfg["task"], tables=tables, coverage={f"{s}/{st}": n for (s, st), n in sorted(cover.items())},
-                not_done=missing, accounting_violations=viol)
+                not_done=missing, accounting_violations=viol, caveats=list(cfg.get("caveats") or []))
 
 
 def _pct(x):
@@ -602,6 +602,8 @@ def _pct(x):
 
 def tables_markdown(t: dict) -> str:
     out = [f"# {t['name']} ({t['task']})", ""]
+    if t.get("caveats"):                                 # labelled caveats of the config (D-147): printed before any number
+        out += ["**CAVEATS**"] + [f"- {c}" for c in t["caveats"]] + [""]
     out.append(f"coverage: {t['coverage']}")
     if t["accounting_violations"]:
         out += ["", "**ACQUISITION ACCOUNTING VIOLATIONS**"] + [f"- {v}" for v in t["accounting_violations"]]

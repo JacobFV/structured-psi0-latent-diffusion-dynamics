@@ -1865,3 +1865,24 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
 - Reservation on a 1-slot node: `reserve:humanoid` is SUSPENDED (not counted) whenever a node has fewer GPU slots than the reservations leave for
   everyone else (e.g. the host's 1-slot back-off), so a held slot never leaves the GPU idle; first come, first served until 2 slots return.
   Test `test_reservation_is_suspended_when_the_node_has_a_single_gpu_slot`.
+
+### D-146 amendment 2026-10-04 (lead decision, option A): the wholebody eval session serves the PUBLIC terrain scan when a policy asks for it
+- Blocker: `preset:legged` checkpoints (factors `edge.over_cell`, `leg.foothold`; `needs_terrain`) were refused by the wholebody `h_walk` / `h_turn`
+  eval session ("terrain_scan not available under control='wholebody'"), so every legged T5 / LOO eval was held.
+- Amendment (eval-env serving only): under `control="legs"|"wholebody"`, `terrain_scan=True` builds the SAME `TerrainScan` sensor model the latent
+  collector recorded (noise, dropout, one-tick latency) and serves it as the declared channel `0:terrain_scan`; the direct-control slot ticks it
+  once per physics tick (`legged_tracker.tick_once`, shared with the collector's `act_with_sensors`). `range_ring=True` stays refused there.
+  The policy reads ONLY `0:terrain_scan` (`LeggedLatentPolicy._terrain_or_raise`; a missing channel raises, never a fallback). No policy, net,
+  checkpoint, recipe of a trained arm or training data changes; the raw simulator heightfield never enters an observation.
+- Tests (red/green): `test_policy_requested_scan_under_wholebody_is_the_sensor_model_and_ticks_every_step` (red before the change),
+  `test_latent_policy_refuses_terrain_without_the_declared_public_channel`, `test_deploy_guard_still_rejects_the_ground_truth_terrain_field`
+  (`leg.foothold` on its gt source -> `PrivilegedInput`; `edge.over_cell` has no gt source at all).
+- Configs: `transfer_h_{walk,turn}.yaml`, `transfer_loo_h_{walk,turn}.yaml` set `env_kw: {tracker: '<body>:ub_v1', terrain_scan: true}` for every
+  method (a method without terrain factors ignores the channel).
+- **Fair-input answer (condition 3): NO.** The legged-none arm's net has no terrain / limb / foot tokens (`nets/legged_latent.py` Context: only a
+  relational factor list extends the context to [glob | joints | limbs | feet | terrain cells]); it never received the scan in training or eval.
+  Every T5 / LOO table therefore carries the labelled caveat (config `caveats`, printed first in `tables.md` and stored in `tables.json`):
+  legged vs legged-none mixes the relation factors with the extra terrain input (plus limb / foot tokens).
+- **Proposed control (NOT launched; needs a lead decision):** `legged-none+scan`: the legged-none recipe with the terrain-cell and limb / foot
+  tokens in the context but every relation factor `off` (same data, same budget, same seeds as the legged-none arm). It isolates "factors" from
+  "extra input". Cost per task ~ one legged-none arm (rep + flow + adapt, ~1 GPU-day on the peer).
