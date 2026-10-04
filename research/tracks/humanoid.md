@@ -811,3 +811,6 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
 - 2026-10-04 **terrain_scan eval blocker resolved (lead option A, D-146 amendment)**: the wholebody eval session serves the public scan sensor
   model on request; held `preset:legged` T5 evals released. **Fair input: legged-none never had the scan** -> labelled caveat on every T5 / LOO table;
   `legged-none+scan` control proposed (not launched).
+- 2026-10-04 06:10 T5 peer coordinators restarted on code 79e9ff6f (`/dev/shm/rrp-brandonin/wt/camp-hum-18`) WITH their evals; h_turn
+  `eval@nosem.s1` (21 error cells from the scan blocker) reset. T4 teacher-quality re-gate of h_reach / h_squat_pick / h_place / h_loco_pick /
+  h_carry (after TEACHERS READY f3511008; same rule, same seeds) queued on the host (`teacher_quality_host.yaml`) behind the sealed n1 adaptation.
