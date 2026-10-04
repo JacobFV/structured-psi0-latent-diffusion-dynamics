@@ -849,3 +849,15 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
   steps) -> h_walk **8/20**, h_turn **9/20** (gate 16/20) -> **blocked_external**, no sealed cells; the conditional recipe edit is not needed.
   Sealed-body summary after adaptation: n1 h_turn PASS (16/20) only; n1 h_walk, toddlerbot_2xc (0/20, 0/20), toddlerbot_2xm (8/20, 9/20) and
   berkeley (n/a) excluded.
+- 2026-10-04 13:00 **First T5 dev evals: every learned cell 0/100** (h_turn preset:legged s0: 21 cells; legged-none h_turn / h_walk on t1 too),
+  while the teacher reference is 100/100 on the same scenes. Offline metrics were healthy (realize_mse 0.0024 vs zero-action 0.68).
+  Diagnosis (CPU repro, scratchpad repro.py / shadow.py / replay.py), two pipeline bugs, both fixed in code (tests red -> green):
+  1. **Eval gait-clock offset**: `_LeggedPolicy.reset` started the adapter clock at `settle_ticks` (15) while direct-control demos start at 0
+     (0.375 cycle phase offset at a 0.8 s period): on identical states legs error 0.249 (vs 0.0010 aligned; zero action 2.23). Fix -> falls at
+     1.1 s become drift at 1.5-4.8 s, still 0/6 on t1 / g1 / h1 (6 dev scenes).
+  2. **DART never applied**: the collector cycled sigma by the position in the shard and the humanoid pipeline writes one seed per shard, so
+     all 300 h_walk and 300 h_turn episodes have sigma 0 (on-path states only; the realizer barely uses the packet: zeroing it gives 0.10 vs
+     0.001). Fix: sigma cycles over the seed. Needs a re-collect + retrain; not yet verified.
+  The T4 data and every T5 checkpoint so far were trained on sigma-0 data: the T5 / LOO results of that data are not the pre-registered recipe
+  (`--sigmas 0,0.1,0.2,0.3` declared). Proposal to the lead: pilot first (h_turn re-collect with both fixes, retrain semfix legged s0, t1
+  zero-shot on 6 then 100 dev scenes), then all arms.
