@@ -1,0 +1,17 @@
+{
+ "gate": "psi0_heldout_gate",
+ "version": "rrp.evaluation.gates/v1 (D-112)",
+ "subject": "artifacts/runs/psi0/psi0-bendpick/gate_s0/packet_gate.json",
+ "verdict": "pass",
+ "criteria": [
+  {
+   "name": "heldout_gap_min",
+   "status": "pass",
+   "value": 0.14826439321041107,
+   "threshold": 0.05,
+   "note": "err gap of the packet route; the structured head trains only above the margin"
+  }
+ ],
+ "failed": [],
+ "not_evaluated": []
+}

@@ -1,0 +1,115 @@
+{
+ "config_hash": "d7a33fc20c79ddd5",
+ "episodes": [],
+ "finished": 1791091579.6758177,
+ "inputs": {
+  "direct": [
+   {
+    "digest": "e873b0c0b3d52b72",
+    "path": "artifacts/runs/psi0/psi0-bendpick/train_bc_s0/final.pt"
+   }
+  ],
+  "features": [
+   {
+    "digest": null,
+    "path": "artifacts/runs/psi0/psi0_bendpick_step2/collect_s0/feat"
+   }
+  ],
+  "stage_a": [
+   {
+    "digest": "ad72447860b26f4e",
+    "path": "artifacts/runs/psi0/psi0-bendpick/train_rep_s0/stage_a.pt"
+   }
+  ],
+  "structured": [
+   {
+    "digest": "20c8ece9e07503a1",
+    "path": "artifacts/runs/psi0/psi0-bendpick/train_flow_s0/final.pt"
+   }
+  ],
+  "summary": [
+   {
+    "digest": "99fd4c66889578ed",
+    "path": "artifacts/runs/psi0/psi0-bendpick/train_rep_s0/summary.json"
+   }
+  ]
+ },
+ "manifest_hash": "35fd2f18e2a4308a",
+ "metrics": {},
+ "n_episodes": 0,
+ "name": "runs/psi0/psi0-bendpick/heldout_s0",
+ "native_config": {
+  "direct": "artifacts/runs/psi0/psi0-bendpick/train_bc_s0/final.pt",
+  "features": "artifacts/runs/psi0/psi0_bendpick_step2/collect_s0/feat",
+  "name": "psi0_psi0-bendpick_heldout_s0",
+  "out_dir": "artifacts/runs/psi0/psi0-bendpick/heldout_s0",
+  "stage_a": "artifacts/runs/psi0/psi0-bendpick/train_rep_s0/stage_a.pt",
+  "structured": "artifacts/runs/psi0/psi0-bendpick/train_flow_s0/final.pt",
+  "summary": "artifacts/runs/psi0/psi0-bendpick/train_rep_s0/summary.json"
+ },
+ "outputs": {
+  "heldout.json": {
+   "digest": "5d775845c669ef7f",
+   "path": "artifacts/runs/psi0/psi0-bendpick/heldout_s0/heldout.json"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": false,
+   "git_sha": "e5ff92a69158e7890170851782d3a83ba0c3d778",
+   "src_tree": "b8dbc494b1b7cc36472c0c4ad08a58917c4ecc9b",
+   "tree": "5fae093733ee7c7d3db33449562b7f0f198d33a1"
+  },
+  "created_at": 1791091579.6756341,
+  "featurizer_version": null,
+  "flags": {},
+  "legacy": false,
+  "notes": "pipeline psi0/heldout runs/psi0/psi0-bendpick/heldout_s0",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "oracle",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/psi0/psi0-bendpick/heldout_s0",
+ "runconfig": {
+  "family": "psi0",
+  "flags": {
+   "contact_version": null,
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {
+   "direct": "runs/psi0/psi0-bendpick/train_bc_s0:final.pt",
+   "features": "runs/psi0/psi0_bendpick_step2/collect_s0:feat",
+   "stage_a": "runs/psi0/psi0-bendpick/train_rep_s0:stage_a.pt",
+   "structured": "runs/psi0/psi0-bendpick/train_flow_s0:final.pt",
+   "summary": "runs/psi0/psi0-bendpick/train_rep_s0:summary.json"
+  },
+  "legacy": null,
+  "lineage": "psi0-bendpick",
+  "note": "",
+  "options": {
+   "task": "G1WholebodyBendPickMP-v0"
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 0,
+  "stage": "heldout",
+  "tag": null,
+  "track": "psi0",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1791091536.4662135,
+ "status_counts": {}
+}

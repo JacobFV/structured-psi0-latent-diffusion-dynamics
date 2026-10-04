@@ -1,0 +1,107 @@
+{
+ "config_hash": "c97143d6aba8c1a1",
+ "episodes": [],
+ "finished": 1791074688.1253667,
+ "inputs": {
+  "features": [
+   {
+    "digest": null,
+    "path": "artifacts/runs/psi0/psi0_bendpick_step2/collect_s0/feat"
+   }
+  ],
+  "labels": [
+   {
+    "digest": null,
+    "path": "artifacts/runs/psi0/psi0_bendpick_step2/labels_s0/labels"
+   }
+  ],
+  "stage_a": [
+   {
+    "digest": "ad72447860b26f4e",
+    "path": "artifacts/runs/psi0/psi0-bendpick/train_rep_s0/stage_a.pt"
+   }
+  ],
+  "summary": [
+   {
+    "digest": "99fd4c66889578ed",
+    "path": "artifacts/runs/psi0/psi0-bendpick/train_rep_s0/summary.json"
+   }
+  ]
+ },
+ "manifest_hash": "f58b973748a9d18c",
+ "metrics": {},
+ "n_episodes": 0,
+ "name": "runs/psi0/psi0-bendpick/probes_s0",
+ "native_config": {
+  "features": "artifacts/runs/psi0/psi0_bendpick_step2/collect_s0/feat",
+  "labels": "artifacts/runs/psi0/psi0_bendpick_step2/labels_s0/labels",
+  "name": "psi0_psi0-bendpick_probes_s0",
+  "out_dir": "artifacts/runs/psi0/psi0-bendpick/probes_s0",
+  "stage_a": "artifacts/runs/psi0/psi0-bendpick/train_rep_s0/stage_a.pt",
+  "summary": "artifacts/runs/psi0/psi0-bendpick/train_rep_s0/summary.json"
+ },
+ "outputs": {
+  "probes.json": {
+   "digest": "07395878ab75b357",
+   "path": "artifacts/runs/psi0/psi0-bendpick/probes_s0/probes.json"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": false,
+   "git_sha": "e5ff92a69158e7890170851782d3a83ba0c3d778",
+   "src_tree": "b8dbc494b1b7cc36472c0c4ad08a58917c4ecc9b",
+   "tree": "5fae093733ee7c7d3db33449562b7f0f198d33a1"
+  },
+  "created_at": 1791074688.1251702,
+  "featurizer_version": null,
+  "flags": {},
+  "legacy": false,
+  "notes": "pipeline psi0/probes runs/psi0/psi0-bendpick/probes_s0",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned:runs/psi0/psi0-bendpick/probes_s0",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/psi0/psi0-bendpick/probes_s0",
+ "runconfig": {
+  "family": "psi0",
+  "flags": {
+   "contact_version": null,
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {
+   "features": "runs/psi0/psi0_bendpick_step2/collect_s0:feat",
+   "labels": "runs/psi0/psi0_bendpick_step2/labels_s0:labels",
+   "stage_a": "runs/psi0/psi0-bendpick/train_rep_s0:stage_a.pt",
+   "summary": "runs/psi0/psi0-bendpick/train_rep_s0:summary.json"
+  },
+  "legacy": null,
+  "lineage": "psi0-bendpick",
+  "note": "",
+  "options": {
+   "task": "G1WholebodyBendPickMP-v0"
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 0,
+  "stage": "probes",
+  "tag": null,
+  "track": "psi0",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1791074394.5988321,
+ "status_counts": {}
+}

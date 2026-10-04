@@ -1,0 +1,28 @@
+[12:20:16 10/04] INFO     | >> [*] Using device: cuda:0  serve_psi0_simple.py:50
+                 INFO     | >> [*] Serving psi0          serve_psi0_simple.py:51
+[legacy ckpt] run_config.json predates `model.final_layer_norm`; serving with final_layer_norm=False (the value it was trained with)
+[legacy ckpt] run_config.json predates `model.final_layer_norm`; serving with final_layer_norm=False (the value it was trained with)
+[12:20:55 10/04] INFO     | >>     |=> Parameters (in   serve_psi0_simple.py:104
+                          millions): 2652.094 Total                             
+{
+ "policy": "psi0_structured",
+ "source": "learned:artifacts/runs/psi0/psi0-bendpick/train_flow_s0/final.pt",
+ "env": "simple",
+ "task": "simple/G1WholebodyBendPickMP-v0",
+ "body": "g1_simple",
+ "attempted": 20,
+ "successes": 18,
+ "success_rate": 0.9,
+ "wilson95": [
+  0.6989663528135878,
+  0.9721335190383086
+ ],
+ "infeasible": 0,
+ "outcomes": {
+  "success": 18,
+  "timeout": 2
+ },
+ "public_private_agreement": 0.1,
+ "policy_calls": 166,
+ "control_steps": 4960
+}

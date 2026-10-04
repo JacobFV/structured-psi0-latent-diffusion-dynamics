@@ -1,0 +1,5 @@
+[legacy ckpt] run_config.json predates `model.final_layer_norm`; serving with final_layer_norm=False (the value it was trained with)
+psi0_released_ckpt40000 {"hand_joints": 0.00886266864836216, "arm_joints": 0.004491268191486597, "waist_rp": 0.006430299021303654, "waist_yaw": 0.0024083799216896296, "height": 0.022823253646492958, "vx": 0.0, "vy": 0.0, "turn_flag": 0.0, "target_yaw": 0.0}
+direct {"hand_joints": 0.0114307701587677, "arm_joints": 0.013234551064670086, "waist_rp": 0.009450326673686504, "waist_yaw": 0.007799978367984295, "height": 0.014680445194244385, "vx": 0.0, "vy": 0.0, "turn_flag": 0.0, "target_yaw": 0.0}
+structured {"hand_joints": 0.009870030917227268, "arm_joints": 0.008608546108007431, "waist_rp": 0.012911200523376465, "waist_yaw": 0.007434997707605362, "height": 0.017508680000901222, "vx": 0.0, "vy": 0.0, "turn_flag": 0.0, "target_yaw": 0.0}
+oracle_R_of_E(actions) {"hand_joints": 0.007033722009509802, "arm_joints": 0.007546617649495602, "waist_rp": 0.012181763537228107, "waist_yaw": 0.006517276633530855, "height": 0.012476141564548016, "vx": 0.0, "vy": 0.0, "turn_flag": 0.0, "target_yaw": 0.0}

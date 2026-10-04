@@ -1,0 +1,3 @@
+[legacy ckpt] run_config.json predates `model.final_layer_norm`; serving with final_layer_norm=False (the value it was trained with)
+probe_on_z {"hand_dist_mae": 0.00746672521010823, "contact_acc": 0.9331719128329298, "lift_acc": 0.974818401937046, "target_pos_mae": 0.0142646581728291, "active_hand_acc": 0.9265536723163842, "base_disp_mae": 0.004246386815887771}
+metadata_only_control {"hand_dist_mae": 0.014642896490581965, "contact_acc": 0.7623890234059726, "lift_acc": 0.8611783696529459, "target_pos_mae": 0.022117391426716565, "active_hand_acc": 0.9596448748991122, "base_disp_mae": 0.01325639210819781}

@@ -1,0 +1,100 @@
+{
+ "config_hash": "db282d88962d95d9",
+ "episodes": [],
+ "finished": 1791143901.117819,
+ "inputs": {
+  "checkpoint": [
+   {
+    "digest": "20c8ece9e07503a1",
+    "path": "artifacts/runs/psi0/psi0-bendpick/train_flow_s0/final.pt"
+   }
+  ],
+  "stage_a": [
+   {
+    "digest": "ad72447860b26f4e",
+    "path": "artifacts/runs/psi0/psi0-bendpick/train_rep_s0/stage_a.pt"
+   }
+  ]
+ },
+ "manifest_hash": "bfb0ed5c438ca346",
+ "metrics": {
+  "success": "18/20"
+ },
+ "n_episodes": 0,
+ "name": "runs/psi0/psi0-bendpick/eval_r2-structured_s0",
+ "native_config": {
+  "checkpoint": "artifacts/runs/psi0/psi0-bendpick/train_flow_s0/final.pt",
+  "name": "psi0_psi0-bendpick_eval_r2-structured_s0",
+  "out_dir": "artifacts/runs/psi0/psi0-bendpick/eval_r2-structured_s0",
+  "stage_a": "artifacts/runs/psi0/psi0-bendpick/train_rep_s0/stage_a.pt"
+ },
+ "outputs": {
+  "rows": {
+   "digest": "5f05584053913973",
+   "path": "artifacts/runs/psi0/psi0-bendpick/eval_r2-structured_s0/structured.jsonl"
+  },
+  "summary": {
+   "digest": "108ed6db077687e0",
+   "path": "artifacts/runs/psi0/psi0-bendpick/eval_r2-structured_s0/structured.summary.json"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": true,
+   "git_sha": "937c0826e917979b007928ba8a42f0f7e0e97865",
+   "src_tree": "6cb569973e0619276f20d8fd281179e9bb7f2214",
+   "tree": "cc0545f140ac164a60b034d0b1e4f197b68e2a70"
+  },
+  "created_at": 1791143901.1172328,
+  "featurizer_version": null,
+  "flags": {},
+  "legacy": false,
+  "notes": "pipeline psi0/eval_r2 runs/psi0/psi0-bendpick/eval_r2-structured_s0",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned:psi0-structured",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/psi0/psi0-bendpick/eval_r2-structured_s0",
+ "runconfig": {
+  "family": "psi0",
+  "flags": {
+   "contact_version": null,
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {
+   "checkpoint": "runs/psi0/psi0-bendpick/train_flow_s0:final.pt",
+   "stage_a": "runs/psi0/psi0-bendpick/train_rep_s0:stage_a.pt"
+  },
+  "legacy": null,
+  "lineage": "psi0-bendpick",
+  "note": "",
+  "options": {
+   "arm": "structured",
+   "batch": 2,
+   "seeds": "0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9",
+   "task": "G1WholebodyBendPickMP-v0"
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 0,
+  "stage": "eval_r2",
+  "tag": "structured",
+  "track": "psi0",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1791141529.1601224,
+ "status_counts": {}
+}

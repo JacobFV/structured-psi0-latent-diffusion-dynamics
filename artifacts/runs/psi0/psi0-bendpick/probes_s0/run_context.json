@@ -1,0 +1,30 @@
+{
+ "schema_version": "runconfig-1",
+ "family": "psi0",
+ "stage": "probes",
+ "variant": "na",
+ "seed": 0,
+ "lineage": "psi0-bendpick",
+ "track": "psi0",
+ "tag": null,
+ "inputs": {
+  "features": "runs/psi0/psi0_bendpick_step2/collect_s0:feat",
+  "labels": "runs/psi0/psi0_bendpick_step2/labels_s0:labels",
+  "summary": "runs/psi0/psi0-bendpick/train_rep_s0:summary.json",
+  "stage_a": "runs/psi0/psi0-bendpick/train_rep_s0:stage_a.pt"
+ },
+ "flags": {
+  "zero_prev_action": null,
+  "realizer_anchor": null,
+  "realizer_drop_qd": null,
+  "probe_lv_min": null,
+  "qd_dropout": null,
+  "contact_version": null
+ },
+ "params": {},
+ "options": {
+  "task": "G1WholebodyBendPickMP-v0"
+ },
+ "note": "",
+ "legacy": null
+}

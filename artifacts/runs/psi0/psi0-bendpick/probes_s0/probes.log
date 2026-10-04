@@ -1,0 +1,2 @@
+probe_on_z {"hand_dist_mae": 0.007896596063424542, "contact_acc": 0.9193704600484262, "lift_acc": 0.9975786924939467, "target_pos_mae": 0.014347384506443158, "active_hand_acc": 0.8716707021791767, "base_disp_mae": 0.0052642022084894765}
+metadata_only_control {"hand_dist_mae": 0.014642896490581965, "contact_acc": 0.7623890234059726, "lift_acc": 0.8611783696529459, "target_pos_mae": 0.022117391426716565, "active_hand_acc": 0.9596448748991122, "base_disp_mae": 0.01325639210819781}

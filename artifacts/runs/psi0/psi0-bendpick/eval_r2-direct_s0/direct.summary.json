@@ -1,0 +1,22 @@
+{
+ "policy": "psi0_direct",
+ "source": "learned:artifacts/runs/psi0/psi0-bendpick/train_bc_s0/final.pt",
+ "env": "simple",
+ "task": "simple/G1WholebodyBendPickMP-v0",
+ "body": "g1_simple",
+ "attempted": 20,
+ "successes": 15,
+ "success_rate": 0.75,
+ "wilson95": [
+  0.5312991206074114,
+  0.8881382993000237
+ ],
+ "infeasible": 0,
+ "outcomes": {
+  "success": 15,
+  "timeout": 5
+ },
+ "public_private_agreement": 0.25,
+ "policy_calls": 179,
+ "control_steps": 5207
+}

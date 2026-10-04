@@ -1,0 +1,22 @@
+{
+ "gate": {
+  "frames": 312,
+  "err_z_mean": 0.1527482569217682,
+  "err_encoded": 0.004483871161937714,
+  "gap": 0.14826439321041107,
+  "margin": 0.05,
+  "passed": true,
+  "stage_a": "artifacts/runs/psi0/psi0-bendpick/train_rep_s0/stage_a.pt",
+  "stage_a_sha256_16": "ad72447860b26f4e",
+  "val_episodes": [
+   10,
+   16,
+   26,
+   36,
+   90,
+   91,
+   93,
+   94
+  ]
+ }
+}

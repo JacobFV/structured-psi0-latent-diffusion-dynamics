@@ -567,3 +567,32 @@ pattern as the recorded rows (structured s2 success x2, s9 timeout x2).
 - BendPickMP released (upstream ckpt_40000, NOT ours): 20/20 Wilson95 [0.84, 1.00] (10 eval configs x 2, batch 2), lease 1791043319_6372ac.
 - Tabletop released (upstream ckpt_40000, NOT ours) on the rrp path, this recipe: 20/20 Wilson95 [0.84, 1.00], every episode 163-177 steps
   (lease 1791047543_cd48d1). Tabletop row: released 20/20 | direct (ours) 19/20 | structured (ours) 7/20.
+
+### 2026-10-04 D-147 T7 BendPickMP (G1WholebodyBendPickMP-v0): step 2, seed 0, template unchanged (reading rule pre-registered 10-03)
+DAG `psi0_bendpick_step2.yaml`, 12/12 nodes (p4 then p5c/p6 on the peer, one GPU lease at a time). Only resource declarations changed (feat 17G -> 28G,
+config hash unchanged; the 17G attempts were killed at 14.1 G throttled, unthrottled peak 15.98 G). Sources: features = released VLM (cached, 15509
+frames); labels = `privileged_teacher:sim_replay` (labels only); stage A / direct / structured = learned (ours); released = UPSTREAM weights (not ours).
+- Stage A (D-141 fix), sha256_16 ad72447860b26f4e. Packet-use gate PASSED: err R(z_mean) 0.1527 vs R(E(a)) 0.0045, gap 0.1483 >= 0.05 (312 frames,
+  8 held-out episodes) -- a stronger packet dependence than tabletop (0.078).
+- Probes (DIAGNOSTIC, 8 held-out episodes), probe vs metadata-only control:
+  | z source | hand_dist MAE | contact acc | lift acc | target_pos MAE | active_hand acc | base_disp MAE |
+  |---|---|---|---|---|---|---|
+  | E(demonstrated chunk) | 0.0079 | 0.919 | 0.998 | 0.0143 | 0.872 | 0.0053 |
+  | system-i GENERATED | 0.0075 | 0.933 | 0.975 | 0.0143 | 0.927 | 0.0042 |
+  | metadata-only control | 0.0146 | 0.762 | 0.861 | 0.0221 | 0.960 | 0.0133 |
+  The packet beats the control on everything except the active hand (as on tabletop).
+- Held-out open-loop L1 (312 frames): released (upstream) hand 0.0089 / arm 0.0045 / waist_rp 0.0064 / height 0.0228; direct 0.0114 / 0.0132 /
+  0.0095 / 0.0147; structured (generated packet) 0.0099 / 0.0086 / 0.0129 / 0.0175; ORACLE R(E(chunk)) 0.0070 / 0.0075 / 0.0122 / 0.0125.
+- Closed loop, 20 episodes (10 SIMPLE eval configs x 2, batch 2, 400-step budget):
+  | arm | source | successes | Wilson 95% | failures | success steps (min/median/max) |
+  |---|---|---|---|---|---|
+  | released Ψ₀ ckpt_40000 | UPSTREAM (not ours) | 20/20 | [0.84, 1.00] | - | 211 / 214 / 218 |
+  | Ψ₀ direct (ours) | `learned:psi0-bendpick/train_bc_s0/final.pt` | 15/20 | [0.53, 0.89] | 5 timeouts (configs 6, 7, 1, 2, 6) | 197 / 212 / 230 |
+  | Ψ₀ + structure (ours, generated packet) | `learned:psi0-bendpick/train_flow_s0/final.pt` | **18/20** | [0.70, 0.97] | 2 timeouts (configs 6, 8) | 195 / 224 / 299 |
+  Paired by config/repeat: 4 discordant for structured, 1 for direct, McNemar exact p = 0.375.
+- Reading (pre-registered rule): structured 18/20 vs direct 15/20 is NOT "structure helps" (p >= 0.05) and "no worse" is not claimed from the
+  overlapping CIs. On this task the structured arm is at least not the 7/20 failure of tabletop; one seed, 20 episodes. Raw rows committed in
+  `artifacts/runs/psi0/psi0-bendpick/eval_r2-{released,direct,structured}_s0/`.
+- Incidents (infra, not protocol): feat under-declared (fixed); `probes_gen` took 6 h (system-i sampling inside probe training); both evals then
+  failed admission without running because run-dag counted time held behind our own GPU node as broker refusal -- fixed 937c0826 (+ test) and
+  resumed with `--retry-failed` (finished nodes adopted, nothing re-run).
