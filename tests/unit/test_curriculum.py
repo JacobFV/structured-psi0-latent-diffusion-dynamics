@@ -430,3 +430,28 @@ def test_suite_relations_compare_v8div_newcombe_and_preregistered_verdict(tmp_pa
     assert t["verdicts"]["ix"]["verdict"].startswith("helps (holds at 1-0.05/3) (INVALID") and "ix.contact@s1" in t["verdicts"]["ix"]["verdict"]
     assert "ix.support@s1" in t["verdicts"]["ix"]["verdict"]                # scheduled but never observed: not learned
     assert t["control_rates"][0] == {"group": "primary", "k": 0, "n": 40}
+
+
+def test_suite_relations_compare_v6_same_code_control_and_reference(tmp_path):
+    root, ref = tmp_path / "relations", tmp_path / "armv6" / "arm6-semfix"
+
+    def jl(path, rows):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+
+    def ev(base, d, ok):
+        jl(base / d / "bodyA" / "generated_x.jsonl", [{"seed": 10 + i, "privileged_success": bool(v), "failed_stage": None if v else "lift",
+                                                      "min_tcp_cube_m": 0.05} for i, v in enumerate(ok)])
+    for d in ("eval_r2-final_s1", "heldout-final_s1"):
+        ev(ref, d, [1] * 20)
+        ev(root / "relations6-none", d, [1] * 10 + [0] * 10)
+        ev(root / "relations6-geo", d, [1] * 20)
+    jl(root / "relations6-geo" / "flow_ft-ft_s1" / "schedule.jsonl", [{"step": 0, "share": {"geo.depth3d": 0.2}, "signals": {"geo.depth3d": {"competence": 0.9}}}])
+    curriculum_cli.compare_main(["--v6", "--root", str(root), "--reference", str(ref), "--sets", "geo", "--seeds", "1"])
+    t = json.loads((root / "tables_v6" / "tables_v8div.json").read_text())
+    prim = [r for r in t["contrast"] if r["set"] == "geo" and r["body"] == "pooled"][0]
+    assert prim["k_ctl"] == 20 and prim["k_set"] == 40 and prim["newcombe95"][0] > 0          # vs the same-code control
+    repro = [r for r in t["contrast"] if r["set"] == "control vs reference" and r["body"] == "pooled"][0]
+    assert repro["k_set"] == 20 and repro["k_ctl"] == 40 and repro["newcombe95"][1] < 0        # the reproduction check
+    assert t["verdicts"]["geo"]["verdict"].startswith("helps") and set(t["verdicts"]) == {"geo"}
+    assert {r["group"] for r in t["contrast"]} == {"primary"}

@@ -1,0 +1,18 @@
+# T9 relation-factor experiment on the v6 semfix lineage (D-147 T9 re-plan 2; PRE-REGISTERED in research/tracks/relations.md
+# "T9 v6 pre-registration" before any run): fset none (same-code control), geo, ix, task x seeds 1, 2; flow-independent prefix
+# = the recorded v6 arm6-semfix outputs (pinned). Design and every override: recipes/templates/relations_v6_factor.yaml.
+#   rrp run-dag recipes/relations/relations_v6.yaml --dry-run
+#   RRP_PEER_REPO=/dev/shm/rrp-brandonin/wt/camp-relations-b rrp run-dag recipes/relations/relations_v6.yaml --max-parallel 3 --max-parallel-gpu 1
+extends: ../templates/relations_v6_factor.yaml
+name: relations_v6
+schema: dag-1
+track: relations
+policy: latent
+env: mujoco/arm
+task: pick_place
+bodies: primary_v1
+factors: [preset:arm, preset:geo, preset:ix, preset:task]
+matrix:
+  variant: [semfix]
+  fset: [none, geo, ix, task]
+  seed: [1, 2]

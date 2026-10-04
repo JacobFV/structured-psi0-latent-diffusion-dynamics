@@ -1,10 +1,10 @@
 # track: relations (open) — relation-factor experiments (D-144)
 
-State: **planned** — T9 RE-PLANNED on the armdiv v8div lineage (D-147 addendum 2026-10-03, owner "yes, re-plan T9 on the v8div
-recipe"); pre-registration below ("T9 v8div pre-registration"), recipes `recipes/relations/relations_v8div{,_all,_smoke}.yaml`.
-Gated on the armdiv G3 lineage gate (v8div semfix >= 401/480 on dev seeds). The first T9 comparison (v3dart, F0-only route) was
-HALTED by the lead: geo vs base 0/360 vs 0/360 = floor, uninformative ("T9 halted v3dart comparison", below). Progress log:
-`~/work/rrp-data/campaign/logs/relations_progress.log`.
+State: **planned** — T9 RE-PLANNED a second time, on the v6 semfix lineage (D-147 addendum 2026-10-03 night, lead): the armdiv
+G3 lineage gate FAILED (v8div semfix 362/480 = 0.754 < 0.835), so T9 on v8div is MOOT per its pre-registration (nothing of it ran
+beyond the CPU plumbing smoke). Pre-registration: "T9 v6 pre-registration" below; recipes `recipes/relations/relations_v6.yaml`
+(template `recipes/templates/relations_v6_factor.yaml`). The first T9 comparison (v3dart, F0-only route) was halted earlier: floor,
+uninformative ("T9 halted v3dart comparison"). Progress log: `~/work/rrp-data/campaign/logs/relations_progress.log`.
 
 ## T9 halted v3dart comparison (2026-10-01..03; recorded 2026-10-03, failed_hypothesis of the DESIGN, not of the factors)
 
@@ -55,7 +55,13 @@ Per-unit history of the build (R1-R21, rel-geo, sweep-flags, closures) is in `re
 addenda; the unit notes `research/tracks/rel-*.md` and `sweep-flags.md` are closed-track material (moved to `.old/research/tracks/` by P5).
 Their open items are collected below, so nothing needs the old notes.
 
-## T9 v8div pre-registration (written 2026-10-03 BEFORE any T9-v8div run; committed before the smoke and before G3)
+## T9 v8div pre-registration (written 2026-10-03 BEFORE any T9-v8div run; committed before the smoke and before G3) -- MOOT
+
+**Outcome (2026-10-03 20:35):** the armdiv G3 lineage gate FAILED (v8div semfix 362/480 = 0.754 vs v6 semfix 425/480 = 0.885,
+threshold 0.835; per seed 180 / 182 of 240; recorded failed_hypothesis by the armdiv owner, research/tracks/armdiv.md). Per item 7
+below, T9 on v8div is moot: no v8div T9 lineage ran (only the CPU plumbing smoke, deleted). The coordinator
+`rrp-camp-relations-b-main` was disarmed before acting (its verdict pattern did not match the `stage2c` tag, so it was still waiting).
+The plumbing fixes this pre-registration produced (amendment A1, compare-tool validity) carry over to the v6 re-plan.
 
 1. **Question.** On the competent arm route (v8div semfix lineage), does adding one relation-factor set to the flow, with its
    probe supervision scheduled by the responsive curriculum (docs/relations.md 5.5), change deployable success at equal data
@@ -142,6 +148,50 @@ Their open items are collected below, so nothing needs the old notes.
    (ix.*, task.next_contact) competence is a hit rate on imbalanced labels and is near 1 after 40 steps, so the >= 0.5 gate is
    weak for them; the raw per-factor losses (`probe_<f>` in the training logs) are reported next to it. The analysis tool now
    also counts a scheduled factor that was never observed as not learned (a tested fix found on the smoke layout).
+
+## T9 v6 pre-registration (written 2026-10-03 night BEFORE any T9-v6 run; lead: "re-plan T9 on the competent pipeline")
+
+Same design, criterion and validity gate as the v8div pre-registration above, on the v6 semfix lineage; differences stated here.
+1. **Pipeline.** The archived v6 lineage recipe (`.old/dags/arm_lineage_v6.yaml` -> `arm_lineage_v2` -> `recipes/templates/arm_lineage.yaml`):
+   v6dart pack `packed/latent_pp_v6dart_s1_H16` (meta.json sha256 dee32ff1...1204, pinned), DAgger labeller bcv6_direct1701 final
+   (a29810bd...767b3, pinned), grasp_contact v2.1 in every simulated stage. v6 semfix reached 425/480 on the G3 cells (D-134).
+   Template `recipes/templates/relations_v6_factor.yaml`, instance `recipes/relations/relations_v6.yaml` (118 nodes).
+2. **Shared prefix.** The flow-independent nodes are the RECORDED v6 lineage `runs/armv6/arm6-semfix` (peer store, offloaded to
+   peer disk, intact): stage A, rzbcdag1long, rzbcdag2 representations pinned by sha256 (s1 6cc278b3 / 0239535c / 0020bdbc,
+   s2 b7d28fe7 / cca73c18 / 461cb103: equal to the recorded v6 checkpoints); bc1-3 buffer manifests s1 d3996c04 / 261a9d5f / 175d5250,
+   s2 b3da97b1 / 101120b0 / b6565097.
+3. **Control (CHANGE from the v8div design, and why).** PRIMARY control = `relations6-none` seeds 1, 2: the v6 flow-dependent suffix
+   re-run on CURRENT code with the default factor list, same prefix. The recorded v6 suffix trained on code 520916e (2026-09-28);
+   T9's factor runs train on current main, and the refactor since then touched the trainers (D-145 / D-146; the v8div lineage on
+   current code reached 0.754 where v6 had 0.885, a gap whose code / data split is unknown). Reading the recorded v6 as the control
+   would confound factor and code. The same-code re-run costs ~2 x 2 GPU-h (v6 measured 1.7-2.2 GPU-h per suffix). The recorded v6
+   lineage is the SECONDARY reference: `none` vs recorded v6 is reported as a reproduction check (Newcombe 95%), never a verdict.
+   `tests/unit/test_relations_v6_recipe.py` proves `none` renders the recorded v6 suffix configs (`tests/data/armv6_semfix_suffix_runconfigs.json`,
+   from the v6 run manifests) up to identity, pins and the legacy flags bias_mode "true" / structured true (= the default preset:arm),
+   and that every factor-set node equals the `none` node except factor list, curriculum, relgen input and names.
+4. **Treatments, relgen, curriculum, data accounting**: exactly as v8div items 3 (geo / ix / task factor lists; curriculum on F0
+   ramp 20,000 and Fft ramp 10,000; relgen 200 teacher episodes on parm6_pg2 under grasp v2.1), with amendment A1 (sparse labels) in the code.
+5. **Evaluation (dev seeds only, no sealed target).** PRIMARY = the G3 source-body cells: `finalevals` parm6_tf3, panda_pg2 x
+   3,000,000 / 3,000,100 / 3,000,200 x 30 + `heldout` parm5s_tf3, parm5l_pg2 x 3,000,000 x 30 = 480 per set pooled over seeds 1, 2.
+   (v6 has no newarms node; there is no secondary body group.)
+6. **Criterion (fixed now, unchanged).** Validity: every scheduled factor's competence at the last Fft decision >= 0.5 in both seeds
+   (a scheduled factor never observed = not learned; caveat for imbalanced pair / class labels as in amendment A1, raw `probe_<f>`
+   losses reported). HELPS iff the Newcombe 95% lower bound of (set k/480 - none k/480) > 0; HURTS iff the upper bound < 0; else
+   NO DETECTABLE EFFECT; headline additionally needs the 1 - 0.05/3 interval to exclude 0. Ceiling guard: if `none` pooled > 0.95,
+   the success contrast has no room; the paired graded deltas (furthest stage, closest tcp-cube) are then reported, descriptively
+   only. If `none` is BELOW 0.5 (current code does not reproduce a competent route), the contrasts are still reported but labelled
+   "control not competent"; that outcome is itself a finding about the code drift, not about factors.
+   Command: `rrp suite relations-compare --v6 --root artifacts/runs/relations --reference artifacts/runs/armv6/arm6-semfix --sets geo,ix,task --seeds 1,2`.
+7. **Order, compute, budget.** Peer only, ONE GPU lease at a time (`--max-parallel-gpu 1`), CPU nodes in parallel within broker
+   caps; the DAG schedules all eight suffixes (none, geo, ix, task x s1, s2) as admission allows. Resumable stops (lease segment end,
+   admission wait, watchdog shed / live_limit_reduced / disk reserve) are relaunched with `--retry-failed` and unchanged settings;
+   anything else stops for review. Budget 80 GPU lease-hours (estimate ~20). Combination `all`: only if the eight suffixes complete
+   within 60 GPU lease-hours; its recipe is then committed as a further amendment BEFORE it runs.
+8. **Memory (>= 1.35 x measured peak).** Flows 12G + 2G GPU (v6 flow 6.6G incl. page cache; T9 smoke F0 on the larger v7div pack
+   5.2G), refits 8G + 3G (v6 1.7G / 0.9G), collections 22G (v6 measured up to 15.8G), evals 8G, relgen 3G.
+9. **Smoke.** The v8div smoke already exercised every stage of this pipeline with factors (same code path, other pack); no new smoke.
+   The first live F0 doubles as the check: its `config.json` must equal the recorded v6 F0 `config.json` except name, factors,
+   curriculum, relgen (`none`: except name) -- checked and recorded before the remaining suffixes are read.
 
 ## recipes (v3dart instances: HALTED, superseded by `relations_v8div*.yaml`; kept for the record)
 

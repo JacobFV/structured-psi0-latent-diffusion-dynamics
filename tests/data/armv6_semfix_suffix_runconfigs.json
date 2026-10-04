@@ -1,0 +1,1649 @@
+{
+"runs": {
+"dagger_collect-gdag1_s1": {
+"config_hash": "32941722e142a4ca",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"bc_policy": "runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt",
+"flow": "runs/armv6/arm6-semfix/flow_ft-ft_s1:policy.pt",
+"representation": "runs/armv6/arm6-semfix/refit-gendag2_noqd_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"bc_label": "bcv6_direct1701_final",
+"episodes": 24,
+"expert": "bc",
+"genctx": true,
+"grasp_contact": "v2.1",
+"mode": "gen",
+"robots": [
+"panda_pg2",
+"parm5_pg2",
+"parm5_tf3",
+"parm5l_tf3",
+"parm5s_pg2",
+"parm6_pg2",
+"parm6_tf3",
+"parm7_pg2",
+"parm7_tf3",
+"sawyer_pg2",
+"sawyer_tf3",
+"ur5e_pg2",
+"ur5e_tf3"
+],
+"seed_start": 3900000,
+"threads": 2,
+"workers": 4
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "dagger_collect",
+"tag": "gdag1",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"dagger_collect-gdag1_s2": {
+"config_hash": "468b0b79f5b9e04b",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"bc_policy": "runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt",
+"flow": "runs/armv6/arm6-semfix/flow_ft-ft_s2:policy.pt",
+"representation": "runs/armv6/arm6-semfix/refit-gendag2_noqd_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"bc_label": "bcv6_direct1701_final",
+"episodes": 24,
+"expert": "bc",
+"genctx": true,
+"grasp_contact": "v2.1",
+"mode": "gen",
+"robots": [
+"panda_pg2",
+"parm5_pg2",
+"parm5_tf3",
+"parm5l_tf3",
+"parm5s_pg2",
+"parm6_pg2",
+"parm6_tf3",
+"parm7_pg2",
+"parm7_tf3",
+"sawyer_pg2",
+"sawyer_tf3",
+"ur5e_pg2",
+"ur5e_tf3"
+],
+"seed_start": 5000000,
+"threads": 2,
+"workers": 4
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "dagger_collect",
+"tag": "gdag1",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"dagger_collect-gdag2_s1": {
+"config_hash": "49b0a4c862783b0d",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"bc_policy": "runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt",
+"flow": "runs/armv6/arm6-semfix/flow_ft-gdag1_s1:policy.pt",
+"representation": "runs/armv6/arm6-semfix/refit-gendag3_noqd_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"bc_label": "bcv6_direct1701_final",
+"episodes": 24,
+"expert": "bc",
+"genctx": true,
+"grasp_contact": "v2.1",
+"mode": "gen",
+"robots": [
+"panda_pg2",
+"parm5_pg2",
+"parm5_tf3",
+"parm5l_tf3",
+"parm5s_pg2",
+"parm6_pg2",
+"parm6_tf3",
+"parm7_pg2",
+"parm7_tf3",
+"sawyer_pg2",
+"sawyer_tf3",
+"ur5e_pg2",
+"ur5e_tf3"
+],
+"seed_start": 4000000,
+"threads": 2,
+"workers": 4
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "dagger_collect",
+"tag": "gdag2",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"dagger_collect-gdag2_s2": {
+"config_hash": "b200907baae4a5d4",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"bc_policy": "runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt",
+"flow": "runs/armv6/arm6-semfix/flow_ft-gdag1_s2:policy.pt",
+"representation": "runs/armv6/arm6-semfix/refit-gendag3_noqd_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"bc_label": "bcv6_direct1701_final",
+"episodes": 24,
+"expert": "bc",
+"genctx": true,
+"grasp_contact": "v2.1",
+"mode": "gen",
+"robots": [
+"panda_pg2",
+"parm5_pg2",
+"parm5_tf3",
+"parm5l_tf3",
+"parm5s_pg2",
+"parm6_pg2",
+"parm6_tf3",
+"parm7_pg2",
+"parm7_tf3",
+"sawyer_pg2",
+"sawyer_tf3",
+"ur5e_pg2",
+"ur5e_tf3"
+],
+"seed_start": 5100000,
+"threads": 2,
+"workers": 4
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "dagger_collect",
+"tag": "gdag2",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"dagger_collect-gen1_s1": {
+"config_hash": "145b543c6e1498c4",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"bc_policy": "runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt",
+"flow": "runs/armv6/arm6-semfix/train_flow_s1:snap_final_s20000.pt",
+"representation": "runs/armv6/arm6-semfix/refit-bcdag1_long_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"bc_label": "bcv6_direct1701_final",
+"episodes": 24,
+"expert": "bc",
+"genctx": false,
+"grasp_contact": "v2.1",
+"mode": "gen",
+"robots": [
+"panda_pg2",
+"parm5_pg2",
+"parm5_tf3",
+"parm5l_tf3",
+"parm5s_pg2",
+"parm6_pg2",
+"parm6_tf3",
+"parm7_pg2",
+"parm7_tf3",
+"sawyer_pg2",
+"sawyer_tf3",
+"ur5e_pg2",
+"ur5e_tf3"
+],
+"seed_start": 3500000,
+"threads": 2,
+"workers": 4
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "dagger_collect",
+"tag": "gen1",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"dagger_collect-gen1_s2": {
+"config_hash": "3d0945ee4e1b73c1",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"bc_policy": "runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt",
+"flow": "runs/armv6/arm6-semfix/train_flow_s2:snap_final_s20000.pt",
+"representation": "runs/armv6/arm6-semfix/refit-bcdag1_long_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"bc_label": "bcv6_direct1701_final",
+"episodes": 24,
+"expert": "bc",
+"genctx": false,
+"grasp_contact": "v2.1",
+"mode": "gen",
+"robots": [
+"panda_pg2",
+"parm5_pg2",
+"parm5_tf3",
+"parm5l_tf3",
+"parm5s_pg2",
+"parm6_pg2",
+"parm6_tf3",
+"parm7_pg2",
+"parm7_tf3",
+"sawyer_pg2",
+"sawyer_tf3",
+"ur5e_pg2",
+"ur5e_tf3"
+],
+"seed_start": 4600000,
+"threads": 2,
+"workers": 4
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "dagger_collect",
+"tag": "gen1",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"dagger_collect-gen2_s1": {
+"config_hash": "f65401a709c67d7b",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"bc_policy": "runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt",
+"flow": "runs/armv6/arm6-semfix/train_flow_s1:snap_final_s20000.pt",
+"representation": "runs/armv6/arm6-semfix/refit-gendag1_noqd_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"bc_label": "bcv6_direct1701_final",
+"episodes": 24,
+"expert": "bc",
+"genctx": false,
+"grasp_contact": "v2.1",
+"mode": "gen",
+"robots": [
+"panda_pg2",
+"parm5_pg2",
+"parm5_tf3",
+"parm5l_tf3",
+"parm5s_pg2",
+"parm6_pg2",
+"parm6_tf3",
+"parm7_pg2",
+"parm7_tf3",
+"sawyer_pg2",
+"sawyer_tf3",
+"ur5e_pg2",
+"ur5e_tf3"
+],
+"seed_start": 3700000,
+"threads": 2,
+"workers": 4
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "dagger_collect",
+"tag": "gen2",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"dagger_collect-gen2_s2": {
+"config_hash": "ed63bfcb0250d1b8",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"bc_policy": "runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt",
+"flow": "runs/armv6/arm6-semfix/train_flow_s2:snap_final_s20000.pt",
+"representation": "runs/armv6/arm6-semfix/refit-gendag1_noqd_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"bc_label": "bcv6_direct1701_final",
+"episodes": 24,
+"expert": "bc",
+"genctx": false,
+"grasp_contact": "v2.1",
+"mode": "gen",
+"robots": [
+"panda_pg2",
+"parm5_pg2",
+"parm5_tf3",
+"parm5l_tf3",
+"parm5s_pg2",
+"parm6_pg2",
+"parm6_tf3",
+"parm7_pg2",
+"parm7_tf3",
+"sawyer_pg2",
+"sawyer_tf3",
+"ur5e_pg2",
+"ur5e_tf3"
+],
+"seed_start": 4800000,
+"threads": 2,
+"workers": 4
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "dagger_collect",
+"tag": "gen2",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"dagger_collect-gen3_s1": {
+"config_hash": "c37f19dffe7761f0",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"bc_policy": "runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt",
+"flow": "runs/armv6/arm6-semfix/flow_ft-ft_s1:policy.pt",
+"representation": "runs/armv6/arm6-semfix/refit-gendag2_noqd_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"bc_label": "bcv6_direct1701_final",
+"episodes": 24,
+"expert": "bc",
+"genctx": false,
+"grasp_contact": "v2.1",
+"mode": "gen",
+"robots": [
+"panda_pg2",
+"parm5_pg2",
+"parm5_tf3",
+"parm5l_tf3",
+"parm5s_pg2",
+"parm6_pg2",
+"parm6_tf3",
+"parm7_pg2",
+"parm7_tf3",
+"sawyer_pg2",
+"sawyer_tf3",
+"ur5e_pg2",
+"ur5e_tf3"
+],
+"seed_start": 3800000,
+"threads": 2,
+"workers": 4
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "dagger_collect",
+"tag": "gen3",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"dagger_collect-gen3_s2": {
+"config_hash": "73351ec9dbf4f480",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"bc_policy": "runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt",
+"flow": "runs/armv6/arm6-semfix/flow_ft-ft_s2:policy.pt",
+"representation": "runs/armv6/arm6-semfix/refit-gendag2_noqd_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"bc_label": "bcv6_direct1701_final",
+"episodes": 24,
+"expert": "bc",
+"genctx": false,
+"grasp_contact": "v2.1",
+"mode": "gen",
+"robots": [
+"panda_pg2",
+"parm5_pg2",
+"parm5_tf3",
+"parm5l_tf3",
+"parm5s_pg2",
+"parm6_pg2",
+"parm6_tf3",
+"parm7_pg2",
+"parm7_tf3",
+"sawyer_pg2",
+"sawyer_tf3",
+"ur5e_pg2",
+"ur5e_tf3"
+],
+"seed_start": 4900000,
+"threads": 2,
+"workers": 4
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "dagger_collect",
+"tag": "gen3",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"eval_r2-final_s1": {
+"config_hash": "76e5193ecaddfe57",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"flow": "runs/armv6/arm6-semfix/flow_ft-gdag2h_s1:policy.pt",
+"representation": "runs/armv6/arm6-semfix/refit-gendag3_noqd_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"episodes": 30,
+"grasp_contact": "v2.1",
+"robots": [
+"parm6_tf3",
+"panda_pg2"
+],
+"seed_starts": [
+3000000,
+3000100,
+3000200
+],
+"tag": "final",
+"workers": 1
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "eval_r2",
+"tag": "final",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"eval_r2-final_s2": {
+"config_hash": "ccd1d1be62df5ca1",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"flow": "runs/armv6/arm6-semfix/flow_ft-gdag2h_s2:policy.pt",
+"representation": "runs/armv6/arm6-semfix/refit-gendag3_noqd_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"episodes": 30,
+"grasp_contact": "v2.1",
+"robots": [
+"parm6_tf3",
+"panda_pg2"
+],
+"seed_starts": [
+3000000,
+3000100,
+3000200
+],
+"tag": "final",
+"workers": 1
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "eval_r2",
+"tag": "final",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"flow_ft-ft_s1": {
+"config_hash": "d7d0dd15bf5833ee",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"init_from": "runs/armv6/arm6-semfix/train_flow_s1:snap_final_s20000.pt",
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/train_rep_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {},
+"params": {
+"batch_size": 128,
+"lr": 0.0001,
+"name": "arm6_semfix_s1_Fft",
+"normalize_target": true,
+"packet_semantic_weight": 1.0,
+"packet_tau_min": 0.6,
+"policy": {
+"attention": "factorized",
+"bias_mode": "true",
+"blocks": 6,
+"ctx_layers": 3,
+"heads": 4,
+"name": "arm6_semfix_s1_Fft",
+"structured": true,
+"width": 256
+},
+"seed": 1702,
+"snapshot_every": 1000,
+"steps": 10000
+},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "flow_ft",
+"tag": "ft",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"flow_ft-ft_s2": {
+"config_hash": "749ff01787ffd439",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"init_from": "runs/armv6/arm6-semfix/train_flow_s2:snap_final_s20000.pt",
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/train_rep_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {},
+"params": {
+"batch_size": 128,
+"lr": 0.0001,
+"name": "arm6_semfix_s2_Fft",
+"normalize_target": true,
+"packet_semantic_weight": 1.0,
+"packet_tau_min": 0.6,
+"policy": {
+"attention": "factorized",
+"bias_mode": "true",
+"blocks": 6,
+"ctx_layers": 3,
+"heads": 4,
+"name": "arm6_semfix_s2_Fft",
+"structured": true,
+"width": 256
+},
+"seed": 2702,
+"snapshot_every": 1000,
+"steps": 10000
+},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "flow_ft",
+"tag": "ft",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"flow_ft-gdag1_s1": {
+"config_hash": "a1b5ab4967949b9a",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"gen_dagger": {
+"files": [
+"panda_pg2.npz.genctx.pkl",
+"parm5_pg2.npz.genctx.pkl",
+"parm5_tf3.npz.genctx.pkl",
+"parm5l_tf3.npz.genctx.pkl",
+"parm5s_pg2.npz.genctx.pkl",
+"parm6_pg2.npz.genctx.pkl",
+"parm6_tf3.npz.genctx.pkl",
+"parm7_pg2.npz.genctx.pkl",
+"parm7_tf3.npz.genctx.pkl",
+"sawyer_pg2.npz.genctx.pkl",
+"sawyer_tf3.npz.genctx.pkl",
+"ur5e_pg2.npz.genctx.pkl",
+"ur5e_tf3.npz.genctx.pkl"
+],
+"runs": [
+"runs/armv6/arm6-semfix/dagger_collect-gdag1_s1"
+]
+},
+"init_from": "runs/armv6/arm6-semfix/train_flow_s1:snap_final_s20000.pt",
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/train_rep_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {},
+"params": {
+"batch_size": 128,
+"gen_dagger_frac": 0.5,
+"lr": 0.0001,
+"name": "arm6_semfix_s1_Fgdag1",
+"normalize_target": true,
+"packet_semantic_weight": 1.0,
+"packet_tau_min": 0.6,
+"policy": {
+"attention": "factorized",
+"bias_mode": "true",
+"blocks": 6,
+"ctx_layers": 3,
+"heads": 4,
+"name": "arm6_semfix_s1_Fgdag1",
+"structured": true,
+"width": 256
+},
+"seed": 1703,
+"snapshot_every": 1000,
+"steps": 4000
+},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "flow_ft",
+"tag": "gdag1",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"flow_ft-gdag1_s2": {
+"config_hash": "3fcd6a34787437c9",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"gen_dagger": {
+"files": [
+"panda_pg2.npz.genctx.pkl",
+"parm5_pg2.npz.genctx.pkl",
+"parm5_tf3.npz.genctx.pkl",
+"parm5l_tf3.npz.genctx.pkl",
+"parm5s_pg2.npz.genctx.pkl",
+"parm6_pg2.npz.genctx.pkl",
+"parm6_tf3.npz.genctx.pkl",
+"parm7_pg2.npz.genctx.pkl",
+"parm7_tf3.npz.genctx.pkl",
+"sawyer_pg2.npz.genctx.pkl",
+"sawyer_tf3.npz.genctx.pkl",
+"ur5e_pg2.npz.genctx.pkl",
+"ur5e_tf3.npz.genctx.pkl"
+],
+"runs": [
+"runs/armv6/arm6-semfix/dagger_collect-gdag1_s2"
+]
+},
+"init_from": "runs/armv6/arm6-semfix/train_flow_s2:snap_final_s20000.pt",
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/train_rep_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {},
+"params": {
+"batch_size": 128,
+"gen_dagger_frac": 0.5,
+"lr": 0.0001,
+"name": "arm6_semfix_s2_Fgdag1",
+"normalize_target": true,
+"packet_semantic_weight": 1.0,
+"packet_tau_min": 0.6,
+"policy": {
+"attention": "factorized",
+"bias_mode": "true",
+"blocks": 6,
+"ctx_layers": 3,
+"heads": 4,
+"name": "arm6_semfix_s2_Fgdag1",
+"structured": true,
+"width": 256
+},
+"seed": 2703,
+"snapshot_every": 1000,
+"steps": 4000
+},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "flow_ft",
+"tag": "gdag1",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"flow_ft-gdag2h_s1": {
+"config_hash": "81070b7887fda1e3",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"gen_dagger": {
+"files": [
+"panda_pg2.npz.genctx.pkl",
+"parm5_pg2.npz.genctx.pkl",
+"parm5_tf3.npz.genctx.pkl",
+"parm5l_tf3.npz.genctx.pkl",
+"parm5s_pg2.npz.genctx.pkl",
+"parm6_pg2.npz.genctx.pkl",
+"parm6_tf3.npz.genctx.pkl",
+"parm7_pg2.npz.genctx.pkl",
+"parm7_tf3.npz.genctx.pkl",
+"sawyer_pg2.npz.genctx.pkl",
+"sawyer_tf3.npz.genctx.pkl",
+"ur5e_pg2.npz.genctx.pkl",
+"ur5e_tf3.npz.genctx.pkl"
+],
+"runs": [
+"runs/armv6/arm6-semfix/dagger_collect-gdag1_s1",
+"runs/armv6/arm6-semfix/dagger_collect-gdag2_s1"
+]
+},
+"init_from": "runs/armv6/arm6-semfix/flow_ft-gdag1_s1:policy.pt",
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/train_rep_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {},
+"params": {
+"batch_size": 128,
+"gen_dagger_frac": 1.0,
+"lr": 5e-05,
+"name": "arm6_semfix_s1_Fgdag2h",
+"normalize_target": true,
+"packet_semantic_weight": 1.0,
+"packet_tau_min": 0.6,
+"policy": {
+"attention": "factorized",
+"bias_mode": "true",
+"blocks": 6,
+"ctx_layers": 3,
+"heads": 4,
+"name": "arm6_semfix_s1_Fgdag2h",
+"structured": true,
+"width": 256
+},
+"seed": 1860,
+"snapshot_every": 500,
+"steps": 1500
+},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "flow_ft",
+"tag": "gdag2h",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"flow_ft-gdag2h_s2": {
+"config_hash": "e0af9fcfb75da683",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"gen_dagger": {
+"files": [
+"panda_pg2.npz.genctx.pkl",
+"parm5_pg2.npz.genctx.pkl",
+"parm5_tf3.npz.genctx.pkl",
+"parm5l_tf3.npz.genctx.pkl",
+"parm5s_pg2.npz.genctx.pkl",
+"parm6_pg2.npz.genctx.pkl",
+"parm6_tf3.npz.genctx.pkl",
+"parm7_pg2.npz.genctx.pkl",
+"parm7_tf3.npz.genctx.pkl",
+"sawyer_pg2.npz.genctx.pkl",
+"sawyer_tf3.npz.genctx.pkl",
+"ur5e_pg2.npz.genctx.pkl",
+"ur5e_tf3.npz.genctx.pkl"
+],
+"runs": [
+"runs/armv6/arm6-semfix/dagger_collect-gdag1_s2",
+"runs/armv6/arm6-semfix/dagger_collect-gdag2_s2"
+]
+},
+"init_from": "runs/armv6/arm6-semfix/flow_ft-gdag1_s2:policy.pt",
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/train_rep_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {},
+"params": {
+"batch_size": 128,
+"gen_dagger_frac": 1.0,
+"lr": 5e-05,
+"name": "arm6_semfix_s2_Fgdag2h",
+"normalize_target": true,
+"packet_semantic_weight": 1.0,
+"packet_tau_min": 0.6,
+"policy": {
+"attention": "factorized",
+"bias_mode": "true",
+"blocks": 6,
+"ctx_layers": 3,
+"heads": 4,
+"name": "arm6_semfix_s2_Fgdag2h",
+"structured": true,
+"width": 256
+},
+"seed": 2860,
+"snapshot_every": 500,
+"steps": 1500
+},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "flow_ft",
+"tag": "gdag2h",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"heldout-final_s1": {
+"config_hash": "08257722b4ce7fcc",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"flow": "runs/armv6/arm6-semfix/flow_ft-gdag2h_s1:policy.pt",
+"representation": "runs/armv6/arm6-semfix/refit-gendag3_noqd_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"episodes": 30,
+"grasp_contact": "v2.1",
+"robots": [
+"parm5s_tf3",
+"parm5l_pg2"
+],
+"seed_starts": [
+3000000
+],
+"tag": "final",
+"workers": 1
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "heldout",
+"tag": "final",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"heldout-final_s2": {
+"config_hash": "54e3ea09e3fb4f7e",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"flow": "runs/armv6/arm6-semfix/flow_ft-gdag2h_s2:policy.pt",
+"representation": "runs/armv6/arm6-semfix/refit-gendag3_noqd_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"episodes": 30,
+"grasp_contact": "v2.1",
+"robots": [
+"parm5s_tf3",
+"parm5l_pg2"
+],
+"seed_starts": [
+3000000
+],
+"tag": "final",
+"workers": 1
+},
+"params": {},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "heldout",
+"tag": "final",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"refit-gendag1_noqd_s1": {
+"config_hash": "fda59be70ec43be9",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": true,
+"realizer_drop_qd": true,
+"zero_prev_action": true
+},
+"inputs": {
+"dagger": [
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1:panda_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1:parm5_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1:parm5_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1:parm5l_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1:parm5s_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1:parm6_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1:parm6_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1:parm7_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1:parm7_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1:sawyer_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1:sawyer_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1:ur5e_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1:ur5e_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1:panda_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1:parm5_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1:parm5_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1:parm5l_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1:parm5s_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1:parm6_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1:parm6_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1:parm7_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1:parm7_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1:sawyer_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1:sawyer_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1:ur5e_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1:ur5e_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1:panda_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1:parm5_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1:parm5_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1:parm5l_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1:parm5s_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1:parm6_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1:parm6_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1:parm7_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1:parm7_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1:sawyer_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1:sawyer_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1:ur5e_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1:panda_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1:parm5_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1:parm5_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1:parm5l_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1:parm5s_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1:parm6_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1:parm6_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1:parm7_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1:parm7_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1:sawyer_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1:sawyer_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1:ur5e_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1:ur5e_tf3.npz"
+],
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/refit-bcdag2_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {},
+"params": {
+"batch_size": 128,
+"dagger_frac": 0.6,
+"init": "old",
+"lr": 0.0002,
+"name": "arm6_semfix_s1_rzgendag1",
+"prefetch_workers": 0,
+"seed": 1761,
+"steps": 8000,
+"z_noise_rel": 0.3
+},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "refit",
+"tag": "gendag1_noqd",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"refit-gendag1_noqd_s2": {
+"config_hash": "24f6f88147143db1",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": true,
+"realizer_drop_qd": true,
+"zero_prev_action": true
+},
+"inputs": {
+"dagger": [
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2:panda_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2:parm5_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2:parm5_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2:parm5l_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2:parm5s_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2:parm6_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2:parm6_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2:parm7_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2:parm7_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2:sawyer_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2:sawyer_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2:ur5e_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2:ur5e_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2:panda_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2:parm5_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2:parm5_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2:parm5l_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2:parm5s_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2:parm6_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2:parm6_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2:parm7_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2:parm7_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2:sawyer_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2:sawyer_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2:ur5e_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2:ur5e_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2:panda_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2:parm5_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2:parm5_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2:parm5l_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2:parm5s_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2:parm6_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2:parm6_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2:parm7_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2:parm7_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2:sawyer_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2:sawyer_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2:ur5e_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2:panda_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2:parm5_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2:parm5_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2:parm5l_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2:parm5s_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2:parm6_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2:parm6_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2:parm7_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2:parm7_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2:sawyer_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2:sawyer_tf3.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2:ur5e_pg2.npz",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2:ur5e_tf3.npz"
+],
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/refit-bcdag2_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {},
+"params": {
+"batch_size": 128,
+"dagger_frac": 0.6,
+"init": "old",
+"lr": 0.0002,
+"name": "arm6_semfix_s2_rzgendag1",
+"prefetch_workers": 0,
+"seed": 2761,
+"steps": 8000,
+"z_noise_rel": 0.3
+},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "refit",
+"tag": "gendag1_noqd",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"refit-gendag2_noqd_s1": {
+"config_hash": "7803cd58152470fb",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": true,
+"realizer_drop_qd": true,
+"zero_prev_action": true
+},
+"inputs": {
+"dagger": {
+"files": [
+"panda_pg2.npz",
+"parm5_pg2.npz",
+"parm5_tf3.npz",
+"parm5l_tf3.npz",
+"parm5s_pg2.npz",
+"parm6_pg2.npz",
+"parm6_tf3.npz",
+"parm7_pg2.npz",
+"parm7_tf3.npz",
+"sawyer_pg2.npz",
+"sawyer_tf3.npz",
+"ur5e_pg2.npz",
+"ur5e_tf3.npz"
+],
+"runs": [
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1",
+"runs/armv6/arm6-semfix/dagger_collect-gen2_s1"
+]
+},
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/refit-gendag1_noqd_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {},
+"params": {
+"batch_size": 128,
+"dagger_frac": 0.6,
+"init": "old",
+"lr": 0.0002,
+"name": "arm6_semfix_s1_rzgendag2",
+"prefetch_workers": 0,
+"seed": 1790,
+"steps": 8000,
+"z_noise_rel": 0.3
+},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "refit",
+"tag": "gendag2_noqd",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"refit-gendag2_noqd_s2": {
+"config_hash": "3a69f15a6c89a114",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": true,
+"realizer_drop_qd": true,
+"zero_prev_action": true
+},
+"inputs": {
+"dagger": {
+"files": [
+"panda_pg2.npz",
+"parm5_pg2.npz",
+"parm5_tf3.npz",
+"parm5l_tf3.npz",
+"parm5s_pg2.npz",
+"parm6_pg2.npz",
+"parm6_tf3.npz",
+"parm7_pg2.npz",
+"parm7_tf3.npz",
+"sawyer_pg2.npz",
+"sawyer_tf3.npz",
+"ur5e_pg2.npz",
+"ur5e_tf3.npz"
+],
+"runs": [
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2",
+"runs/armv6/arm6-semfix/dagger_collect-gen2_s2"
+]
+},
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/refit-gendag1_noqd_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {},
+"params": {
+"batch_size": 128,
+"dagger_frac": 0.6,
+"init": "old",
+"lr": 0.0002,
+"name": "arm6_semfix_s2_rzgendag2",
+"prefetch_workers": 0,
+"seed": 2790,
+"steps": 8000,
+"z_noise_rel": 0.3
+},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "refit",
+"tag": "gendag2_noqd",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"refit-gendag3_noqd_s1": {
+"config_hash": "66c18afa85a43a1f",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": true,
+"realizer_drop_qd": true,
+"zero_prev_action": true
+},
+"inputs": {
+"dagger": {
+"files": [
+"panda_pg2.npz",
+"parm5_pg2.npz",
+"parm5_tf3.npz",
+"parm5l_tf3.npz",
+"parm5s_pg2.npz",
+"parm6_pg2.npz",
+"parm6_tf3.npz",
+"parm7_pg2.npz",
+"parm7_tf3.npz",
+"sawyer_pg2.npz",
+"sawyer_tf3.npz",
+"ur5e_pg2.npz",
+"ur5e_tf3.npz"
+],
+"runs": [
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s1",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s1",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s1",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s1",
+"runs/armv6/arm6-semfix/dagger_collect-gen2_s1",
+"runs/armv6/arm6-semfix/dagger_collect-gen3_s1"
+]
+},
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/refit-gendag2_noqd_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {},
+"params": {
+"batch_size": 128,
+"dagger_frac": 0.6,
+"init": "old",
+"lr": 0.0002,
+"name": "arm6_semfix_s1_rzgendag3",
+"prefetch_workers": 0,
+"seed": 1820,
+"steps": 8000,
+"z_noise_rel": 0.3
+},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "refit",
+"tag": "gendag3_noqd",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"refit-gendag3_noqd_s2": {
+"config_hash": "45561df1f8ae6009",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": true,
+"realizer_drop_qd": true,
+"zero_prev_action": true
+},
+"inputs": {
+"dagger": {
+"files": [
+"panda_pg2.npz",
+"parm5_pg2.npz",
+"parm5_tf3.npz",
+"parm5l_tf3.npz",
+"parm5s_pg2.npz",
+"parm6_pg2.npz",
+"parm6_tf3.npz",
+"parm7_pg2.npz",
+"parm7_tf3.npz",
+"sawyer_pg2.npz",
+"sawyer_tf3.npz",
+"ur5e_pg2.npz",
+"ur5e_tf3.npz"
+],
+"runs": [
+"runs/armv6/arm6-semfix/dagger_collect-bc1_s2",
+"runs/armv6/arm6-semfix/dagger_collect-bc2_s2",
+"runs/armv6/arm6-semfix/dagger_collect-bc3_s2",
+"runs/armv6/arm6-semfix/dagger_collect-gen1_s2",
+"runs/armv6/arm6-semfix/dagger_collect-gen2_s2",
+"runs/armv6/arm6-semfix/dagger_collect-gen3_s2"
+]
+},
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/refit-gendag2_noqd_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {},
+"params": {
+"batch_size": 128,
+"dagger_frac": 0.6,
+"init": "old",
+"lr": 0.0002,
+"name": "arm6_semfix_s2_rzgendag3",
+"prefetch_workers": 0,
+"seed": 2820,
+"steps": 8000,
+"z_noise_rel": 0.3
+},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "refit",
+"tag": "gendag3_noqd",
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"train_flow_s1": {
+"config_hash": "eb8b206bbaf42d5d",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/train_rep_s1:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"final_snapshot_alias": "snap_final_s20000.pt"
+},
+"params": {
+"batch_size": 128,
+"lr": 0.0003,
+"name": "arm6_semfix_s1_F0",
+"normalize_target": true,
+"packet_semantic_weight": 1.0,
+"packet_tau_min": 0.6,
+"policy": {
+"attention": "factorized",
+"bias_mode": "true",
+"blocks": 6,
+"ctx_layers": 3,
+"heads": 4,
+"name": "arm6_semfix_s1_F0",
+"structured": true,
+"width": 256
+},
+"seed": 1701,
+"snapshot_every": 1000,
+"steps": 20000
+},
+"schema_version": "runconfig-1",
+"seed": 1,
+"stage": "train_flow",
+"tag": null,
+"track": "armv6",
+"variant": "semfix"
+}
+},
+"train_flow_s2": {
+"config_hash": "59e280ac0bd5fb73",
+"runconfig": {
+"family": "arm",
+"flags": {
+"contact_version": "contact_v1",
+"probe_lv_min": null,
+"qd_dropout": null,
+"realizer_anchor": null,
+"realizer_drop_qd": null,
+"zero_prev_action": true
+},
+"inputs": {
+"packed_dir": "packed/latent_pp_v6dart_s1_H16",
+"representation": "runs/armv6/arm6-semfix/train_rep_s2:representation.pt"
+},
+"legacy": null,
+"lineage": "arm6-semfix",
+"note": "",
+"options": {
+"final_snapshot_alias": "snap_final_s20000.pt"
+},
+"params": {
+"batch_size": 128,
+"lr": 0.0003,
+"name": "arm6_semfix_s2_F0",
+"normalize_target": true,
+"packet_semantic_weight": 1.0,
+"packet_tau_min": 0.6,
+"policy": {
+"attention": "factorized",
+"bias_mode": "true",
+"blocks": 6,
+"ctx_layers": 3,
+"heads": 4,
+"name": "arm6_semfix_s2_F0",
+"structured": true,
+"width": 256
+},
+"seed": 2701,
+"snapshot_every": 1000,
+"steps": 20000
+},
+"schema_version": "runconfig-1",
+"seed": 2,
+"stage": "train_flow",
+"tag": null,
+"track": "armv6",
+"variant": "semfix"
+}
+}
+},
+"source": "peer runs/armv6/arm6-semfix/*/pipeline_manifest.json (runconfig, code 520916e), copied 2026-10-03"
+}

@@ -1843,3 +1843,13 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
 - Operational changes during phase B (no result-driven rerun, D-061): flow nodes declare 12G (resources only; 44/44 config hashes unchanged; main e9339265);
   coordinator wrappers relaunch with `--retry-failed` only for admission timeouts, 6 h segment ends, a slice-level peer OOM (oom_memcg = rrp.slice, 2026-10-03 03:57)
   and watchdog sheds (live_limit_reduced, gpu_thermal_slowdown_active); each relaunch resumed from the node's checkpoint or reran an unchanged collection.
+
+### D-147 addendum 2026-10-03 night (T9 owner, lead-directed re-plan 2): T9 on v8div MOOT (G3 FAIL); T9 PRE-REGISTERED on the v6 semfix lineage
+- The armdiv G3 lineage gate failed (v8div semfix 362/480 = 0.754 < 0.835; failed_hypothesis, armdiv track). Per the T9 v8div pre-registration
+  T9-on-v8div is moot; nothing ran beyond the CPU plumbing smoke; coordinator `rrp-camp-relations-b-main` disarmed.
+- Re-plan (research/tracks/relations.md "T9 v6 pre-registration", before any run): the v6 semfix lineage pipeline (v6dart pack, bcv6 labeller,
+  grasp v2.1, all pinned); flow-independent prefix = the recorded `arm6-semfix` outputs (sha256 equal to the recorded checkpoints);
+  fset none / geo / ix / task x seeds 1, 2 on the flow-dependent suffix. Deviation from "control = recorded v6, read not re-run": the
+  PRIMARY control is `none`, the same suffix re-run on current code (~4 GPU-h), because the recorded v6 trained on 520916e and the trainers
+  changed since (factor vs code confound); the recorded v6 is the secondary reference (reproduction check, no verdict). Criterion and
+  validity gate unchanged (Newcombe 95% on 480 pooled primary cells, competence >= 0.5). Budget 80 GPU lease-hours, one GPU lease at a time.

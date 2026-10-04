@@ -1,0 +1,129 @@
+# TEMPLATE (D-147 T9 re-plan 2, after the armdiv G3 FAIL made T9-on-v8div moot): the relation-factor experiment on the
+# COMPETENT arm pipeline, the v6 semfix lineage (archived recipe .old/dags/arm_lineage_v6.yaml -> arm_lineage_v2 -> this
+# directory's arm_lineage.yaml; v6 semfix 425/480 in-distribution, D-134). PRE-REGISTERED in research/tracks/relations.md
+# "T9 v6 pre-registration". Instance: recipes/relations/relations_v6.yaml.
+# v6 deltas over arm_lineage.yaml, verbatim from the archived recipe: v6dart pack + dataset, DAgger labeller bcv6_direct1701
+# final, grasp_contact v2.1 in every simulated stage, collections 4 workers x 2 threads (threads do not change results).
+# T9 design: fset none | geo | ix | task. The flow-INDEPENDENT prefix (stage A, rzbcdag1long, rzbcdag2 representations; bc1-3
+# DAgger buffers) is the recorded v6 lineage arm6-semfix's own output (pinned by sha256; buffer manifests recorded); every
+# flow-dependent node runs per fset on current code. `none` = preset:arm (the default) = a same-code re-run of the v6 suffix:
+# the PRIMARY control; the recorded v6 suffix (code 520916e) is the secondary, reproduction reference. geo / ix / task add the
+# set's factors on F0, Fft, Fgdag1, Fgdag2h, and relgen + the responsive curriculum on F0 and Fft.
+name: relations_v6_factor
+schema: dag-1
+extends: arm_lineage.yaml
+family: arm
+track: relations
+lineage: 'relations6-{fset}'
+label_prefix: 'r6{fset}{seed}'
+matrix:
+  variant: [semfix]
+  fset: [none, geo, ix, task]
+  seed: [1, 2]
+axis_vars:
+  seed:          # recorded v6 arm6-semfix outputs (peer store runs/armv6, offloaded to disk; checked 2026-10-03)
+    1: {pin_rep: 6cc278b384c78e982ad875f47ce4a58fb337ad24051033a7d1d4e7b2ff80767a, pin_rep_l: 0239535cd87cc44e0e58f8ad20a3bc14af3114b05ed33d4541c4703ba213e8ac, pin_rep_2: 0020bdbc9425f0b69f0cc039f516cfe0867b00b152312911eec862a6e6fdd4c8}
+    2: {pin_rep: b7d28fe7c3aa27bc0b83d22ae55891b6dbdddd2bba8ac7e25a235d0db2414e38, pin_rep_l: cca73c181f386a9ce9342f2a5a4bb154f02208a115c9c6c3440ef7b067ad0a31, pin_rep_2: 461cb10337bee3caa7b61ef8f0346eeec675b6aa05648c48edf8f2bd58edf8cc}
+vars:
+  pfx: 'rel6_{fset}_s{seed}'
+  dataset: runs/armexpert/v6dart/collect-v6dart_s1
+  pack: packed/latent_pp_v6dart_s1_H16
+  bc_policy: 'runs/armexpert_bcv6/baseline_direct_action/seed1701/source:policy.pt'
+  bc_label: bcv6_direct1701_final
+  ctl: 'runs/armv6/arm6-semfix'
+  rep_a: '{ctl}/train_rep_s{seed}:representation.pt'
+  rep_l: '{ctl}/refit-bcdag1_long_s{seed}:representation.pt'
+  rep_2: '{ctl}/refit-bcdag2_s{seed}:representation.pt'
+  d_bc1: '{ctl}/dagger_collect-bc1_s{seed}'
+  d_bc2: '{ctl}/dagger_collect-bc2_s{seed}'
+  d_bc3: '{ctl}/dagger_collect-bc3_s{seed}'
+lists:
+  f_geo: ['preset:arm', geo.pos3d, geo.depth3d, geo.orient, {name: geo.normal_align, source: probe}, geo.above]
+  f_ix: ['preset:arm', ix.contact, ix.support, ix.held_by, ix.force_flow]
+  f_task: ['preset:arm', task.next_contact]
+  c_geo: [geo.depth3d, geo.normal_align]
+  c_ix: [ix.contact, ix.held_by, ix.support]
+  c_task: [task.next_contact]
+defaults:
+  max_parallel_gpu: 1
+  max_cpu: 10
+base:
+  options: {pin_sha256: {packed_dir: dee32ff11bb7e3cfbfcbfae6fdd7f19baa0715664aba9c48239cfcd4ba1b1204, bc_policy: a29810bd0168ee1a46a3fe70d2d4a05ac7e770a5ea19e8b1d223ec0581d767b3}}
+nodes:
+  # reused from the recorded v6 control lineage (flow-independent) and v6 nodes the question does not need
+  stageA: null
+  bc1: null
+  rzbcdag1: null
+  rzbcdag1long: null
+  bc2: null
+  bc3: null
+  rzbcdag2: null
+  prog20k: null
+  proggdag1: null
+  orcbc: null
+  semedits: null
+  relgen:
+    stage: relations_data
+    only: {fset: [geo, ix, task]}
+    resources: {cpu: 3, mem: 3G, gpu: false, max_seconds: 7200}
+    per:
+      fset:
+        geo: {params: {factors: ['preset:geo']}}
+        ix: {params: {factors: ['preset:ix']}}
+        task: {params: {factors: ['preset:task']}}
+    config:
+      options: {env: mujoco/arm, task: pick_place, body: parm6_pg2, n_episodes: 200, seed_start: '{5000000 + 100000 * (seed - 1)}', snapshot_every: 8, max_snapshots: 6, batch: 4, grasp_contact: v2.1}
+  F0:
+    resources: {cpu: 2, mem: 12G, gpu_mem: 2G, max_seconds: 21600}
+    per:
+      fset:
+        geo: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_geo}, curriculum: {factors: $c_geo, interval: 1000, ramp_steps: 20000, share_max: 0.25}}}
+        ix: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_ix}, curriculum: {factors: $c_ix, interval: 1000, ramp_steps: 20000, share_max: 0.2}}}
+        task: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_task}, curriculum: {factors: $c_task, interval: 1000, ramp_steps: 20000, share_max: 0.25}}}
+    config:
+      inputs: {representation: '{rep_a}'}
+      options: {pin_sha256: {representation: '{pin_rep}'}}
+  Fft:
+    resources: {cpu: 2, mem: 12G, gpu_mem: 2G, max_seconds: 21600}
+    per:
+      fset:
+        geo: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_geo}, curriculum: {factors: $c_geo, interval: 1000, ramp_steps: 10000, share_max: 0.25}}}
+        ix: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_ix}, curriculum: {factors: $c_ix, interval: 1000, ramp_steps: 10000, share_max: 0.2}}}
+        task: {inputs: {relgen: '@relgen:relgen'}, params: {policy: {factors: $f_task}, curriculum: {factors: $c_task, interval: 1000, ramp_steps: 10000, share_max: 0.25}}}
+    config:
+      inputs: {representation: '{rep_a}'}
+      options: {pin_sha256: {representation: '{pin_rep}'}}
+  Fgdag1:
+    resources: {cpu: 2, mem: 12G, gpu_mem: 2G, max_seconds: 21600}
+    per: {fset: {geo: {params: {policy: {factors: $f_geo}}}, ix: {params: {policy: {factors: $f_ix}}}, task: {params: {policy: {factors: $f_task}}}}}
+    config:
+      inputs: {representation: '{rep_a}'}
+      options: {pin_sha256: {representation: '{pin_rep}'}}
+  Fgdag2h:
+    resources: {cpu: 2, mem: 12G, gpu_mem: 2G, max_seconds: 14400}
+    per: {fset: {geo: {params: {policy: {factors: $f_geo}}}, ix: {params: {policy: {factors: $f_ix}}}, task: {params: {policy: {factors: $f_task}}}}}
+    config:
+      inputs: {representation: '{rep_a}'}
+      options: {pin_sha256: {representation: '{pin_rep}'}}
+  gen1:
+    resources: {cpu: 8, mem: 22G}               # v6 measured collections up to 15.8G (archived recipe)
+    config:
+      inputs: {representation: '{rep_l}'}
+      options: {workers: 4, threads: 2, grasp_contact: v2.1, pin_sha256: {representation: '{pin_rep_l}'}}
+  gen2: {resources: {cpu: 8, mem: 22G}, config: {options: {workers: 4, threads: 2, grasp_contact: v2.1}}}
+  gen3: {resources: {cpu: 8, mem: 22G}, config: {options: {workers: 4, threads: 2, grasp_contact: v2.1}}}
+  gdag1: {resources: {cpu: 8, mem: 22G}, config: {options: {workers: 4, threads: 2, grasp_contact: v2.1}}}
+  gdag2: {resources: {cpu: 8, mem: 22G}, config: {options: {workers: 4, threads: 2, grasp_contact: v2.1}}}
+  rzgendag1:
+    resources: {cpu: 2, mem: 8G, gpu_mem: 3G, max_seconds: 21600}     # v6 refits measured 1.7G RAM / <= 0.9G CUDA
+    config:
+      inputs: {representation: '{rep_2}', dagger: [{runs: ['{d_bc1}', '{d_bc2}'], files: $npz}, {runs: ['@gen1'], files: $npz_gen1}, {runs: ['{d_bc3}'], files: $npz}]}
+      options: {pin_sha256: {representation: '{pin_rep_2}'}}
+  rzgendag2:
+    resources: {cpu: 2, mem: 8G, gpu_mem: 3G, max_seconds: 21600}
+    config: {inputs: {dagger: {runs: ['{d_bc1}', '{d_bc2}', '{d_bc3}', '@gen1', '@gen2']}}}
+  rzgendag3:
+    resources: {cpu: 2, mem: 8G, gpu_mem: 3G, max_seconds: 21600}
+    config: {inputs: {dagger: {runs: ['{d_bc1}', '{d_bc2}', '{d_bc3}', '@gen1', '@gen2', '@gen3']}}}
+  finalevals: {resources: {mem: 8G}, config: {options: {grasp_contact: v2.1}}}
+  heldout: {resources: {mem: 8G}, config: {options: {grasp_contact: v2.1}}}

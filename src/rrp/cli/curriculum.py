@@ -224,11 +224,19 @@ def compare_main(argv: list[str]) -> int:
     p.add_argument("--seeds", default="1,2")
     p.add_argument("--out", help="directory for tables.json / tables.md (default <root>/tables)")
     p.add_argument("--v8div", action="store_true", help="T9 on the v8div lineage: sets relations8-<set> vs the control lineage")
-    p.add_argument("--control", default="artifacts/runs/armdiv/arm8div-semfix", help="--v8div control lineage directory")
+    p.add_argument("--control", help="control lineage directory (--v8div: artifacts/runs/armdiv/arm8div-semfix; "
+                                     "--v6: <root>/relations6-none)")
+    p.add_argument("--v6", action="store_true", help="T9 on the v6 lineage: relations6-<set> vs the same-code relations6-none")
+    p.add_argument("--reference", help="--v6: secondary reference lineage (artifacts/runs/armv6/arm6-semfix)")
     a = p.parse_args(argv)
     root, sets, seeds = Path(a.root), a.sets.split(","), [int(s) for s in a.seeds.split(",")]
+    if a.v6:
+        compare_v8div(root, Path(a.control or root / "relations6-none"), sets, seeds, Path(a.out) if a.out else root / "tables_v6",
+                      prefix="relations6", groups=V6_GROUPS, reference=Path(a.reference) if a.reference else None)
+        return 0
     if a.v8div:
-        compare_v8div(root, Path(a.control), sets, seeds, Path(a.out) if a.out else root / "tables")
+        compare_v8div(root, Path(a.control or "artifacts/runs/armdiv/arm8div-semfix"), sets, seeds,
+                      Path(a.out) if a.out else root / "tables")
         return 0
     runs = {(s, seed): root / f"relations-{s}" / f"train_flow_s{seed}" for s in [a.base, *sets] for seed in seeds
             if (root / f"relations-{s}" / f"train_flow_s{seed}").is_dir()}
@@ -262,13 +270,13 @@ COMPETENCE_MIN = 0.5
 Z_BONF3 = 2.393980          # two-sided 1 - 0.05/3: the headline claim over the three single sets
 
 
-def _contrast_rows(ev: dict, s: str, ctl: str, seeds: list[int]) -> list[dict]:
+def _contrast_rows(ev: dict, s: str, ctl: str, seeds: list[int], groups=None) -> list[dict]:
     """Set `s` vs the control per group (primary = the G3 source bodies, newarms) x body and pooled: Wilson rates, the
     unpaired Newcombe 95% interval of the difference (the pre-registered contrast), the paired McNemar test (same training
     seed, body and env seed) and the graded paired differences (stage reached, closest tcp-cube distance)."""
     from rrp.harness.eval.statistics import mcnemar_exact, newcombe_diff, paired_bootstrap_ci, wilson
     rows = []
-    for g, stages in V8_GROUPS.items():
+    for g, stages in (groups or V8_GROUPS).items():
         bodies = sorted({k[1] for seed in seeds for k in ev[(ctl, seed)] if k[0] in stages})
         for body in [None, *bodies]:
             keys = [(seed, k) for seed in seeds for k in ev[(ctl, seed)] if k[0] in stages and (body is None or k[1] == body)
@@ -318,20 +326,33 @@ def _verdict(primary: dict | None, comp: dict) -> str:
     return eff if not bad else f"{eff} (INVALID as a test of factor use: not learned {', '.join(bad)})"
 
 
-def compare_v8div(root: Path, control: Path, sets: list[str], seeds: list[int], out: Path) -> dict:
-    ctl = "__control__"
+V6_GROUPS = {"primary": ("final", "heldout")}
+
+
+def compare_v8div(root: Path, control: Path, sets: list[str], seeds: list[int], out: Path, prefix: str = "relations8",
+                  groups=None, reference: Path | None = None) -> dict:
+    """Factor sets `<prefix>-<set>` vs the control lineage dir `control`; `reference` (optional) is a second, secondary
+    control (e.g. the recorded v6 lineage vs the same-code `none` re-run): its rows are reported as set `<x> vs reference`,
+    including the control itself (a reproduction check), and never enter the verdicts."""
+    groups = groups or V8_GROUPS
+    ctl, ref = "__control__", "__reference__"
     ev = {(ctl, seed): _eval_rows(control.parent, control.name, seed, V8_EVALS) for seed in seeds}
-    ev.update({(s, seed): _eval_rows(root, f"relations8-{s}", seed, V8_EVALS) for s in sets for seed in seeds})
-    flows = {(f"{s}:{fmt.split('_s')[0]}", seed): root / f"relations8-{s}" / fmt.format(seed=seed)
-             for s in sets for seed in seeds for fmt in V8_FLOWS if (root / f"relations8-{s}" / fmt.format(seed=seed)).is_dir()}
+    ev.update({(s, seed): _eval_rows(root, f"{prefix}-{s}", seed, V8_EVALS) for s in sets for seed in seeds})
+    flows = {(f"{s}:{fmt.split('_s')[0]}", seed): root / f"{prefix}-{s}" / fmt.format(seed=seed)
+             for s in sets for seed in seeds for fmt in V8_FLOWS if (root / f"{prefix}-{s}" / fmt.format(seed=seed)).is_dir()}
     depth, train = _depth_table(flows), _final_metrics(flows)
-    contrast = [r for s in sets for r in _contrast_rows(ev, s, ctl, seeds)]
+    contrast = [r for s in sets for r in _contrast_rows(ev, s, ctl, seeds, groups)]
+    if reference is not None:
+        ev.update({(ref, seed): _eval_rows(reference.parent, reference.name, seed, V8_EVALS) for seed in seeds})
+        for s in [ctl, *sets]:
+            for r in _contrast_rows(ev, s, ref, seeds, groups):
+                contrast.append(dict(r, set=f"{'control' if s == ctl else s} vs reference"))
     ctl_rows = [{"group": g, "k": sum(int(bool(r["privileged_success"])) for seed in seeds for k, r in ev[(ctl, seed)].items()
                                        if k[0] in st), "n": sum(1 for seed in seeds for k in ev[(ctl, seed)] if k[0] in st)}
-                for g, st in V8_GROUPS.items()]
+                for g, st in groups.items()]
     verdicts = {}
     for s in sets:
-        comp = {seed: _final_competence(root / f"relations8-{s}" / V8_FLOWS[1].format(seed=seed)) for seed in seeds}
+        comp = {seed: _final_competence(root / f"{prefix}-{s}" / V8_FLOWS[1].format(seed=seed)) for seed in seeds}
         prim = next((r for r in contrast if r["set"] == s and r["group"] == "primary" and r["body"] == "pooled"), None)
         verdicts[s] = {"verdict": _verdict(prim, comp), "final_competence": comp}
     res = {"control": str(control), "control_rates": ctl_rows, "contrast": contrast, "competence_by_depth": depth,
@@ -341,7 +362,7 @@ def compare_v8div(root: Path, control: Path, sets: list[str], seeds: list[int], 
     flat = [{**r, "w_lo": r["rate_set_wilson95"][0], "w_hi": r["rate_set_wilson95"][1], "nc_lo": r["newcombe95"][0],
              "nc_hi": r["newcombe95"][1], "nb_lo": r["newcombe_bonf3"][0], "nb_hi": r["newcombe_bonf3"][1], "rank_d": r["stage_rank_delta"]["mean"], "tcp_d": r["min_tcp_cube_m_delta"]["mean"]}
             for r in contrast]
-    md = "\n".join([_md("control (arm8div-semfix) success", ctl_rows, ["group", "k", "n"]),
+    md = "\n".join([_md(f"control ({control.name}) success", ctl_rows, ["group", "k", "n"]),
                      _md("factor set - control (Newcombe 95%; paired McNemar; graded paired deltas)", flat,
                          ["set", "group", "body", "n", "k_set", "k_ctl", "rate_set", "w_lo", "w_hi", "rate_ctl", "delta",
                           "nc_lo", "nc_hi", "nb_lo", "nb_hi", "set_only", "ctl_only", "mcnemar_p", "rank_d", "tcp_d"]),
