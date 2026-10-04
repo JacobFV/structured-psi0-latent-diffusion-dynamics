@@ -412,3 +412,20 @@ def test_yield_to_waiting_defers_to_another_coordinators_waiting_node(tmp_path):
     assert hi._marker("b@y").exists()
     hi._mark_waiting("b@y", False)
     assert not hi._marker("b@y").exists()
+
+
+def test_a_planned_node_records_the_config_it_runs_not_a_stale_planned_hash(tmp_path):
+    """D-147 (2026-10-04): a node planned under config X, then launched under config Y (the recipe changed while it waited), recorded X;
+    the next coordinator start refused the DAG ("the ledger ran config X") although the job ran Y. Planned nodes and launches now record Y."""
+    led = tmp_path / "ledger.json"
+    first = _ex(tmp_path, FakeRunner(tmp_path, refuse=10 ** 6))
+    first.admission_timeout_s = -1                                  # every node fails on admission at once: nothing ran
+    first.run()
+    nodes = json.loads(led.read_text())["nodes"]
+    nodes["a@sem.s1"].update(state="planned", config_hash="stale0000000000")
+    led.write_text(json.dumps(dict(json.loads(led.read_text()), nodes=nodes)))
+    r = FakeRunner(tmp_path)
+    s = _ex(tmp_path, r).run()                                     # must not raise
+    e = json.loads(led.read_text())["nodes"]["a@sem.s1"]
+    assert e["state"] == "completed" and e["config_hash"] == plan_dag(loads(TOY)).nodes["a@sem.s1"].rc.config_hash()
+    _ex(tmp_path, FakeRunner(tmp_path)).run()                       # a further start accepts the ledger

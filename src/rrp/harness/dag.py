@@ -601,7 +601,10 @@ class Executor:
             if e.get("config_hash") and e["config_hash"] != h and e["state"] != "planned":
                 raise DagError(f"{nid}: the ledger ran config {e['config_hash']} but the DAG now gives {h}; "
                                f"use --reset {nid} (outputs go to the same dir {n.rc.out})")
-            e.setdefault("config_hash", h)
+            if e["state"] == "planned":
+                e["config_hash"] = h      # a node that never ran carries the config it WILL run (D-147: a stale planned hash was
+            else:                         # recorded at launch and refused the next start of the coordinator)
+                e.setdefault("config_hash", h)
             e.update(run_id=n.rc.run_id, out=n.rc.out, stage=n.rc.stage, placement=n.placement,
                      resources=n.resources.__dict__)
             pins = self._pins(nid)
@@ -676,6 +679,7 @@ class Executor:
                 self._mark_waiting(nid, False)
                 e = self.ledger.node(nid)
                 e["attempts"].append(dict(h, started=time.time(), revision=self._code()))
+                e["config_hash"] = self.plan.nodes[nid].rc.config_hash()          # the config this attempt runs
                 self.ledger.set(nid, state="running")
                 self.log(f"{nid}: launched lease {h['lease_id']} on {h['placement']}")
                 running.append(nid)
