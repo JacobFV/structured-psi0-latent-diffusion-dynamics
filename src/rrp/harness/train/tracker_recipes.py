@@ -430,7 +430,8 @@ def assert_trainable(args, what: str = "tracker training") -> None:
     """Sealed-split guard (core.sealed): a tracker trains on no sealed body and no phum seed outside the declared training range.
     Raises SealedSplitError BEFORE any simulation is built."""
     from rrp.core.sealed import SealedSplit
-    SealedSplit.load().assert_train_allowed(training_bodies(args), what=what)
+    seed = getattr(args, "seed", None)          # the trainer's env seed: a sealed body trains only on a target-adaptation seed (D-147)
+    SealedSplit.load().assert_train_allowed(training_bodies(args), [] if seed is None else [int(seed)], what=what)
 
 
 def recipe_record(name_or_path: str) -> tuple[dict, dict]:

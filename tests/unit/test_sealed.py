@@ -413,3 +413,16 @@ def test_sealed_log_cli_list_and_infra_failure(split, tmp_path, capsys):
         pass
     assert sealed.main(["list", "--split", "humanoid_v1", "--log", str(log), "--state", "done"]) == 0
     assert "starts=2" in capsys.readouterr().out
+
+
+def test_tracker_trainer_guard_admits_a_sealed_body_only_on_an_adaptation_seed():
+    """D-147 (2026-10-04): the Warp trainer's own guard passes its env seed; before, it passed none and refused even the pre-registered
+    Level-1 adaptation (seed 1000000) of n1."""
+    from types import SimpleNamespace as NS
+    import pytest
+    from rrp.core.sealed import SealedSplitError
+    from rrp.harness.train.tracker_recipes import assert_trainable
+    assert_trainable(NS(body=None, groups='[[["n1"], 1000]]', seed=1000000))
+    with pytest.raises(SealedSplitError):
+        assert_trainable(NS(body=None, groups='[[["n1"], 1000]]', seed=1))
+    assert_trainable(NS(body="t1", groups=None, seed=1))
