@@ -332,3 +332,30 @@ def test_end_when_and_recorder_hooks_are_registered():
     ep = rollout(lambda sd: s, H.HoldPolicy(), H.budget_task("pick_place", s.spec.env_id), [5], batch=1,
                  max_steps=50, hooks=hs)[0]
     assert ep.steps == 3 and ep.failure_reason == "three" and len(seen) == 3
+
+
+def test_rollout_frees_each_group_of_closed_envs():
+    """D-147 (2026-10-04): closed envs sit in reference cycles holding ~100 MB of MjData each; without a collection per group they
+    piled up (10 GB per 100-scene humanoid cell). With the automatic gc disabled, a group's envs must be gone when the next starts."""
+    import gc
+    import weakref
+    from rrp.harness.eval.evaluate import evaluate
+    from rrp.policies.base import make_policy
+    groups, dead_at_next = [], []                 # the policy may keep the previous group's envs until its next reset: check g-2
+
+    class H:
+        def on_reset(self, i, env, obs):
+            if i == 0:
+                if len(groups) >= 2:
+                    dead_at_next.append(all(r() is None for r in groups[-2]))
+                groups.append([])
+            groups[-1].append(weakref.ref(env))
+    was = gc.isenabled()
+    gc.disable()
+    try:
+        evaluate(make_policy("teacher:pick_place"), "mujoco/arm", "pick_place", "panda_pg2", [3000000, 3000001, 3000002, 3000003, 3000004, 3000005],
+                 batch=2, max_steps=3, hooks=[H()])
+    finally:
+        if was:
+            gc.enable()
+    assert dead_at_next and all(dead_at_next), dead_at_next

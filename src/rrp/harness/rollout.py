@@ -7,6 +7,7 @@ per-family loops (packet edits, perturbations, recorders, DAgger collection, vid
 """
 from __future__ import annotations
 
+import gc
 import time
 import traceback
 from dataclasses import asdict, dataclass, field
@@ -256,4 +257,9 @@ def rollout(make_env: Callable[[int], object], policy: Policy, task: TaskSpec, s
             episodes.append(ep)
         for e in envs:
             e.close()
+        # Closed envs sit in reference cycles (Session.runtime -> bound methods / clock closure -> Session, and others) whose
+        # ~100 MB of MjData per env is invisible to the gc trigger: they piled up until a rare full collection (D-147 10-04:
+        # ~0.42 GiB per group of 4 humanoid episodes, 10 GB per 100-scene cell). Free each group before the next.
+        envs = None
+        gc.collect()
     return episodes
