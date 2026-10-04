@@ -1,5 +1,5 @@
 # TEMPLATE (D-147 T9 re-plan 2, after the armdiv G3 FAIL made T9-on-v8div moot): the relation-factor experiment on the
-# COMPETENT arm pipeline, the v6 semfix lineage (archived recipe .old/dags/arm_lineage_v6.yaml -> arm_lineage_v2 -> this
+# COMPETENT arm pipeline, the v6 semfix lineage (archived recipe arm_lineage_v6 -> arm_lineage_v2 in the legacy dags index -> this
 # directory's arm_lineage.yaml; v6 semfix 425/480 in-distribution, D-134). PRE-REGISTERED in research/tracks/relations.md
 # "T9 v6 pre-registration". Instance: recipes/relations/relations_v6.yaml.
 # v6 deltas over arm_lineage.yaml, verbatim from the archived recipe: v6dart pack + dataset, DAgger labeller bcv6_direct1701
