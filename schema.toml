@@ -46,7 +46,8 @@ allow = ["docs/architecture.md", "docs/relations.md", "docs/strategy.md", "docs/
 allow = ["research/decisions.md", "research/registry.jsonl", "research/relations_catalog.md",
          "research/sources.lock.json", "research/sources.vlm.json", "research/tasks.json",
          "research/splits/*.json", "research/methods/*.md", "research/corrections/*.md",
-         "research/reports/evidence_matrix.md", "research/tracks/compute_enable/*.json", "research/readiness.md", "research/tracks/BRIEF.md", "research/tracks/*.md"]
+         "research/reports/evidence_matrix.md", "research/tracks/compute_enable/*.json", "research/readiness.md", "research/tracks/BRIEF.md", "research/tracks/*.md",
+         "research/prereg/*.json"]   # pre-registration node -> config-hash maps (D-147)
 # research/tracks/<name>.md: <name> must be a key of [tracks]
 
 [area.artifacts]
