@@ -264,7 +264,7 @@ def main(argv=None):
         return
     eps, metas, morph = [], [], None
     for i, sd in enumerate(seeds):
-        arr, meta, morph = collect_episode(a.body, sd, sig[i % len(sig)], a.tracker, a.max_steps, arc_only=a.arc_only,
+        arr, meta, morph = collect_episode(a.body, sd, sig[sd % len(sig)], a.tracker, a.max_steps, arc_only=a.arc_only,
                                         task=a.task, tracker_id=a.tracker_id)
         eps.append(arr)
         metas.append(meta)

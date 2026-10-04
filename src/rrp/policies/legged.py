@@ -596,7 +596,11 @@ class _LeggedPolicy:
         morph = LeggedMorph(s.model, s.binding, s.scenario.robots[0].robot_spec.spec_hash)
         self._bind(s, morph)
         self.env, self.ad = s, self.adapter_cls(self.ctl, s, morph)
-        self.ad.ticks = s.settle_ticks
+        # clock origin = the collector's (legged_latent_collect.collect_episode): direct-control demos (legs / wholebody) start
+        # the gait clock at 0 after the reset settle; base_velocity demos count the settle ticks (D-147 10-04: eval started
+        # direct control at settle_ticks = 15, a 0.375-cycle phase offset -> every learned humanoid cell fell)
+        from rrp.envs.mujoco.legged import DIRECT_CONTROLS
+        self.ad.ticks = 0 if s.control in DIRECT_CONTROLS else s.settle_ticks
         self.ad.armed = True
 
     def _terrain_or_raise(self, obs):

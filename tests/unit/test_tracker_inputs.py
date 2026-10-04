@@ -319,3 +319,33 @@ def test_deploy_guard_still_rejects_the_ground_truth_terrain_field():
         RB.assert_deployable(resolve(["preset:legged", {"name": "leg.foothold", "source": "gt"}]))
     with pytest.raises(FactorError, match="not in"):                              # over_cell reads given scan cells only: no gt path exists
         resolve(["preset:legged", {"name": "edge.over_cell", "source": "gt"}])
+
+
+def test_collector_dart_sigma_follows_the_seed_not_the_shard_position(tmp_path, monkeypatch):
+    """D-147 (2026-10-04): the humanoid pipeline writes one seed per shard, so `sig[i % len]` gave sigma 0 to every episode (300/300 of
+    h_walk / h_turn): the training data had no off-nominal states. The cycle now follows the seed."""
+    from rrp.harness.data import legged_latent_collect as LC
+    seen = []
+
+    class Stop(Exception):
+        pass
+
+    def fake(body, sd, sigma, *a, **k):
+        seen.append((sd, sigma))
+        raise Stop
+    monkeypatch.setattr(LC, "collect_episode", fake)
+    for sd in (4, 5, 6, 7):
+        with pytest.raises(Stop):
+            LC.main(["--body", "t1", "--seeds", f"{sd}-{sd}", "--task", "h_walk", "--out", str(tmp_path / str(sd))])
+    assert seen == [(4, 0.0), (5, 0.1), (6, 0.2), (7, 0.3)]
+
+
+def test_eval_clock_origin_matches_the_collector_for_direct_control():
+    """D-147 (2026-10-04): direct-control demos start the gait clock at 0 after the reset settle (collect_episode: rt.ticks = 0); eval
+    started it at settle_ticks (15 = 0.375 cycle at a 0.8 s period) and every learned humanoid cell fell. Source check of both sides."""
+    import inspect
+    from rrp.harness.data import legged_latent_collect as LC
+    from rrp.policies import legged as PL
+    src = inspect.getsource(PL._LeggedPolicy.reset)
+    assert "self.ad.ticks = 0 if s.control in DIRECT_CONTROLS else s.settle_ticks" in src
+    assert "rt.ticks = 0" in inspect.getsource(LC.collect_episode)
