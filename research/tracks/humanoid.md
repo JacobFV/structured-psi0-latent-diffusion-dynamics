@@ -801,3 +801,10 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
   Consequence: with T3 zero-shot failing on every planned sealed body, there are NO sealed transfer cells for h_walk / h_turn in D-147.
 - 2026-10-03 T4 h_walk: `collect-tgt_s0` of the shed 06:26 attempt and the 09:19 retry mixed in one dir (manifest missing a shard) -> set aside
   as `collect-tgt_s0.PARTIAL_killed_20261003`, re-collected fresh (09:57). Audit tool: legged reps load through `load_legged_rep` (factor stamps).
+- 2026-10-04 **T5 / LOO eval blocker (needs a decision):** `preset:legged` contains the terrain factors `edge.over_cell` and `leg.foothold`, so its
+  latent and BC policies require the env capability `terrain_scan` (`policies/legged.needs_terrain`). Under whole-body control (h_walk, h_turn) the
+  D-146 round-3 contract gives the session a public sensor only when the body tracker's actor declares it, and `<body>:ub_v1` declares none; an
+  explicit `terrain_scan=True` is refused there. The collector recorded the scan anyway (its own `TerrainScan`), so the preset:legged nets trained
+  on it. Result: every preset:legged eval cell is `Incompatible: needs env capability 'terrain_scan'`; the legged-none arm is unaffected. Peer
+  preset:legged coordinators run training nodes only until decided. Options: (A) let a policy-requested public scan exist under wholebody (the
+  collector's sensor model; parity with training), (B) a terrain-free preset for flat tasks (changes the pre-registered preset).
