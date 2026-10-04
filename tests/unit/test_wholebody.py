@@ -109,10 +109,11 @@ def test_wholebody_action_spaces(tmp_path, registry):
 
 
 @pytest.mark.menagerie
-def test_wholebody_needs_an_upper_group_and_no_scan(tmp_path, registry):
+def test_wholebody_needs_an_upper_group_and_no_ring(tmp_path, registry):
     from rrp.envs.mujoco.legged import LeggedSession, build_waypoint_contact
-    with pytest.raises(ValueError, match="terrain_scan"):
-        _session(tmp_path, registry, terrain_scan=True)
+    # D-146 amendment (2026-10-04): the public terrain scan may be requested under wholebody (test_tracker_inputs); the ring stays refused
+    with pytest.raises(ValueError, match="range_ring"):
+        _session(tmp_path, registry, range_ring=True)
     with pytest.raises(ValueError, match="control"):
         _session(tmp_path, registry, control="nope")
     with pytest.raises(ValueError, match="upper"):          # a body without held actuators has no upper group
