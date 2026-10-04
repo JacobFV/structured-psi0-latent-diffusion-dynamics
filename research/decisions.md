@@ -1942,3 +1942,20 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
 - Excluded: sealed `target_eval-*` outputs, target demo packs, DAgger buffers, `*_last.pt` resume states, armdiag stepA/adapt dev
   diagnostics, anything from the running campaign. MANIFEST.tsv gained source / run_id / config_hash / recipe columns; README table updated.
 - Verified: all 1,539 manifest rows in the repo tree with equal size and LFS sha256; two spot downloads sha256-equal.
+
+### D-147 addendum 2026-10-04 (T7 Ψ₀ owner, under the owner's standing autonomy rule of 2026-10-04): SEALED test PRE-REGISTERED before the Handover result
+Decision (mine, not waiting on the lead/owner): Ψ₀ step 2 gets ONE sealed test, defined now, while the HandoverTeleop step-2 result is unknown and
+before any level-2 rollout exists.
+- Cells: SIMPLE `dr-level-2` eval configs (strongest domain randomisation; never used for training, tuning, diagnosis or any eval so far) for
+  all three tasks (TabletopGraspMP, BendPickMP, HandoverTeleop) x three arms (released = UPSTREAM weights, not ours; direct; structured), the
+  frozen seed-0 checkpoints of the step-2 DAGs. Same 10 eval configs x 2 repeats, batch 2, budget and success predicate as L0. Template nodes
+  `seal_l2_{released,direct,structured}` (recipes/templates/psi0_step2.yaml, `retries: 0`).
+- Once each: a cell that has written rollout rows is final whatever happens next. Only an infrastructure failure BEFORE any row is written
+  (admission timeout, OOM/thermal kill at load) may be relaunched unchanged, recorded here. No re-run with any changed setting, no extra seeds.
+- A task whose packet-use gate fails has no structured cell (reported as such). Handover's three cells run inside its own DAG; tabletop and
+  BendPickMP cells run after the Handover DAG, one GPU lease at a time.
+- Reading rule (fixed now): primary, per task, structured vs direct paired by (config, repeat), exact McNemar; "structure helps at L2" only if
+  structured > direct with p < 0.05. Secondary: pooled over the tasks that have both arms (stratified by task; exact McNemar on all pairs) at L0 and
+  at L2, and each arm's L0 -> L2 drop with Wilson CIs (tests the covariate-shift reading of the tabletop diagnosis: if structured's deficit is
+  off-manifold fragility, its L0 -> L2 drop should exceed direct's). "No worse" is never claimed from overlapping CIs.
+- After this, T7 step 2 is closed for seed 0: any further structured-arm change is a new decision with its own pre-registration.

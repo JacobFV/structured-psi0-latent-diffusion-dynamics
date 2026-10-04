@@ -197,6 +197,8 @@ def eval_r2(ctx: StageContext) -> dict:
     out = ctx.out / f"{arm}.jsonl"
     argv = ["-m", "rrp.cli", "eval", "--policy", f"{kind}={json.dumps(kw)}", "--env", "simple", "--task", f"simple/{_task(ctx)}",
             "--body", "g1_simple", "--seeds", str(o.get("seeds", "0:10")), "--batch", str(o.get("batch", 1)), "--out", str(out)]
+    if int(o.get("level", 0)):          # SIMPLE domain-randomisation level of the eval configs (dr-level-<n>); 0 = the default L0
+        argv += ["--env-kw", f"level={int(o['level'])}"]
     ctx.run(argv, log_to=ctx.out / "eval.log")
     metrics = {}
     sp = out.with_suffix(".summary.json")

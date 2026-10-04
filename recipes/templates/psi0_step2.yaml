@@ -106,3 +106,28 @@ nodes:
     config:
       inputs: {checkpoint: '@structured:final.pt', stage_a: '@stage_a:stage_a.pt'}
       options: {task: '{task}', arm: structured, seeds: '0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9', batch: 2}
+  # SEALED (D-147 T7 addendum 2026-10-04, pre-registered before the Handover result): SIMPLE dr-level-2 eval configs (never used in training,
+  # tuning or any earlier eval), same 10 configs x 2, batch 2, ONE attempt each (retries 0; never re-run with --retry-failed).
+  seal_l2_released:
+    stage: eval_r2
+    tag: seal-l2-released
+    retries: 0
+    resources: {cpu: 3, mem: 36G, gpu: true, gpu_mem: 26G, max_seconds: 21600}
+    config:
+      options: {task: '{task}', arm: released, level: 2, seeds: '0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9', batch: 2}
+  seal_l2_direct:
+    stage: eval_r2
+    tag: seal-l2-direct
+    retries: 0
+    resources: {cpu: 3, mem: 36G, gpu: true, gpu_mem: 26G, max_seconds: 21600}
+    config:
+      inputs: {checkpoint: '@direct:final.pt'}
+      options: {task: '{task}', arm: direct, level: 2, seeds: '0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9', batch: 2}
+  seal_l2_structured:
+    stage: eval_r2
+    tag: seal-l2-structured
+    retries: 0
+    resources: {cpu: 3, mem: 36G, gpu: true, gpu_mem: 26G, max_seconds: 21600}
+    config:
+      inputs: {checkpoint: '@structured:final.pt', stage_a: '@stage_a:stage_a.pt'}
+      options: {task: '{task}', arm: structured, level: 2, seeds: '0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9', batch: 2}

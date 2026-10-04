@@ -506,3 +506,18 @@ def test_eval_released_stamps_upstream_source(tmp_path, monkeypatch):
     assert res["source"].startswith("upstream:psi0-released/") and res["metrics"]["success"] == "1/1"
     ctx.opts = dict(arm="direct"); ctx.inp = lambda k: "ckpt.pt"
     assert "source" not in P.eval_r2(ctx)            # our arms keep the stage default (learned:<run>)
+
+
+def test_eval_r2_level_option_reaches_the_env(tmp_path, monkeypatch):
+    """options.level -> `rrp eval --env-kw level=<n>` (SIMPLE dr-level-<n> eval configs); absent / 0 adds nothing."""
+    import json as _json
+    from types import SimpleNamespace
+    from rrp.harness.pipelines import psi0 as P
+    seen = []
+    def run(argv, log_to=None):
+        seen.append(list(argv)); (tmp_path / "released.summary.json").write_text(_json.dumps(dict(successes=0, attempted=1)))
+    monkeypatch.setattr(P, "_task", lambda c: "G1WholebodyBendPickMP-v0")
+    for lv in (None, 2):
+        o = dict(arm="released") if lv is None else dict(arm="released", level=lv)
+        P.eval_r2(SimpleNamespace(opts=o, out=tmp_path, root=tmp_path, run=run))
+    assert "--env-kw" not in seen[0] and seen[1][seen[1].index("--env-kw") + 1] == "level=2"
