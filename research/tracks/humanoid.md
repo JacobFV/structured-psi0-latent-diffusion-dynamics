@@ -845,3 +845,7 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
   proposed decision sent to the lead. Evidence: `artifacts/runs/humanoid/sealed-adapt-n1/` (peer store).
 - 2026-10-04 11:54 toddlerbot_2xm adaptation moved host -> peer (lead's condition met: n1 freed its slot, host CPU limit 0.8); it never ran
   (no run dir anywhere); host ledger renamed, one live run.
+- 2026-10-04 12:21 **toddlerbot_2xm adapted check (pre-registered)**: Level-1 fine-tune (1e7 samples, seed 1000000; ep_len 17 -> 63 control
+  steps) -> h_walk **8/20**, h_turn **9/20** (gate 16/20) -> **blocked_external**, no sealed cells; the conditional recipe edit is not needed.
+  Sealed-body summary after adaptation: n1 h_turn PASS (16/20) only; n1 h_walk, toddlerbot_2xc (0/20, 0/20), toddlerbot_2xm (8/20, 9/20) and
+  berkeley (n/a) excluded.
