@@ -1,0 +1,13 @@
+# T5 h_walk `legged-none` control arm (transfer_h_walk_legged_none.yaml) on the HOST GPU (D-147: host open, one host slot reserved for humanoid),
+# so the two relation presets train in parallel. Same nodes / options / outputs; own DAG name and ledger. Inputs (collect + pack, 129 MB) copied
+# from the peer store, sha256 tree equal (10-03); the shared collect / pack ledger entries are adopted (identical config hash and output dir).
+extends: transfer_h_walk_legged_none.yaml
+name: humanoid_transfer_h_walk_legged_none_host
+schema: dag-1
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: h_walk
+bodies: humanoid_pool_v1
+factors: []
+defaults: {placement: host}
