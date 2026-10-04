@@ -71,3 +71,12 @@ def test_factor_sets_differ_from_none_only_in_the_factor_set(plan):
         flow = n.rc.stage in ("train_flow", "flow_ft")
         assert flow == ("params.policy.factors" in a or any(k.startswith("params.policy.factors") for k in a))
         assert ("curriculum" in n.rc.params) == (n.name in ("F0", "Fft"))
+
+
+def test_host_instance_is_placement_only(plan):
+    host = plan_dag(load_dag(ROOT / "recipes/relations/relations_v6_host.yaml"), source="t")
+    assert set(host.nodes) == set(plan.nodes)
+    for nid, n in plan.nodes.items():
+        h = host.nodes[nid]
+        assert (h.rc.config_hash(), h.rc.run_id, h.deps, h.resources.__dict__) == (n.rc.config_hash(), n.rc.run_id, n.deps, n.resources.__dict__)
+        assert (n.placement, h.placement) == ("peer", "host")

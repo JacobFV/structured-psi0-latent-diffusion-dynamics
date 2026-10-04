@@ -1,0 +1,14 @@
+# T9 v6 nodes placed on the HOST GPU (lead, 2026-10-04: placement-only amendment; D-147 addendum). Same nodes, options, config
+# hashes and outputs as relations_v6.yaml (placement is not in any config hash); GPU nodes race peer vs host, one T9 GPU lease
+# at a time across both (~/work/rrp-data/campaign/relations-b/t9_race.py); host outputs are copied to the peer store (sha256),
+# where the peer instance adopts them. CPU simulation nodes run on the peer only. Host broker caps apply (declarations as peer).
+extends: relations_v6.yaml
+name: relations_v6_host
+schema: dag-1
+track: relations
+policy: latent
+env: mujoco/arm
+task: pick_place
+bodies: primary_v1
+factors: [preset:arm, preset:geo, preset:ix, preset:task]
+defaults: {placement: host}

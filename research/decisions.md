@@ -1978,3 +1978,16 @@ further T8 result:
    pointer_copy arms (eng.v2 free, eng.v2 copy, BC copy) on sealed_id and sealed_heldout, with the same SealedSplit guard; that instance is
    written and dry-run before any sealed node starts. The pre-registered decision rules (P-SEEDS, P-UI, P-COPY, P-KEY) are applied to the
    sealed numbers as written; nothing is re-run after a sealed result.
+
+
+### D-147 addendum 2026-10-04 (T9 owner, lead decision): T9 v6 host placement (placement-only amendment)
+- Why: the T9 v6 GPU nodes waited ~15 h for the one shared non-humanoid peer GPU slot (3/8 F0 done; every failure an admission timeout);
+  the host GPU has free capacity (humanoid T5 on the host on hold).
+- What: thin instance `recipes/relations/relations_v6_host.yaml` (`defaults: {placement: host}`); test proves identical node set, config
+  hashes, run ids, deps and resources. Each GPU node RACES peer vs host (`~/work/rrp-data/campaign/relations-b/t9_race.py`, after the T8
+  pattern): the first run-dag that launches a lease wins, the waiting loser is cancelled, a same-poll double launch is stopped before it
+  trains; ONE T9 GPU lease at a time across both machines. Host-won outputs are copied to the peer store and sha256-verified; the peer
+  instance adopts them. CPU simulation nodes (relgen, collections, evals) stay on the peer. Host inputs: the v6dart pack and the
+  recorded arm6-semfix prefix copied to the host (sha256 tree equal), plus each node's completed dependency closure before its race (so the
+  host run-dag never re-runs a dependency).
+- Unchanged: recipe, config hashes, data, seeds, criterion, budget (80 GPU lease-hours counted across both machines), resumable-stop rule.
