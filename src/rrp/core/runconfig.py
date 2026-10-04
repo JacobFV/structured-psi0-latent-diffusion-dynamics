@@ -220,6 +220,16 @@ Family = Annotated[str, AfterValidator(ensure_family)]
 Stage = Annotated[str, AfterValidator(ensure_stage)]
 
 
+def _drop_labels(x):
+    """Report labels are not run config: a `caveats` list (printed on the tables, D-147) never enters the config hash, so labelling a
+    finished or running node does not make its ledger refuse the DAG."""
+    if isinstance(x, dict):
+        return {k: _drop_labels(v) for k, v in x.items() if k != "caveats"}
+    if isinstance(x, list):
+        return [_drop_labels(v) for v in x]
+    return x
+
+
 class RunConfigError(ValueError):
     pass
 
@@ -321,7 +331,7 @@ class RunConfig(Strict):
     def config_hash(self) -> str:
         d = self.model_dump(mode="json")
         d.pop("note", None)
-        return json_digest(d)
+        return json_digest(_drop_labels(d))
 
     def to_native(self, index: "RunIndex | None" = None) -> dict:
         """The dict the stage function reads: params + resolved inputs + flags at their native keys + derived out_dir/name."""

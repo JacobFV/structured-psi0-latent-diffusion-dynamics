@@ -460,6 +460,10 @@ def build_policy(cfg: dict, cell: dict, root: Path):
             if k in kw:
                 kw[k] = str(root / kw[k])
         pol = make_policy(fmt(m["policy"], **kv), **kw)
+    if "terrain_scan" in getattr(getattr(pol.info, "requires", None), "env_capabilities", ()):
+        # D-146 amendment (option A, 2026-10-04): a policy whose factors read terrain cells gets the env's PUBLIC scan sensor model
+        # (`0:terrain_scan`, the collector's TerrainScan), never the ground truth; a policy without terrain factors is served as before
+        env_kw = dict(env_kw, terrain_scan=True)
     actual = str(getattr(pol.info.source, "value", pol.info.source))
     if actual != m["source"]:
         raise ValueError(f"method {m['name']}: declared source {m['source']!r} but the policy is {actual!r}")

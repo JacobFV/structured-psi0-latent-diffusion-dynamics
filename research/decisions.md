@@ -1877,8 +1877,11 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
 - Tests (red/green): `test_policy_requested_scan_under_wholebody_is_the_sensor_model_and_ticks_every_step` (red before the change),
   `test_latent_policy_refuses_terrain_without_the_declared_public_channel`, `test_deploy_guard_still_rejects_the_ground_truth_terrain_field`
   (`leg.foothold` on its gt source -> `PrivilegedInput`; `edge.over_cell` has no gt source at all).
-- Configs: `transfer_h_{walk,turn}.yaml`, `transfer_loo_h_{walk,turn}.yaml` set `env_kw: {tracker: '<body>:ub_v1', terrain_scan: true}` for every
-  method (a method without terrain factors ignores the channel).
+- Serving rule: `humanoid_eval.build_policy` sets `terrain_scan=True` iff the built policy declares the env capability `terrain_scan`
+  (preset:legged factors). legged-none / bc / teacher cells are served exactly as before, so their configs and config hashes (incl. the running
+  host legged-none evals) are unchanged. Test `test_build_policy_serves_the_public_scan_only_to_a_policy_that_needs_terrain`.
+- Table caveats are report labels: `RunConfig.config_hash` ignores `caveats` keys (like `note`), so labelling a running / finished node does not
+  make its ledger refuse the DAG.
 - **Fair-input answer (condition 3): NO.** The legged-none arm's net has no terrain / limb / foot tokens (`nets/legged_latent.py` Context: only a
   relational factor list extends the context to [glob | joints | limbs | feet | terrain cells]); it never received the scan in training or eval.
   Every T5 / LOO table therefore carries the labelled caveat (config `caveats`, printed first in `tables.md` and stored in `tables.json`):

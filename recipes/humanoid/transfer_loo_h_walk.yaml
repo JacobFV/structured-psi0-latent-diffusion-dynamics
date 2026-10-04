@@ -15,8 +15,8 @@ factors: []
 vars: {task: h_walk}
 lists:
   transfer:
-    env_kw: {tracker: '<body>:ub_v1', terrain_scan: true}    # D-147 (10-04): the collection body tracker + the PUBLIC terrain scan (D-146 amendment, option A: the sensor model the collector recorded; the legged preset reads it)
-    caveats: ['FAIR-INPUT CAVEAT (D-147 10-04): preset:legged policies read the public terrain scan (cells) and limb / foot tokens; legged-none and the BC legged-none arm read neither, so legged vs legged-none mixes the relation factors with extra input; proposed control: legged-none + scan (not run)']
+    env_kw: {tracker: '<body>:ub_v1'}    # D-147 (10-04): the collection body tracker; a policy whose factors read terrain gets the PUBLIC scan (D-146 amendment, option A; humanoid_eval.build_policy)
+    caveats: ['FAIR-INPUT CAVEAT (D-147 10-04): preset:legged policies read the public terrain scan (cells) and limb / foot tokens; legged-none policies read neither, so legged vs legged-none mixes the relation factors with extra input; proposed control: legged-none + scan (not run)']
     name: humanoid_transfer_loo_h_walk
     task: h_walk
     latent_kw: {upper: true}

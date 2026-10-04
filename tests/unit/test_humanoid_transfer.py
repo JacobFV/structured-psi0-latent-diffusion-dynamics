@@ -181,3 +181,19 @@ def test_config_caveats_are_printed_before_any_number():
     t = dict(name="x", task="h_walk", coverage={}, not_done=[], accounting_violations=[], tables={}, caveats=["FAIR-INPUT CAVEAT: legged reads the scan"])
     md = HE.tables_markdown(t)
     assert md.index("FAIR-INPUT CAVEAT") < md.index("coverage")
+
+
+def test_build_policy_serves_the_public_scan_only_to_a_policy_that_needs_terrain(monkeypatch, tmp_path):
+    """D-146 amendment (option A): the eval env gets terrain_scan=True iff the policy declares the env capability `terrain_scan`
+    (preset:legged factors); legged-none / bc are served exactly as before (their config and hash do not change)."""
+    from types import SimpleNamespace as NS
+    from rrp.harness.eval import humanoid_eval as HE
+    import rrp.policies.base as PB
+    cfg = dict(env_kw={"tracker": "<body>:ub_v1"}, methods={"learned": [dict(name="m", kind="latent", policy="legged_latent", source="learned")]})
+    cell = dict(method="m", body="t1", task="h_walk", budget=5, train_seed=0)
+    for caps, want in ((frozenset({"terrain_scan"}), True), (frozenset(), None)):
+        pol = NS(info=NS(source="learned", requires=NS(env_capabilities=caps)))
+        monkeypatch.setattr(PB, "make_policy", lambda *a, **k: pol)
+        monkeypatch.setattr(HE, "method_of", lambda c, n: c["methods"]["learned"][0])
+        _, kw = HE.build_policy(cfg, cell, tmp_path)
+        assert kw.get("terrain_scan") == want and kw["tracker"] == "t1:ub_v1"
