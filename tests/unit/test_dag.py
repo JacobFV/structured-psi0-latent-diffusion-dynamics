@@ -350,3 +350,36 @@ def test_caveat_goes_to_notes_and_ledger_without_changing_hashes(tmp_path):
     ex = Executor(b, Ledger(tmp_path / "l.json"), FakeRunner(tmp_path), poll_s=0, sleep=lambda s: None, log=lambda m: None, pins=stage_versions)
     ex.run()
     assert json.loads((tmp_path / "l.json").read_text())["caveat"] == "gate exception X"
+
+
+def test_admission_clock_does_not_tick_while_held_by_own_gpu_cap(tmp_path, monkeypatch):
+    """D-147 T7 (bendpick 10-04): two GPU nodes, max_parallel_gpu 1. One is refused by the broker once, then the other
+    is admitted and runs longer than admission_timeout_s; the first must not fail on admission time spent waiting
+    behind our own running node."""
+    import rrp.harness.dag as D
+    now = [0.0]
+    monkeypatch.setattr(D.time, "time", lambda: now[0])
+    toy = TOY.replace("defaults: {placement: host, resources: {cpu: 1, mem: 1G}}",
+                      "defaults: {placement: host, resources: {cpu: 1, mem: 1G, gpu: true, gpu_mem: 1G}}")
+    plan = plan_dag(loads(toy))
+
+    class R(FakeRunner):
+        """Broker refuses b once and d twice (d: once before b is admitted, once after b finished) -- the 10-04 sequence."""
+        def __init__(s, tmp):
+            super().__init__(tmp); s.left = {"b@sem.s1": 1, "d@sem.s1": 2}; s.polls = 0
+
+        def launch(s, node):
+            if s.left.get(node.id, 0) > 0:
+                s.left[node.id] -= 1
+                raise D.AdmissionRefused("gpu owners 3 > slots 2")
+            return super().launch(node)
+
+        def poll(s, h):
+            s.polls += 1
+            now[0] += 1000.0                # every poll of a running node: +1000 s (the long probes_gen of 10-04)
+            return None if s.polls % 5 else s.jobs[h["lease_id"]]
+
+    ex = Executor(plan, Ledger(tmp_path / "ledger.json"), R(tmp_path), poll_s=0, sleep=lambda s: None, log=lambda m: None,
+                  pins=stage_versions, max_parallel_gpu=1, admission_timeout_s=3000.0)
+    s = ex.run()
+    assert s["completed"] == 4 and s["failed"] == 0, s

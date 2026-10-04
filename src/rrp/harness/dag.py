@@ -610,7 +610,8 @@ class Executor:
                 if len(running) >= self.max_parallel:
                     break
                 if not self._fits(nid, running):
-                    continue
+                    waiting_since.pop(nid, None)   # held by OUR caps (e.g. max_parallel_gpu): not a broker refusal, the
+                    continue                       # admission clock restarts when the node may try again
                 if self._adopt_existing(nid):
                     continue
                 try:
