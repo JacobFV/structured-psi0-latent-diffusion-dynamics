@@ -23,7 +23,7 @@ nodes:
     stage: adapt_ppo
     tag: ft-n10000000
     config:
-      inputs: {init: 'artifacts/trackers/shared/morph_v2_ub/actor.pt'}
+      inputs: {init: 'runs/humanoid/trk-shared_morph_ub/train_tracker_s1:actor.pt'}   # = shared:morph_v2_ub (same sha256 6fd9c187e574a151)
       options:
         adapt: {task: h_walk, body: '{body}', budget: 10000000, mode: finetune}
         recipe: shared_morph_ub
