@@ -29,3 +29,9 @@ artifacts/video/raw/
 viz/data/
 viz/room/node_modules/
 viz/room/dist/
+# run data never enters git (public repo; D-147 2026-10-04): per-episode rollouts, arrays, videos, checkpoints under run dirs.
+# Summaries and manifests (results.jsonl, tables.*, pipeline_manifest.json, run_context.json, *_config.json) stay trackable.
+artifacts/runs/**/episodes/
+artifacts/runs/**/*.npz
+artifacts/runs/**/*.mp4
+artifacts/runs/**/*.pt

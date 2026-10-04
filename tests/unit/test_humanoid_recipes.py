@@ -493,3 +493,14 @@ def test_loo_legged_tokens_control_matches_semfix_none_but_the_preset(task):
             n = base.nodes[nid.replace("semfix_tokens", "semfix_none")]
             assert norm(t.rc.params) == norm(n.rc.params) and norm(t.rc.inputs) == norm(n.rc.inputs), nid
     assert tok.nodes["rep_t1@semfix_tokens.s0"].rc.params["latent"]["factors"][-1] == "preset:legged-tokens"
+
+
+def test_no_humanoid_run_data_is_tracked():
+    """Public repo (D-147 2026-10-04): under artifacts/runs/humanoid only summaries / manifests may be tracked; per-episode rollouts,
+    arrays, videos, checkpoints and any file > 1 MB are data (.gitignore rules keep them out)."""
+    import subprocess
+    root = HUM.parents[1]
+    files = subprocess.run(["git", "ls-files", "artifacts/runs/humanoid"], cwd=root, capture_output=True, text=True).stdout.split()
+    bad = [f for f in files if "/episodes/" in f or f.endswith((".npz", ".mp4", ".pt", ".npy"))
+           or ((root / f).exists() and (root / f).stat().st_size > 1_000_000)]
+    assert not bad, bad[:10]
