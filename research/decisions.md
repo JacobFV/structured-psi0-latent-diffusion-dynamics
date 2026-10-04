@@ -1911,7 +1911,8 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
   | transfer_loo_h_turn_legged_tokens.yaml | 17 | f862297c3403af9d |
 - Lowest priority (lead constraint 2): labels `hlt_` (outside the `reserve:humanoid` prefixes, so never the reserved humanoid GPU slot) and
   `run-dag --yield-to-waiting` (new): a node launches only while no other coordinator's node waits for admission on the same placement
-  (waiting nodes now write markers; test `test_yield_to_waiting_defers_to_another_coordinators_waiting_node`); `--max-parallel-gpu 1`, peer.
+  (waiting nodes now write markers; test `test_yield_to_waiting_defers_to_another_coordinators_waiting_node`); peer; the arm's DAGs share the
+  humanoid budget dir, so their caps (4 GPU / 24 CPU / 96 GiB) are summed with every running humanoid node: they only use what is left.
   Residual: a control job already running is not pre-empted when a priority node becomes ready later (bounded by one GPU slot).
 - Reporting: tables show three columns legged / none+scan (`legged-tokens`) / none, same cells, same CIs; the claim "relation factors help"
   needs legged > none+scan; legged ~ none+scan > none would mean the gain is the extra input.

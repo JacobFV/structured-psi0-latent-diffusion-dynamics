@@ -814,3 +814,7 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
 - 2026-10-04 06:10 T5 peer coordinators restarted on code 79e9ff6f (`/dev/shm/rrp-brandonin/wt/camp-hum-18`) WITH their evals; h_turn
   `eval@nosem.s1` (21 error cells from the scan blocker) reset. T4 teacher-quality re-gate of h_reach / h_squat_pick / h_place / h_loco_pick /
   h_carry (after TEACHERS READY f3511008; same rule, same seeds) queued on the host (`teacher_quality_host.yaml`) behind the sealed n1 adaptation.
+- 2026-10-04 06:45 **legged-none+scan control** (lead-approved; pre-registered 98adeb88, preset `legged-tokens`): T5 h_walk / h_turn arms launched
+  on the peer at LOWEST priority (`--yield-to-waiting`, `hlt_` labels outside the humanoid GPU reservation, shared humanoid budget); shared
+  collect / pack adopted (same runs). LOO controls start when each main LOO starts (`camp-hum-ctl-tokens-loo-*`). Tables: legged / none+scan / none;
+  the fair-input caveat stays until none+scan lands.
