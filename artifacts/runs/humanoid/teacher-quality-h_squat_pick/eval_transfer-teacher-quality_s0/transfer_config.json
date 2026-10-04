@@ -1,0 +1,34 @@
+{
+ "bodies": [
+  "t1",
+  "g1",
+  "h1"
+ ],
+ "env": "mujoco/legged",
+ "latent_kw": {
+  "upper": true
+ },
+ "levels": {},
+ "methods": {
+  "reference": [
+   {
+    "env_kw": {
+     "tracker": "<body>:ub_v1"
+    },
+    "kind": "teacher",
+    "level": 0,
+    "name": "teacher",
+    "policy": "teacher:h_squat_pick",
+    "source": "scripted_teacher"
+   }
+  ]
+ },
+ "name": "humanoid_teacher_quality_h_squat_pick",
+ "pack": [],
+ "results_glob": [],
+ "scenes": 20,
+ "task": "h_squat_pick",
+ "train_seeds": [
+  0
+ ]
+}

@@ -1,0 +1,18 @@
+# T4 teacher-quality RE-GATE on the PEER CPU (lead 2026-10-04: used only if the host stays blocked by the owner's non-project work after the
+# first requeue round of teacher_quality_host.yaml). Same nodes / scenes / seeds / rule as teacher_quality.yaml; OWN lineage
+# (`teacher-quality-rerun-<task>`), labels and ledger, so the round-1 evidence (`teacher-quality-<task>`, peer store) is never overwritten.
+# Labels `htq_` (humanoid prefix, the T5 / LOO priority; no yield, no precedence). Run with
+# --only '^check@h_(reach|squat_pick|place|loco_pick|carry)$' minus the tasks the host already finished.
+extends: teacher_quality.yaml
+name: humanoid_teacher_quality_rerun_peer
+schema: dag-1
+track: humanoid
+policy: teacher
+env: mujoco/legged
+task: h_walk
+bodies: humanoid_pool_v1
+factors: []
+lineage: 'teacher-quality-rerun-{task}'
+label_prefix: 'htq_r2_{task}'
+global_label_prefix: 'htq_r2'
+defaults: {placement: peer}
