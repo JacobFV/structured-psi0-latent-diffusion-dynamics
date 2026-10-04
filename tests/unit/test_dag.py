@@ -352,7 +352,8 @@ def test_caveat_goes_to_notes_and_ledger_without_changing_hashes(tmp_path):
     assert json.loads((tmp_path / "l.json").read_text())["caveat"] == "gate exception X"
 
 
-def test_admission_clock_does_not_tick_while_held_by_own_gpu_cap(tmp_path, monkeypatch):
+@pytest.mark.parametrize("cap", ["gpu", "cpu", "mem"])
+def test_admission_clock_does_not_tick_while_held_by_own_gpu_cap(tmp_path, monkeypatch, cap):
     """D-147 T7 (bendpick 10-04): two GPU nodes, max_parallel_gpu 1. One is refused by the broker once, then the other
     is admitted and runs longer than admission_timeout_s; the first must not fail on admission time spent waiting
     behind our own running node."""
@@ -379,7 +380,8 @@ def test_admission_clock_does_not_tick_while_held_by_own_gpu_cap(tmp_path, monke
             now[0] += 1000.0                # every poll of a running node: +1000 s (the long probes_gen of 10-04)
             return None if s.polls % 5 else s.jobs[h["lease_id"]]
 
+    caps = dict(gpu=dict(max_parallel_gpu=1), cpu=dict(max_cpu=1.5), mem=dict(max_mem_gib=3.5))[cap]   # each holds a 2nd node back (D-147)
     ex = Executor(plan, Ledger(tmp_path / "ledger.json"), R(tmp_path), poll_s=0, sleep=lambda s: None, log=lambda m: None,
-                  pins=stage_versions, max_parallel_gpu=1, admission_timeout_s=3000.0)
+                  pins=stage_versions, admission_timeout_s=3000.0, **caps)
     s = ex.run()
     assert s["completed"] == 4 and s["failed"] == 0, s

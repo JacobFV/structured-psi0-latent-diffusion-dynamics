@@ -49,6 +49,10 @@ are BASELINES ONLY. Integration branch: `main`.
   `ops/bin/peer_run.sh --gpu --gpu-mem 12G --cpu 4 --mem 24G --label <track>_x --max-seconds N [--detach] -- PY -m rrp.cli ...`.
   Never sync into a dir whose jobs are running. Name outputs `artifacts/runs/<track>_...`; never overwrite another track's run.
   `ops/bin/peer_sync.sh push` now enforces this (D-096): it refuses without RRP_PEER_REPO, refuses the shared `repo` dir unless RRP_ALLOW_SHARED_REPO=1, and refuses a dir that running jobs use as their cwd.
+- NEVER move, rename, archive or delete a run directory without first checking on THAT host that no live process has files open or
+  its cwd under it (`lsof +D <dir>` / `fuser -vm <dir>`, plus `rrp ops status` for an active lease writing there). A dead or stopped
+  coordinator does NOT mean a dead job: leased jobs are detached and keep writing (D-147, 2026-10-04: a moved n1 run dir crashed a live
+  adaptation at iteration ~140).
 - NEVER run `rrp ops stop` without `--lease <your lease id>` (2026-09-21 incident: an unscoped stop killed every peer job).
   Launch loops must check exit codes and be bounded (D-061).
 - No paid compute/API calls, sudo/global upgrades, network reconfiguration or physical robot commands. Public listeners (e.g. the viz room on a LAN interface) are allowed (owner, D-132); keep them read-only.
