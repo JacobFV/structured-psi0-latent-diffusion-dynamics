@@ -1916,3 +1916,12 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
   Residual: a control job already running is not pre-empted when a priority node becomes ready later (bounded by one GPU slot).
 - Reporting: tables show three columns legged / none+scan (`legged-tokens`) / none, same cells, same CIs; the claim "relation factors help"
   needs legged > none+scan; legged ~ none+scan > none would mean the gain is the extra input.
+
+### D-147 addendum 2026-10-04 (infra): memory-pressure sheds caused by under-declared leases; system-PSI culprit shedding
+- Peer 06:42 (project PSI 61) and host 06:56-07:01 (system PSI full 25-29 % with 84 GB available): not shm (peer rrp.slice shmem 7.1 GB, guard
+  healthy). Leases ran at their own memory.high (= 0.8 x declared): pointer edits (6G, peak 5.99 GiB censored, PSI 94 %), humanoid transfer
+  evals / eval_ref (8G, peak >= 7.22 GiB censored). Declarations: humanoid transfer / LOO eval, eval_ref, sealed 8G -> 12G (28150956; config
+  hashes unchanged); pointer edits 12G (pointer owner). Own 8G leases stopped with `--owned-only --lease` and relaunched at 12G.
+- The host system-PSI shed took the NEWEST leases (n1 adaptation, a teacher-quality check) and spared the throttled eval. Fix 9b16d378: sustained
+  system memory PSI sheds the leases throttled at memory.high first (same phases as the project-PSI culprit rule); test
+  `test_system_psi_sheds_the_throttled_culprit_not_the_newest_lease` (red before). Host and peer watchdogs restarted on 9b16d378.
