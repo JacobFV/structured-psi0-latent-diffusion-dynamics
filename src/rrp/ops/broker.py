@@ -189,9 +189,16 @@ class ResourceBroker:
         return [n for n, c in (st.get("gpu_reserve") or {}).items() if any(str(label).startswith(p) for p in c["prefixes"])]
 
     def _reconcile(self, st) -> None:
+        reserved = sum(c["slots"] for c in (st.get("gpu_reserve") or {}).values())
+        slots = int((st.get("limits") or {}).get("gpu_slots", 0))
         for n, c in (st.get("gpu_reserve") or {}).items():
             r = st["leases"].get(self.RESERVE + n)
             if r is None:
+                continue
+            if slots - reserved < 1:
+                # D-147 (2026-10-04): with fewer slots than the reservation leaves for everyone else (a 1-slot back-off), the reservation is
+                # SUSPENDED (not counted): a held slot with no reserved-track job would leave the GPU idle; first come, first served
+                r["state"] = "suspended"
                 continue
             held = sum(1 for k, l in st["leases"].items() if not k.startswith(self.RESERVE) and l["state"] in ("active", "revoke_requested")
                        and l["request"].get("gpu") and n in self._matches(st, l["request"].get("label", "")))

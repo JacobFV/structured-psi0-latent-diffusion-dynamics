@@ -1853,3 +1853,15 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
   PRIMARY control is `none`, the same suffix re-run on current code (~4 GPU-h), because the recorded v6 trained on 520916e and the trainers
   changed since (factor vs code confound); the recorded v6 is the secondary reference (reproduction check, no verdict). Criterion and
   validity gate unchanged (Newcombe 95% on 480 pooled primary cells, competence >= 0.5). Budget 80 GPU lease-hours, one GPU lease at a time.
+
+### D-147 addendum 2026-10-04 (lead / campaign lead): GPU thermal-flag window, host back to 2 slots, reservation on a 1-slot node
+- Peer admission was shut ~22:30-23:58 (10-03) with ONE GPU job (Psi0 probes_gen, 96 % GPU): die 93-96 C, GPU 84-88 C, the GPU slowdown flag set in
+  46 of 400 samples (~12 %) with the SM clock unchanged (2437 MHz); the 10-03 rule stopped admission on every flagged sample and resuming needs
+  15 consecutive clean samples, so it latched. Fix (27d9e8c3, peer watchdog restarted 00:0x 10-04): the flag stops admission only when set in
+  >= 34 % of the last 60 s. No temperature threshold changed (CPU stop 97 C, shed 100 C; GPU sustained 90 C / 60 s, ceiling 95 C). The peer runs
+  ONE GPU job at 93-96 C die, close to the 97 C stop: GPU work prefers the host when its slots are free.
+- Host (lead, 10-04 00:00): restored to 2 GPU slots after the auto back-off (GPU 62 C idle, PSI 0, swap free 8 GB, MemAvailable 82 GB);
+  backup `host-resources.local.json.bak-20261004-slot1`; the auto back-off rule (GPU >= 85 C or PSI >= 20) stays.
+- Reservation on a 1-slot node: `reserve:humanoid` is SUSPENDED (not counted) whenever a node has fewer GPU slots than the reservations leave for
+  everyone else (e.g. the host's 1-slot back-off), so a held slot never leaves the GPU idle; first come, first served until 2 slots return.
+  Test `test_reservation_is_suspended_when_the_node_has_a_single_gpu_slot`.

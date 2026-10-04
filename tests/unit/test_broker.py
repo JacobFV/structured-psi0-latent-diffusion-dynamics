@@ -170,3 +170,15 @@ def test_gpu_reservation_keeps_a_slot_for_the_reserved_track_and_binds_older_bro
     b.acquire(gpu("hr2_gap_t1_train"))
     mk({})                                            # an empty reservation config removes the pseudo-lease
     assert "reserve:humanoid" not in b.leases()
+
+
+def test_reservation_is_suspended_when_the_node_has_a_single_gpu_slot(tmp_path):
+    """D-147 (2026-10-04): on a 1-slot node (e.g. the host's auto back-off) the reservation must not leave the GPU idle."""
+    b = ResourceBroker(cpu_limit=8, memory_limit_bytes=10_000, backend=fake_enforcement_backend(), gpu_slots=1, state_dir=tmp_path,
+                       gpu_reserve={"humanoid": {"slots": 1, "prefixes": ["hss_"]}})
+    assert b.leases()["reserve:humanoid"]["state"] == "suspended"
+    l = b.acquire(ResourceRequest(cpu_cores=1, memory_bytes=10, gpu=True, label="psi0_eval"))     # another track gets the one slot
+    with pytest.raises(CapacityError):
+        b.acquire(ResourceRequest(cpu_cores=1, memory_bytes=10, gpu=True, label="hss_t1"))      # first come, first served
+    b.release(l.lease_id)
+    b.acquire(ResourceRequest(cpu_cores=1, memory_bytes=10, gpu=True, label="hss_t1"))
