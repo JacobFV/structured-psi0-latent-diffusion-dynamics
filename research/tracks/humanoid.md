@@ -823,3 +823,8 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
   humanoid evals (8G decl, peak >= 7.22 GiB censored; htr_eval_ref / htr_ns1_eval shed 3x). Humanoid transfer / LOO eval / eval_ref / sealed
   nodes now 12G (28150956; config hashes unchanged); own 8G eval leases stopped (--owned-only) and relaunched at 12G (cells resume).
   Peer memory PSI 50 % -> 12 % after the relaunch.
+- 2026-10-04 08:00 **toddlerbot_2xc adapted check (pre-registered, D-147 addendum item 2)**: Level-1 fine-tune of `shared:morph_v2_ub`
+  (1e7 samples, seed 1000000; ep_len 17 -> 56 control steps = 1.1 s, still falling) -> h_walk **0/20**, h_turn **0/20** (gate 16/20; seeds
+  [1000000, 1000020)). **toddlerbot_2xc: blocked_external**, no sealed cells (each body adapted once; no retry). Evidence:
+  `artifacts/runs/humanoid/sealed-adapt-toddlerbot_2xc/{adapt_ppo-ft-n10000000_s0,collect-sealed-check-{walk,turn}_s0}` (peer store).
+  Failure clip (scripted teacher over the adapted learned tracker, adaptation seeds 1000000-1000001) queued at lowest priority.

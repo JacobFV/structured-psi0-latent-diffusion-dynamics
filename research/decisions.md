@@ -1925,3 +1925,11 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
 - The host system-PSI shed took the NEWEST leases (n1 adaptation, a teacher-quality check) and spared the throttled eval. Fix 9b16d378: sustained
   system memory PSI sheds the leases throttled at memory.high first (same phases as the project-PSI culprit rule); test
   `test_system_psi_sheds_the_throttled_culprit_not_the_newest_lease` (red before). Host and peer watchdogs restarted on 9b16d378.
+
+### D-147 addendum 2026-10-04: toddlerbot_2xc adapted check FAILED; the toddlerbot_2xm "recorded recipe edit" is conditional
+- toddlerbot_2xc after the pre-registered Level-1 adaptation: h_walk 0/20, h_turn 0/20 (gate 16/20) -> `blocked_external`, no sealed cells.
+- toddlerbot_2xm: its adaptation is pre-registered (item 1) but never ran (10-03: the doubled init path, fixed 7d696ec9); it is queued in the
+  humanoid dispatcher and runs as pre-registered. The "recorded recipe edit" = adding toddlerbot_2xm to `sealed_bodies` of
+  `transfer_h_{walk,turn}.yaml`, which item 2 requires before any 2xm sealed cell. It is NOT made now: it is needed only if 2xm passes its
+  adapted check (its sibling 2xc scored 0/20), and editing `bodies.sealed` of the shared transfer config would change the config hash of every
+  running / completed eval node. If 2xm passes, the edit lands as a separate sealed-only instance (own ledger), recorded here first.
