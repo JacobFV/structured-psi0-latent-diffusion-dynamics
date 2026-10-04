@@ -1815,3 +1815,17 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
    method), seeds 0 and 1, and are evaluated zero-shot on X on development scenes [3000000, +100); Level-2 table per task: method x held-out body
    (Wilson CI; Newcombe method - BC). Teacher reference on X from the same scenes. Recipe `transfer_loo` (implemented next; dry-run before any
    GPU), run after T5's own nodes for the same task.
+
+### D-147 addendum 2026-10-03 (T8 pointer owner): round 1 pointer_copy DEV results; host placement; infrastructure retries
+- pointer_copy completed (19/19 nodes, 3 training seeds per arm, DEV only; table and per-seed values in research/tracks/pointer.md
+  "D-147 T8 round 1"). Under the pre-registered rule: the copy key head on the engineered route is WORSE than the free head on drag_window
+  (mean 5.3 vs 37.3 of 50, 3/3 seeds, beyond both seed ranges); calc_sum and fill_form show no measurable difference under the rule
+  (copy lower on every seed but within the seed range); the FREE head already types held-out-bucket strings on DEV (open 50/50/50,
+  fill 50/49/50), so D-142's held-out typing failure does not reappear with the v2 discrete key code. BC with the copy head: 50/50 on
+  calc / open / fill on every seed and on the held-out bucket, drag 47.0. P-KEY and BC copy vs BC free wait for pointer_seeds. No sealed cell was run.
+- Host placement (owner opened the host GPU to all tracks; lead's STATUS note): T8 GPU nodes race peer vs host through one coordinator
+  (unit rrp-t8-chain2), one T8 GPU lease at a time across both; host runs use worktree camp-pointer-host pinned to the coordinators' commit
+  (identical src_tree, identical config hashes; host outputs adopted on the peer as completed). `rrp-t8-copy3` was stopped while its four
+  remaining nodes were only waiting for admission (no lease held) and those nodes were handed to the new coordinator; nothing finished was rerun.
+- Infrastructure retries signed off (lead, 2026-10-03): the first host attempts of bc s2 / flow_eng s2 died at import before any training
+  step (environment); their fresh attempts are infrastructure retries, not result-driven reruns (D-061).

@@ -1,0 +1,37 @@
+{
+ "policy": "pointer_latent={\"flow\": \"artifacts/runs/pointer/pointer-copy-nosem/train_flow-eng2copy_s2/flow.pt\"}",
+ "source": "learned",
+ "env_kw": {
+  "strings": "procedural"
+ },
+ "episodes": [
+  {
+   "task": "cw/fill_form",
+   "seed": 500006,
+   "outcome": "failure",
+   "failure_reason": "wrong_value:email",
+   "steps": 49
+  },
+  {
+   "task": "cw/fill_form",
+   "seed": 500000,
+   "outcome": "timeout",
+   "failure_reason": "not_submitted",
+   "steps": 200
+  },
+  {
+   "task": "cw/calc_sum",
+   "seed": 500005,
+   "outcome": "failure",
+   "failure_reason": "wrong_result",
+   "steps": 36
+  },
+  {
+   "task": "cw/drag_window",
+   "seed": 500000,
+   "outcome": "timeout",
+   "failure_reason": "off_target",
+   "steps": 80
+  }
+ ]
+}

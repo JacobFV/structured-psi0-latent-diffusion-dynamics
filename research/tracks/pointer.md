@@ -275,3 +275,64 @@ ops/bin/peer_run.sh ...` appends it to the job's PYTHONPATH.
     P-CURR stays blocked: relgen-shard-2 rows carry the arm family's `policy_input` + entity ids, not the pointer public batch
     (`Demos.batch` keys), so `RelStream` refuses them by name; it needs relgen rows featurized by the pointer featurizer. No real training run was started;
     sealed v2 evaluation needs a written decision first (T8: dev tables only).
+
+### D-147 T8 round 1: pointer_copy (P-KEY / P-COPY arms), DEV results (completed 2026-10-03)
+
+State: completed (19/19 nodes; canonical `rrp run-dag recipes/pointer/pointer_copy.yaml` rc 0, ledger
+`artifacts/runs/pointer/_dags/pointer_copy/ledger.json` in worktree camp-pointer). Code: every node ran src_tree e1f7e78c (commit 16071bc2,
+the collect at e3def53d, adopted as stale with identical config hash and pins). Data: shared collect `pointer-v2-data/collect_s0`
+(4 x 6000 scripted-teacher episodes, privileged teacher, v2 split, procedural strings). Seeds differ only in training (init + batch order).
+Placement: bc s2 and flow_eng s2 trained on the HOST GPU (thin `pointer_copy_host.yaml`, worktree camp-pointer-host at the same commit,
+outputs copied to the peer store sha256-equal and adopted by the peer DAG as completed, not stale); every other node on the peer.
+
+Arms (all nosem, same public inputs, same demos):
+- `eng2` = learned flow (system i) emitting the `cw_pointer_eng.v2` packet (discrete 7-bit key code) with the FREE key head, realised by
+  the SCRIPTED engineered system 0.
+- `eng2copy` = the same with the COPY key head (pointer attention onto the instruction characters, D-146 C2).
+- `bccopy` = behaviour cloning (learned, end to end) with the copy key head.
+
+DEV, successes of 50 per task (seed 1 / 2 / 3; mean; within-arm range). "held-out" = DEV-range seeds whose goal string falls in the
+held-out bucket (`research/splits/cworld_pointer_v2_devheldout_diag.json`, crc32 % 8 == 0); drag_window types nothing and has no such row.
+
+| arm | calc_sum | open_type | drag_window | fill_form | held-out calc | held-out open | held-out fill |
+|---|---|---|---|---|---|---|---|
+| eng2 (free) | 50/50/50 (50.0, 0) | 50/50/50 (50.0, 0) | 36/34/42 (37.3, 8) | 49/50/49 (49.3, 1) | 49/50/49 | 50/50/50 | 50/49/50 |
+| eng2copy | 42/35/45 (40.7, 10) | 49/50/50 (49.7, 1) | 7/6/3 (5.3, 4) | 43/14/40 (32.3, 29) | 44/44/49 | 50/50/50 | 45/9/40 |
+| bccopy | 50/50/50 (50.0, 0) | 50/50/50 (50.0, 0) | 50/48/43 (47.0, 7) | 50/50/50 (50.0, 0) | 50/50/50 | 50/50/50 | 50/50/50 |
+
+Checkpoints (sha256[:16]): bccopy s1 e343af8fa0b46958, s2 9d64a0061a153ebe, s3 553356c0bd9aedfa; eng2 s1 cf54938660822e10, s2
+d5218573cf097164, s3 8dbb779386d42a32; eng2copy s1 98cc0fc47b7e32eb, s2 8c38f7fe59bf453b, s3 21b7e5977cfcca3c. Archived
+`~/work/rrp-data/peer-archive/runs/pointer/` (SHA256SUMS.copy_round, 235 files); kept on the peer as frozen inputs for a sealed run.
+
+Failure reasons (DEV): eng2 fails only drag_window (timeout off_target 14 / 16 / 8) plus 1 fill_form wrong_value:name on s1 and s3.
+eng2copy fails beyond typing: drag_window off_target 43 / 44 / 47, calc_sum wrong_result 4 / 13 / 2 and no_result 4 / 2 / 3, fill_form
+not_submitted 0 / 18 / 6 and wrong_value:email 6 / 16 / 2. bccopy: drag_window off_target 0 / 2 / 7 only.
+
+Reading under the pre-registered rule (a difference counts when it has the same sign in >= 2 of 3 paired seeds AND exceeds the larger
+within-arm seed range; otherwise "no measurable difference"):
+- Copy head vs free head on the eng route (P-COPY, flow arm): copy is WORSE on drag_window (-32.0; 3/3 seeds; ranges 8 / 4). calc_sum
+  -9.3 (3/3 seeds) does not exceed the range 10 and fill_form -17.0 does not exceed the range 29: no measurable difference there.
+  open_type: none. On held-out-bucket strings the FREE head already types unseen strings (open 50/50/50, fill 50/49/50), so the dev
+  evidence gives the copy head nothing to fix on this route. D-142's 0/50 on held-out words / names (v1 packet, pool strings) does not
+  reappear with the v2 discrete key code + procedural-string training.
+- The eng2copy losses are on pointer / click outcomes too (off_target drags, wrong calculator results), not only on keys: training the
+  key head jointly changed the motion part of the packet. A diagnostic observation, not a tested mechanism; no tuning was done.
+- P-KEY (eng.v2 vs eng.v1) and BC copy vs BC free wait for pointer_seeds (eng.v1 and BC per seed), round 2.
+- The P-COPY decision rule itself is pre-registered on sealed_heldout (>= 10/50 on open_type and fill_form with the same dev success
+  elsewhere); nothing sealed was run. Proposal for the single sealed pass: after round 3 (D-147 T8 final report).
+
+Videos (DEV seeds, privileged renderer for humans only, caption names the controller source), `artifacts/video/2026-10-03_pointer_v2_copy_*`:
+eng2free_s1 and eng2copy_s1 (calc 500002, open 500024 and fill 500041 with held-out-bucket strings, drag 500000: both time out off_target),
+bccopy_s1 (4/4), eng2copy_s2_failures (fill 500006 wrong email, fill 500000 not submitted, calc 500005 wrong result, drag 500000) and
+eng2free_s2_sameseeds (same four seeds: 3 successes, drag timeout). Batch-1 replays reproduce the eval outcomes (flow noise per seed triple).
+
+Incidents: (1) 10-02 bc s3 shed twice by the peer watchdog (memory PSI, exit -10, infrastructure); rerun 10-03 on the peer, completed.
+(2) 10-03 06:48 the first host attempts of bc s2 / flow_eng s2 (2 leases each, ~30 s) died at import (computerworld not on the job
+PYTHONPATH: run-dag's host launch sets PYTHONPATH=<root>/src); fixed with an overlay venv (project site-packages + cw-site .pth), host smoke
+passed; fresh attempts = infrastructure retries, signed off by the lead 2026-10-03 (D-061). Attempts kept in campaign/pointer/race/infra_fail_0648.
+
+Coordination: from 10-03 06:40 unit `rrp-t8-chain2` (`~/work/rrp-data/campaign/pointer/bin/t8_chain2.py`) runs every remaining T8 GPU node as a
+race between the peer and the host instance (one T8 GPU lease at a time; the loser is cancelled while it is still only waiting), copies
+host outputs to the peer store (sha256), sweeps CPU evals on the peer, pauses on any non-completed GPU node, and finishes each round with the
+canonical peer run-dag. RESUME: `systemctl --user status rrp-t8-chain2`; if it is gone, rerun `t8_chain2.py <remaining rounds>` (completed
+nodes are adopted from their manifests; race ledgers in campaign/pointer/ledgers).
