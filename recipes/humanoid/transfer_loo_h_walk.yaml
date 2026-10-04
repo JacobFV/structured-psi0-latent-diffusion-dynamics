@@ -15,6 +15,7 @@ factors: []
 vars: {task: h_walk}
 lists:
   transfer:
+    env_kw: {tracker: '<body>:ub_v1'}    # D-147 (10-04): learned / BC methods run on the collection tracker of the evaluated body
     name: humanoid_transfer_loo_h_walk
     task: h_walk
     latent_kw: {upper: true}
