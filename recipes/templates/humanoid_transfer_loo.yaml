@@ -165,7 +165,7 @@ nodes:
     stage: train_flow
     tag: ho-t1
     only: {arm: [semfix_legged, semfix_none, semfix_tokens]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 14400}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       inputs: {representation: '@rep_t1:representation.pt'}
       params: {name: 'hlo_{system}_{task}_{rel_preset}_hot1_s{seed}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: '{flow_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
@@ -173,7 +173,7 @@ nodes:
     stage: train_flow
     tag: ho-g1
     only: {arm: [semfix_legged, semfix_none, semfix_tokens]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 14400}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       inputs: {representation: '@rep_g1:representation.pt'}
       params: {name: 'hlo_{system}_{task}_{rel_preset}_hog1_s{seed}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: '{flow_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}
@@ -181,7 +181,7 @@ nodes:
     stage: train_flow
     tag: ho-h1
     only: {arm: [semfix_legged, semfix_none, semfix_tokens]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 14400}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       inputs: {representation: '@rep_h1:representation.pt'}
       params: {name: 'hlo_{system}_{task}_{rel_preset}_hoh1_s{seed}_flow', width: 256, layers: 4, packet_semantic_weight: '{psw}', packet_tau_min: 0.6, steps: '{flow_steps}', batch_size: 256, lr: 0.0003, seed: '{seed}', ckpt_every: 500, snap_every: 4000}

@@ -428,7 +428,7 @@ nodes:
     stage: adapt_flow
     tag: '{dev0}-n5'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d0_n5:representation.pt'}
@@ -438,7 +438,7 @@ nodes:
     stage: adapt_flow
     tag: '{dev0}-n20'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d0_n20:representation.pt'}
@@ -448,7 +448,7 @@ nodes:
     stage: adapt_flow
     tag: '{dev0}-n100'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d0_n100:representation.pt'}
@@ -458,7 +458,7 @@ nodes:
     stage: adapt_flow
     tag: '{dev1}-n5'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d1_n5:representation.pt'}
@@ -468,7 +468,7 @@ nodes:
     stage: adapt_flow
     tag: '{dev1}-n20'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d1_n20:representation.pt'}
@@ -478,7 +478,7 @@ nodes:
     stage: adapt_flow
     tag: '{dev1}-n100'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d1_n100:representation.pt'}
@@ -488,7 +488,7 @@ nodes:
     stage: adapt_flow
     tag: '{dev2}-n5'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d2_n5:representation.pt'}
@@ -498,7 +498,7 @@ nodes:
     stage: adapt_flow
     tag: '{dev2}-n20'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d2_n20:representation.pt'}
@@ -508,7 +508,7 @@ nodes:
     stage: adapt_flow
     tag: '{dev2}-n100'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_d2_n100:representation.pt'}
@@ -518,7 +518,7 @@ nodes:
     stage: adapt_flow
     tag: '{seal0}-n5'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s0_n5:representation.pt'}
@@ -528,7 +528,7 @@ nodes:
     stage: adapt_flow
     tag: '{seal0}-n20'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s0_n20:representation.pt'}
@@ -538,7 +538,7 @@ nodes:
     stage: adapt_flow
     tag: '{seal0}-n100'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s0_n100:representation.pt'}
@@ -548,7 +548,7 @@ nodes:
     stage: adapt_flow
     tag: '{seal1}-n5'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s1_n5:representation.pt'}
@@ -558,7 +558,7 @@ nodes:
     stage: adapt_flow
     tag: '{seal1}-n20'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s1_n20:representation.pt'}
@@ -568,7 +568,7 @@ nodes:
     stage: adapt_flow
     tag: '{seal1}-n100'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s1_n100:representation.pt'}
@@ -578,7 +578,7 @@ nodes:
     stage: adapt_flow
     tag: '{seal2}-n5'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s2_n5:representation.pt'}
@@ -588,7 +588,7 @@ nodes:
     stage: adapt_flow
     tag: '{seal2}-n20'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s2_n20:representation.pt'}
@@ -598,7 +598,7 @@ nodes:
     stage: adapt_flow
     tag: '{seal2}-n100'
     only: {system: [semfix, nosem]}
-    resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 7200}
+    resources: {gpu: true, gpu_mem: 6G, cpu: 2, mem: 3G, max_seconds: 7200}   # D-147 10-04: adapt_flow OOM at 4.21 GiB under the 4G CUDA cap (as flow, D-117)
     config:
       flags: {qd_dropout: 0.5}
       inputs: {pack: '@pack_sealed:pack.json', init: '@flow:policy.pt', representation: '@adapt_refit_s2_n100:representation.pt'}
