@@ -838,3 +838,10 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
 - 2026-10-04 T5 reference (scripted teacher over `<body>:ub_v1`, dev scenes 3000000+, 100 / body): h_walk t1 100/100, **g1 78/100**, h1 100/100;
   h_turn 100/100 on all three. Reporting rule (lead): every T5 / LOO table shows g1 h_walk learned results next to the teacher's 78/100 (the
   teacher ceiling on that body).
+- 2026-10-04 11:51 **n1 adapted check (pre-registered, D-147 addendum item 2)**: Level-1 fine-tune of `shared:morph_v2_ub` on n1 (1e7 samples,
+  400 iterations, seed 1000000; resumed on the peer from its own iter-299 checkpoint; ep_len 138 control steps at iter 399) ->
+  **h_turn 16/20 (PASS, gate 16/20)**, **h_walk 0/20 (fail)** on adaptation seeds [1000000, 1000020). Per the rule: n1 x h_turn qualifies for
+  its sealed cells (each run once); n1 x h_walk is excluded. NO sealed cell has been run: the campaign brief stops before any sealed cell;
+  proposed decision sent to the lead. Evidence: `artifacts/runs/humanoid/sealed-adapt-n1/` (peer store).
+- 2026-10-04 11:54 toddlerbot_2xm adaptation moved host -> peer (lead's condition met: n1 freed its slot, host CPU limit 0.8); it never ran
+  (no run dir anywhere); host ledger renamed, one live run.
