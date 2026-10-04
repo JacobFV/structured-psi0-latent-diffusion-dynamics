@@ -835,3 +835,6 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
   queued on the host (moving it would overwrite the round-1 evidence in the peer store and compete for the peer's CPU).
 - 2026-10-04 11:05 requeue rule rev 2 (lead): a requeue round in which every failure is an admission timeout does not count toward the cap of 3
   (real run failures still do); hard ceiling 20 rounds, then an ALERT. All T5 / n1 requeue units restarted on it; LOO coordinators got requeue units.
+- 2026-10-04 T5 reference (scripted teacher over `<body>:ub_v1`, dev scenes 3000000+, 100 / body): h_walk t1 100/100, **g1 78/100**, h1 100/100;
+  h_turn 100/100 on all three. Reporting rule (lead): every T5 / LOO table shows g1 h_walk learned results next to the teacher's 78/100 (the
+  teacher ceiling on that body).
