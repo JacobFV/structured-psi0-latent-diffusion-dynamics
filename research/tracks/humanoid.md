@@ -828,3 +828,8 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
   [1000000, 1000020)). **toddlerbot_2xc: blocked_external**, no sealed cells (each body adapted once; no retry). Evidence:
   `artifacts/runs/humanoid/sealed-adapt-toddlerbot_2xc/{adapt_ppo-ft-n10000000_s0,collect-sealed-check-{walk,turn}_s0}` (peer store).
   Failure clip (scripted teacher over the adapted learned tracker, adaptation seeds 1000000-1000001) queued at lowest priority.
+- 2026-10-04 09:05 **n1 adaptation moved to the peer** (lead; host CPU taken by the owner's non-project work): host units disarmed, no live writer
+  (lsof / cwd clean), run dir copied with sha256 equal; it resumes from its own checkpoint at iter **299** (train_log to iter 302; the lead's note
+  said iter 99, which was the 01:45 restore point: the run progressed to 299 on the host afterwards). Same recipe, seed, budget. Host ledger
+  renamed `ledger_hsa_n1_host.MOVED_TO_PEER_20261004.json`, dispatcher job line disabled: exactly one live n1 run. The T4 teacher re-gate stays
+  queued on the host (moving it would overwrite the round-1 evidence in the peer store and compete for the peer's CPU).
