@@ -1,0 +1,14 @@
+# T4 teacher-quality gate RE-RUN on the HOST after the body-general teachers (hum-teachers, TEACHERS READY f3511008; D-147 lead 10-03:
+# "re-run the gate for the held-back tasks under the same rule"). Same nodes / scenes / seeds / rule as teacher_quality.yaml; own DAG
+# name and ledger; outputs land in the HOST store, so the round-1 evidence in the peer store is kept. Run with
+# --only '^check@h_(reach|squat_pick|place|loco_pick|carry)$' (h_walk / h_turn passed and are not re-run).
+extends: teacher_quality.yaml
+name: humanoid_teacher_quality_host
+schema: dag-1
+track: humanoid
+policy: teacher
+env: mujoco/legged
+task: h_walk
+bodies: humanoid_pool_v1
+factors: []
+defaults: {placement: host}
