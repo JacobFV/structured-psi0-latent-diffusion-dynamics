@@ -1933,3 +1933,12 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
   `transfer_h_{walk,turn}.yaml`, which item 2 requires before any 2xm sealed cell. It is NOT made now: it is needed only if 2xm passes its
   adapted check (its sibling 2xc scored 0/20), and editing `bodies.sealed` of the shared transfer config would change the config hash of every
   running / completed eval node. If 2xm passes, the edit lands as a separate sealed-only instance (own ledger), recorded here first.
+
+### D-147 addendum 2026-10-04: second Hugging Face checkpoint upload (owner-approved "the remaining v6 and target checkpoints")
+- Public repo jacob-valdez/rrp-checkpoints, one commit d3350cd5 (https://huggingface.co/jacob-valdez/rrp-checkpoints/commit/d3350cd5c7d4225b20f17213ccd23e9447bb9ed7):
+  928 files, 8.34 GB, 183 checkpoints. `runs/armv6/arm6-{semfix,nosem}` s1, s2: every trained node of the v6 chain (D-134; incl. the T9
+  pinned prefix, sha256 prefixes equal to research/tracks/relations.md) + dev-seed R2/held-out summaries; `runs/armexpert_bcv6/.../seed1702`
+  (D-121); `runs/armtgt/*/target_adapt-*` (D-135: flow SFT, system-0 refit, BC SFT); `runs/armdiag/armja136-*/target_adapt-*` (D-136).
+- Excluded: sealed `target_eval-*` outputs, target demo packs, DAgger buffers, `*_last.pt` resume states, armdiag stepA/adapt dev
+  diagnostics, anything from the running campaign. MANIFEST.tsv gained source / run_id / config_hash / recipe columns; README table updated.
+- Verified: all 1,539 manifest rows in the repo tree with equal size and LFS sha256; two spot downloads sha256-equal.
