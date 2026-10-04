@@ -131,6 +131,8 @@ def find(roots) -> list[Path]:
     out = set()
     for r in roots:
         for p in Path(r).rglob("*.pt"):
+            if ".INVALID_" in str(p):             # void run dirs (renamed *.INVALID_<reason>): their inputs point at the old paths
+                continue
             if p.is_file():                       # skips dangling symlinks
                 out.add(p.resolve())
     return sorted(out)
