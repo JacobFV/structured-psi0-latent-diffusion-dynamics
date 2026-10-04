@@ -385,3 +385,30 @@ def test_admission_clock_does_not_tick_while_held_by_own_gpu_cap(tmp_path, monke
                   pins=stage_versions, admission_timeout_s=3000.0, **caps)
     s = ex.run()
     assert s["completed"] == 4 and s["failed"] == 0, s
+
+
+def test_yield_to_waiting_defers_to_another_coordinators_waiting_node(tmp_path):
+    """D-147 lowest priority: a `yield_to_waiting` DAG does not launch while another live coordinator's node waits for
+    admission on the same placement; markers of dead pids are ignored; a normal DAG writes the marker on a refusal."""
+    import json, os
+    from types import SimpleNamespace as NS
+    from rrp.harness.dag import Executor
+    wait = tmp_path / "w"; wait.mkdir()
+    node = NS(placement="peer", resources=NS(gpu=True))
+    ex = Executor.__new__(Executor)
+    ex.plan, ex.yield_to_waiting, ex.wait_dir = NS(nodes={"a@x": node}), True, wait
+    ex.ledger = NS(path=tmp_path / "low" / "ledger.json")
+    assert ex._others_waiting("a@x") == []
+    (wait / "dead.json").write_text(json.dumps(dict(pid=2 ** 22 + 12345, node="d", placement="peer", gpu=True)))
+    assert ex._others_waiting("a@x") == []
+    (wait / "live.json").write_text(json.dumps(dict(pid=os.getpid(), node="eval@semfix.s0", placement="peer", gpu=True)))
+    assert ex._others_waiting("a@x") == ["eval@semfix.s0"]
+    node.placement = "host"
+    assert ex._others_waiting("a@x") == []                          # other placement: not competing
+    hi = Executor.__new__(Executor)
+    hi.plan, hi.yield_to_waiting, hi.wait_dir = NS(nodes={"b@y": node}), False, wait
+    hi.ledger = NS(path=tmp_path / "hi" / "ledger.json")
+    hi._mark_waiting("b@y", True)
+    assert hi._marker("b@y").exists()
+    hi._mark_waiting("b@y", False)
+    assert not hi._marker("b@y").exists()

@@ -1,0 +1,18 @@
+# T5 h_walk FAIR-INPUT control arm `legged-tokens` (legged-none + scan; D-147 lead 2026-10-04; PRE-REGISTERED in research/decisions.md).
+# Lowest priority: label prefix hlt_ (not in the humanoid GPU reservation) and `run-dag --yield-to-waiting`.
+extends: [transfer_h_walk.yaml, ../templates/humanoid_transfer_legged_tokens.yaml]
+name: humanoid_transfer_h_walk_legged_tokens
+schema: dag-1
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: h_walk
+bodies: humanoid_pool_v1
+factors: []
+vars: {rel_preset: legged-tokens}
+label_prefix: 'hlt_{tg}{seed}'
+global_label_prefix: 'hlt'
+lists:
+  transfer:
+    name: humanoid_transfer_h_walk_legged_tokens
+nodes: {eval_ref: null, sealed_ref: null, teacher_check: null}

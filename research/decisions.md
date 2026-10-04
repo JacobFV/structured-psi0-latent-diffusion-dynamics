@@ -1889,3 +1889,29 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
 - **Proposed control (NOT launched; needs a lead decision):** `legged-none+scan`: the legged-none recipe with the terrain-cell and limb / foot
   tokens in the context but every relation factor `off` (same data, same budget, same seeds as the legged-none arm). It isolates "factors" from
   "extra input". Cost per task ~ one legged-none arm (rep + flow + adapt, ~1 GPU-day on the peer).
+
+### D-147 addendum 2026-10-04 (lead approval): `legged-none+scan` fair-input control — PRE-REGISTERED before launch
+- Why: AGENTS.md requires the same input information for competing methods; legged-none never saw the terrain scan (D-146 amendment above),
+  so no T5 / LOO legged-vs-none claim is publishable without this control. The fair-input caveat stays on every T5 / LOO table until it lands.
+- Arm: relation preset **`legged-tokens`** (`policies/relations/catalog.py`) = `preset:legged` with EVERY factor `control: off`: the same token layout
+  and inputs as `legged` (limb / foot tokens, public terrain-scan cells; the policy requires the env's `terrain_scan`, served by the D-146
+  amendment), no edge bias, no pair estimate, no estimate loss (test `test_legged_tokens_preset_is_legged_inputs_with_every_relation_term_off`).
+- Same data, budget, seeds as legged-none: T5 instances `recipes/humanoid/transfer_{h_walk,h_turn}_legged_tokens.yaml` (fragment
+  `recipes/templates/humanoid_transfer_legged_tokens.yaml`) adopt the SAME collect / pack runs (identical config hashes) and differ from the
+  legged-none arm only in the preset, trainer names, lineage paths and labels (tests `test_legged_tokens_control_is_the_legged_none_arm_with_only_
+  preset_names_and_paths_changed`, `test_loo_legged_tokens_control_matches_semfix_none_but_the_preset`). LOO instances
+  `recipes/humanoid/transfer_loo_{h_walk,h_turn}_legged_tokens.yaml`: arm `semfix_tokens` on the same `pack_<X>` runs as `semfix_none`.
+  Sealed nodes excluded exactly like the running T5 arms (`--only '^(?!(collect_sealed|pack_sealed|sealed_ref|sealed@|adapt_[a-z]+_s[0-9]+_n[0-9]+@))'`).
+- Config hashes (dry-run; full node -> hash map in `research/prereg/legged_tokens_control_hashes.json`; digest = sha256 of the sorted map):
+  | recipe | nodes | digest |
+  |---|---|---|
+  | transfer_h_walk_legged_tokens.yaml | 109 | 9b0efc3937542549 |
+  | transfer_h_turn_legged_tokens.yaml | 109 | 1fcf9bb7870f5518 |
+  | transfer_loo_h_walk_legged_tokens.yaml | 17 | a7434b0796b60a45 |
+  | transfer_loo_h_turn_legged_tokens.yaml | 17 | f862297c3403af9d |
+- Lowest priority (lead constraint 2): labels `hlt_` (outside the `reserve:humanoid` prefixes, so never the reserved humanoid GPU slot) and
+  `run-dag --yield-to-waiting` (new): a node launches only while no other coordinator's node waits for admission on the same placement
+  (waiting nodes now write markers; test `test_yield_to_waiting_defers_to_another_coordinators_waiting_node`); `--max-parallel-gpu 1`, peer.
+  Residual: a control job already running is not pre-empted when a priority node becomes ready later (bounded by one GPU slot).
+- Reporting: tables show three columns legged / none+scan (`legged-tokens`) / none, same cells, same CIs; the claim "relation factors help"
+  needs legged > none+scan; legged ~ none+scan > none would mean the gain is the extra input.

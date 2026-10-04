@@ -1,0 +1,37 @@
+# LOO h_turn FAIR-INPUT control arm `semfix_tokens` (legged-none + scan = preset legged-tokens; D-147 lead 2026-10-04; PRE-REGISTERED in
+# research/decisions.md). Same packs (shared pack_<X> runs), steps and seeds as semfix_none of transfer_loo_h_turn.yaml; only the preset differs.
+# Lowest priority: label prefix hlt (outside the humanoid GPU reservation) and `run-dag --yield-to-waiting`. The teacher reference is
+# run once by transfer_loo_h_turn.yaml (eval_ref nulled here) and pooled through results_glob.
+extends: transfer_loo_h_turn.yaml
+name: humanoid_transfer_loo_h_turn_legged_tokens
+schema: dag-1
+track: humanoid
+policy: latent
+env: mujoco/legged
+task: h_turn
+bodies: humanoid_pool_v1
+factors: []
+label_prefix: 'hlt_lo_{tg}{seed}'
+global_label_prefix: 'hlt_lo'
+matrix:
+  arm: [semfix_tokens]
+  seed: [0, 1]
+axis_vars:
+  arm:
+    semfix_tokens: {system: semfix, rel_preset: legged-tokens, psw: 0.5, tg: ft}
+lists:
+  transfer:
+    name: humanoid_transfer_loo_h_turn_legged_tokens
+    results_glob: ['artifacts/runs/humanoid/humanoid-loo-<task>-*-legged-tokens/eval_transfer*', 'artifacts/runs/humanoid/humanoid-loo-<task>/eval_transfer*']
+    methods:
+      level2:
+        - name: semfix_tokens_zeroshot
+          level: 2
+          variant: semfix_tokens
+          kind: latent
+          source: learned
+          trained: true
+          producer: train_flow
+          policy: legged_latent
+          kw: {flow: 'artifacts/runs/humanoid/humanoid-loo-<task>-semfix-legged-tokens/train_flow-ho-<body>_s<seed>/policy.pt', rep: 'artifacts/runs/humanoid/humanoid-loo-<task>-semfix-legged-tokens/train_rep-ho-<body>_s<seed>/representation.pt'}
+nodes: {eval_ref: null}

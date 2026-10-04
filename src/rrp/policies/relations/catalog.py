@@ -6,7 +6,7 @@ from __future__ import annotations
 from rrp.bodies import g1_simple as _G
 from rrp.policies.relations.base import (Algebra, FactorDef, FamilyTokens, FieldDef, ReadoutDef, register_factor,
                                          register_family, register_field,
-                                         register_preset)
+                                         register_preset, PRESETS)
 
 # ------------------------------------------------------------------ edge vocabularies (on-disk channel orders)
 ARM_REL_VOCAB = ("same_node", "node_in_assembly", "actor_of", "support_of", "patient_of", "target_of", "destination_of",
@@ -350,6 +350,9 @@ for _n, _doc in _LEGGED_EDGE_DOC.items():
                               sources=("given",), params=(("edge", _n),), doc=_doc))
 register_preset("legged-none", [])          # no relational factor: no parameters, the pre-HL nets bit for bit
 register_preset("legged", [f"edge.{_n}" for _n in LEGGED_REL_VOCAB] + ["leg.foothold", "leg.com_support"])
+# the FAIR-INPUT control of `legged` (D-147, lead 2026-10-04): the same token layout and inputs (limb / foot tokens, public terrain-scan
+# cells) with every relation term off: no edge bias, no pair estimate, no estimate loss (control "off" keeps the parameters only)
+register_preset("legged-tokens", ["preset:legged"] + [{"name": n, "control": "off"} for n in PRESETS["legged"]])
 # ------------------------------------------------------------------ R20: UI (ui.*)
 # `envs.computerworld` builds the public data this section names (`UI_REL_VOCAB`, `ui_public_fields`, `ui_edges`;
 # docs/relations.md section 2's pointer/CW family row: "+pos3d ..., +zlayer, +parent_id, +focus_rank, entity_id").

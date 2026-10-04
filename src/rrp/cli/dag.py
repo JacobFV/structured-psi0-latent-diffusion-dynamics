@@ -65,7 +65,7 @@ def cmd_run_dag(a):
                   max_cpu=_opt(a.max_cpu, plan.defaults.get("max_cpu"), float),
                   max_mem_gib=_opt(a.max_mem_gib, plan.defaults.get("max_mem_gib"), float),
                   budget_dir=ledger_path.parent.parent if plan.defaults.get("shared_budget") else None,
-                  adopt_stale=a.adopt_stale, pins=stage_versions)
+                  adopt_stale=a.adopt_stale, yield_to_waiting=a.yield_to_waiting, pins=stage_versions)
     try:
         summ = ex.run()
     except DagError as e:
@@ -90,6 +90,9 @@ def register(sub):
     p.add_argument("--ledger", help="ledger path (default artifacts/runs/<track>/_dags/<name>/ledger.json)")
     p.add_argument("--reset", action="append", help="forget a node's ledger entry (repeatable)")
     p.add_argument("--retry-failed", action="store_true", help="re-plan failed/blocked nodes (a manual decision, D-061)")
+    p.add_argument("--yield-to-waiting", action="store_true",
+                   help="lowest priority: launch a node only while no other coordinator's node waits for admission on the same "
+                        "placement; fills idle capacity only (D-147). No admission timeout in this mode.")
     p.add_argument("--adopt-stale", action="store_true",
                    help="accept completed nodes whose outputs came from other code (same config and version pins); recorded in the ledger")
     p.add_argument("--max-parallel", type=int)

@@ -456,3 +456,40 @@ def test_leave_one_out_trains_on_the_other_two_bodies_of_the_t4_source_demos_and
     assert all(len(v) == 1 for v in packs.values()) and len(packs) == 3          # matched data: one pack per held-out body
     cells = HE.run_matrix(cfg, root=tmp_path, out=tmp_path / "o", scope="dev", sealed_flag=False, run=False, pack={})["cells"]
     assert {c["status"] for c in cells} <= {"pending", "ready"} and all(c["status"] == "ready" for c in cells if c["method"] == "teacher")
+
+
+@pytest.mark.parametrize("task", ["h_walk", "h_turn"])
+def test_legged_tokens_control_is_the_legged_none_arm_with_only_preset_names_and_paths_changed(task):
+    """D-147 fair-input control (lead 2026-10-04, pre-registered): same data (shared collect / pack runs), budgets, seeds and every
+    trainer / eval option as legged-none; only the preset (`legged-tokens`), names, lineage paths and the hlt_ labels differ."""
+    none, tok = _arm(task, "legged-none"), _plan(HUM / f"transfer_{task}_legged_tokens.yaml")
+    assert set(none.nodes) == set(tok.nodes)
+    norm = lambda x: json.loads(json.dumps(x).replace("legged-tokens", "ARM").replace("legged_tokens", "ARM")
+                                .replace("legged-none", "ARM").replace("legged_none", "ARM"))
+    for nid, n in none.nodes.items():
+        t = tok.nodes[nid]
+        if "legged-none" not in n.rc.run_id:
+            assert t.rc.run_id == n.rc.run_id and t.rc.config_hash() == n.rc.config_hash(), nid       # the SAME data runs
+        else:
+            assert norm(t.rc.params) == norm(n.rc.params) and t.rc.inputs.keys() == n.rc.inputs.keys(), nid
+            assert t.rc.run_id != n.rc.run_id
+    assert tok.nodes["rep@semfix.s0"].rc.params["latent"]["factors"][-1] == "preset:legged-tokens"
+    assert tok.nodes["bc@bc.s0"].rc.params["model"]["factors"][-1] == "preset:legged-tokens"
+    a, b = _cfg(none), _cfg(tok)
+    assert {k: v for k, v in a.items() if k not in ("name", "methods", "results_glob")} == \
+           {k: v for k, v in b.items() if k not in ("name", "methods", "results_glob")}
+    assert _swap(a["methods"], "-legged-none/", "-legged-tokens/") == b["methods"]
+
+
+@pytest.mark.parametrize("task", ["h_walk", "h_turn"])
+def test_loo_legged_tokens_control_matches_semfix_none_but_the_preset(task):
+    """D-147 fair-input control, LOO: the same packs (identical runs) and rep / flow options as semfix_none; only preset and names differ."""
+    base, tok = _plan(HUM / f"transfer_loo_{task}.yaml"), _plan(HUM / f"transfer_loo_{task}_legged_tokens.yaml")
+    norm = lambda x: json.loads(json.dumps(x).replace("legged-tokens", "ARM").replace("legged-none", "ARM"))
+    for nid, t in tok.nodes.items():
+        if nid.startswith("pack_"):
+            assert base.nodes[nid].rc.config_hash() == t.rc.config_hash()
+        elif not nid.startswith("eval"):
+            n = base.nodes[nid.replace("semfix_tokens", "semfix_none")]
+            assert norm(t.rc.params) == norm(n.rc.params) and norm(t.rc.inputs) == norm(n.rc.inputs), nid
+    assert tok.nodes["rep_t1@semfix_tokens.s0"].rc.params["latent"]["factors"][-1] == "preset:legged-tokens"

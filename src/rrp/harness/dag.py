@@ -532,11 +532,50 @@ class Executor:
     poll_s: float = 30.0
     admission_timeout_s: float = 10800.0
     adopt_stale: bool = False               # accept completed nodes whose outputs came from other code (recorded, reported)
+    # Lowest priority (D-147, lead 2026-10-04): a node waiting for broker admission writes a marker under `wait_dir`; a DAG
+    # run with `yield_to_waiting` launches a node only while no OTHER coordinator's node with the same placement waits (live
+    # pid), and writes no marker itself, so it fills idle capacity only and never takes a slot a waiting node could get.
+    yield_to_waiting: bool = False
+    wait_dir: Path | None = None            # default: $RRP_ADMISSION_WAIT_DIR or ~/.cache/rrp/admission-waiting
     code_now: callable | None = None        # () -> CodeProvenance of the checkout (default: re-read git each call)
     pins: callable = field(kw_only=True)    # (RunConfig) -> the versions a stage manifest pins (`pipelines.base.stage_versions`;
     #                                         injected by the CLI; `plan_dag` only loads the registry so that family/stage names validate)
     log: callable = field(default=lambda m: print(f"{time.strftime('%F %T')} [run-dag] {m}", flush=True))
     sleep: callable = time.sleep
+
+    def _wait_root(self) -> Path:
+        return Path(self.wait_dir or os.environ.get("RRP_ADMISSION_WAIT_DIR") or Path.home() / ".cache/rrp/admission-waiting")
+
+    def _marker(self, nid: str) -> Path:
+        safe = re.sub(r"[^A-Za-z0-9_.@-]", "_", f"{self.ledger.path.parent.name}__{nid}")
+        return self._wait_root() / f"{safe}.json"
+
+    def _mark_waiting(self, nid: str, on: bool) -> None:
+        if self.yield_to_waiting:
+            return
+        m = self._marker(nid)
+        try:
+            if on:
+                m.parent.mkdir(parents=True, exist_ok=True)
+                m.write_text(json.dumps(dict(pid=os.getpid(), node=nid, placement=self.plan.nodes[nid].placement,
+                                             gpu=bool(self.plan.nodes[nid].resources.gpu), since=time.time())))
+            else:
+                m.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    def _others_waiting(self, nid: str) -> list[str]:
+        """Live admission waiters of other coordinators on this node's placement (dead pids' markers are ignored)."""
+        me, out = self.plan.nodes[nid], []
+        for f in self._wait_root().glob("*.json"):
+            try:
+                d = json.loads(f.read_text())
+                os.kill(int(d["pid"]), 0)
+            except (OSError, ValueError, KeyError, json.JSONDecodeError):
+                continue
+            if d.get("placement") == me.placement and (bool(d.get("gpu")) or not me.resources.gpu):
+                out.append(str(d.get("node")))
+        return out
 
     def _code(self) -> dict:
         if self.code_now is not None:
@@ -614,21 +653,27 @@ class Executor:
                     continue                       # admission clock restarts when the node may try again
                 if self._adopt_existing(nid):
                     continue
+                if self.yield_to_waiting and self._others_waiting(nid):
+                    continue                       # lowest priority: never competes with a waiting node of another DAG
                 try:
                     h = self.runner.launch(self.plan.nodes[nid])
                 except AdmissionRefused as e:
+                    self._mark_waiting(nid, True)
                     if nid not in waiting_since:
                         self.log(f"{nid}: broker refused admission ({str(e).strip().splitlines()[-1][:160]}); waiting "
                                  f"(bounded {self.admission_timeout_s:.0f} s, not an attempt)")
                     t0 = waiting_since.setdefault(nid, time.time())
-                    if time.time() - t0 > self.admission_timeout_s:
+                    if time.time() - t0 > self.admission_timeout_s and not self.yield_to_waiting:
+                        self._mark_waiting(nid, False)
                         self._fail(nid, f"admission refused for {self.admission_timeout_s:.0f} s: "
                                         f"{str(e).strip().splitlines()[-1][:200] if str(e).strip() else e}", final=True)
                     continue
                 except Exception as e:  # launch error (not a job failure of a started lease)
+                    self._mark_waiting(nid, False)
                     self._fail(nid, f"launch error: {e}", final=True)
                     continue
                 waiting_since.pop(nid, None)
+                self._mark_waiting(nid, False)
                 e = self.ledger.node(nid)
                 e["attempts"].append(dict(h, started=time.time(), revision=self._code()))
                 self.ledger.set(nid, state="running")

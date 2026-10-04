@@ -444,3 +444,18 @@ def test_bc_trainer_builds_from_model_factors_and_stamps_them(tmp_path):
     assert st["_provenance"]["versions"]["factors"].startswith(compat_hash(LL.legged_specs(cfg["model"]["factors"])))
     m, _ = load_bc(tmp_path / "out" / "policy.pt", torch.device("cpu"))
     assert m.extended and "chunk_mse" in res["eval"]
+
+
+def test_legged_tokens_preset_is_legged_inputs_with_every_relation_term_off():
+    """D-147 fair-input control (lead 2026-10-04): `legged-tokens` = the `legged` token layout and inputs (limb / foot tokens,
+    public scan cells -> the policy needs the env's terrain_scan) with every factor off: no pair estimate, no estimate loss."""
+    import torch
+    from rrp.policies.legged import needs_terrain
+    from rrp.policies.nets.legged_latent import Context, relational_specs
+    from rrp.policies.relations.base import resolve
+    leg, tok = resolve(["preset:legged"]), resolve(["preset:legged-tokens"])
+    assert [s.name for s in tok] == [s.name for s in leg] and {s.control for s in tok} == {"off"}
+    assert needs_terrain(tok) and relational_specs(tok) and Context(16, specs=tok).extended
+    torch.manual_seed(0)
+    c = Context(16, specs=tok)
+    assert all(not site["b"].pairs for site in c.enc)              # no pair estimate is written, so estimates_loss adds nothing

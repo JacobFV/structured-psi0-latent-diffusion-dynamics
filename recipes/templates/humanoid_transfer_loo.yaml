@@ -134,7 +134,7 @@ nodes:
   rep_t1:
     stage: train_rep
     tag: ho-t1
-    only: {arm: [semfix_legged, semfix_none]}
+    only: {arm: [semfix_legged, semfix_none, semfix_tokens]}
     resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
     config:
       variant: semfix
@@ -144,7 +144,7 @@ nodes:
   rep_g1:
     stage: train_rep
     tag: ho-g1
-    only: {arm: [semfix_legged, semfix_none]}
+    only: {arm: [semfix_legged, semfix_none, semfix_tokens]}
     resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
     config:
       variant: semfix
@@ -154,7 +154,7 @@ nodes:
   rep_h1:
     stage: train_rep
     tag: ho-h1
-    only: {arm: [semfix_legged, semfix_none]}
+    only: {arm: [semfix_legged, semfix_none, semfix_tokens]}
     resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
     config:
       variant: semfix
@@ -164,7 +164,7 @@ nodes:
   flow_t1:
     stage: train_flow
     tag: ho-t1
-    only: {arm: [semfix_legged, semfix_none]}
+    only: {arm: [semfix_legged, semfix_none, semfix_tokens]}
     resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
     config:
       inputs: {representation: '@rep_t1:representation.pt'}
@@ -172,7 +172,7 @@ nodes:
   flow_g1:
     stage: train_flow
     tag: ho-g1
-    only: {arm: [semfix_legged, semfix_none]}
+    only: {arm: [semfix_legged, semfix_none, semfix_tokens]}
     resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
     config:
       inputs: {representation: '@rep_g1:representation.pt'}
@@ -180,7 +180,7 @@ nodes:
   flow_h1:
     stage: train_flow
     tag: ho-h1
-    only: {arm: [semfix_legged, semfix_none]}
+    only: {arm: [semfix_legged, semfix_none, semfix_tokens]}
     resources: {gpu: true, gpu_mem: 4G, cpu: 2, mem: 3G, max_seconds: 14400}
     config:
       inputs: {representation: '@rep_h1:representation.pt'}
