@@ -1941,7 +1941,7 @@ def embodiments(recompute: bool = True) -> dict:
 
 # =================================================================== [U5] roadmap "snake" (full-width figure)
 # Milestones: implemented relation families (done), campaign gates T0-T9 (D-147; state from campaign/STATUS.md and the
-# D-147 addenda as of 2 Oct 2026), then the planned relation entries of Table 7 clustered by family, wave W2 before P.
+# D-147 addenda as of 4 Oct 2026), then the planned relation entries of Table 7 clustered by family, wave W2 before P.
 # Colours follow Fig. 2's families (geometry cyan, kinematics/UI graphite, interaction amber, procedure violet); the
 # families Fig. 2 has no panel for get neutral extra hues. done = filled, now = highlighted, future = hollow.
 ROAD_FAM = {"structure": ("#8A8F98", "structure"), "geometry": ("#2BB3C0", "geometry"),
@@ -1949,18 +1949,17 @@ ROAD_FAM = {"structure": ("#8A8F98", "structure"), "geometry": ("#2BB3C0", "geom
             "task": ("#8C7CF0", "task / procedure"), "time": ("#5CC98A", "time"),
             "other": ("#C2577A", "prop. / aff. / lang.")}
 ROAD_NOW = "#E4572E"
-# (id, label, state) in path order; states: done | now | future
+# (id, label, state) in path order; states: done | failed | now | future (failed = gate failed or run halted)
 ROAD_GATES = [
-    [("T0", "tracker pins\nverified", "done"), ("T2", "t1/g1/h1 gait\ntrackers installed", "done"),
-     ("T6", "BC gate pass;\nG4 signed", "done"), ("T7", "packet-use\ngate pass", "done"),
-     ("T8", "v2 collection\n24k episodes", "done"), ("T9", "relgen shards,\nstage A, probes", "done")],
-    [("T1", "terrain trackers\nround 2 (queued)", "now"), ("T6", "phase B: v8div\nlineages", "now"),
-     ("T7", "phase 2 heads\n(queued)", "now"), ("T8", "copy / key\nheads training", "now"),
-     ("T9", "factor sets\n{geo, ix, task}", "now"), ("T2", "steps_ub +\nteacher check", "future"),
-     ("T3", "shared\nmorph_v2_ub", "future")],
-    [("T4", "collection,\nevery h_* task", "future"), ("T5", "written decision\n→ sealed cells", "future"),
-     ("T6", "G3 → sealed\nnew-arm cells", "future"), ("T7", "closed loop:\ndirect vs struct.", "future"),
-     ("T8", "seeds → UI →\nsealed", "future"), ("T9", "competence +\ninterference", "future")],
+    [("T0", "tracker pins\nverified", "done"), ("T1", "terrain trackers\nfailed; closed", "failed"),
+     ("T3", "gait + shared\ntrackers (exc.)", "done"), ("T4", "teacher gate:\nh_walk, h_turn", "done"),
+     ("T6", "G3 lineage\ngate FAILED", "failed"), ("T7", "tabletop: struct.\n7/20 vs 19/20", "done"),
+     ("T8", "copy round 1\n(dev)", "done"), ("T9", "v3dart halted\n(floor)", "failed")],
+    [("T3", "Level-1 adapt\nn1, 2xm", "now"), ("T5", "legged vs none\n+ matched ctrl", "now"),
+     ("T7", "BendPick\nstructured", "now"), ("T8", "P-SEEDS\n3 seeds", "now"),
+     ("T9", "factor sets on\nv6 lineage", "now"), ("T5", "leave-one-out\nt1 / g1 / h1", "future")],
+    [("T5", "written decision\n→ sealed cells", "future"), ("T7", "Handover\nstep 2", "future"),
+     ("T8", "UI factors →\nsealed", "future"), ("T9", "competence +\ninterference", "future")],
 ]
 
 
@@ -2010,7 +2009,7 @@ def roadmap(out=None):
         return xs if i % 2 == 0 else xs[::-1]
 
     def gate(x, y, tid, lab, state):
-        fc = {"done": "#3A3F47", "now": ROAD_NOW, "future": "white"}[state]
+        fc = {"done": "#3A3F47", "failed": "#9A9EA6", "now": ROAD_NOW, "future": "white"}[state]
         tc = "white" if state != "future" else "#3A3F47"
         if state == "now":
             ax.add_patch(plt.Circle((x, y), 0.26, color=ROAD_NOW, alpha=0.22, zorder=3, lw=0))
@@ -2019,6 +2018,8 @@ def roadmap(out=None):
         ax.text(x, y - 0.24, lab, ha="center", va="top", fontsize=5.0, color="#3A3F47", linespacing=1.0, zorder=5)
         if state == "done":
             ax.text(x + 0.15, y + 0.14, "✓", fontsize=6.5, color="#2E9E5B", weight="bold", zorder=6)
+        if state == "failed":
+            ax.text(x + 0.15, y + 0.14, "✗", fontsize=6.5, color="#B03A2E", weight="bold", zorder=6)
 
     def cluster(x, y, g, names, filled, wave, head=None, w=1.36):
         c, disp = ROAD_FAM[g]
@@ -2036,7 +2037,7 @@ def roadmap(out=None):
 
     # ---- row 0: implemented relation families (one filled cluster per family) + completed gates
     y = rows_y[0]
-    ax.text(0.05, y + 0.42, "done", fontsize=6.5, weight="bold", color="#3A3F47")
+    ax.text(0.05, y + 0.42, "recorded", fontsize=6.5, weight="bold", color="#3A3F47")
     fam_impl = [("structure", impl.get("structure", 0)), ("geometry", impl.get("geometry", 0)),
                 ("kinematics", impl.get("kinematics", 0)), ("interaction", impl.get("interaction", 0)),
                 ("task", impl.get("task", 0)),
@@ -2054,7 +2055,8 @@ def roadmap(out=None):
         lab = {"structure": "struct.", "geometry": "geo.", "kinematics": "kin.", "interaction": "ix.", "task": "task",
                "other": "other"}[g]
         ax.text(cx, y - 0.17, lab, fontsize=4.2, ha="center", va="top", color="#3A3F47", zorder=6, linespacing=0.9)
-    xs = [X0 + 3.15 + (X1 - 0.5 - (X0 + 3.15)) * k / 5 for k in range(6)]
+    n0 = len(ROAD_GATES[0])
+    xs = [X0 + 3.0 + (X1 - 0.4 - (X0 + 3.0)) * k / (n0 - 1) for k in range(n0)]
     for x, (tid, lab, st) in zip(xs, ROAD_GATES[0]):
         gate(x, y, tid, lab, st)
     # ---- row 1 (right to left): current front, then the next humanoid gates
@@ -2068,7 +2070,7 @@ def roadmap(out=None):
     for x, (tid, lab, st) in zip(xs, ROAD_GATES[1]):
         gate(x, y, tid, lab, st)
     px = min(now_x) - 0.42
-    ax.annotate("WE ARE HERE\n2 Oct 2026", xy=(px, y + 0.1), xytext=(px - 0.95, y + 0.47), fontsize=6.4, weight="bold",
+    ax.annotate("WE ARE HERE\n4 Oct 2026", xy=(px, y + 0.1), xytext=(px - 0.95, y + 0.47), fontsize=6.4, weight="bold",
                 color=ROAD_NOW, ha="center", va="center", zorder=7,
                 arrowprops=dict(arrowstyle="-|>", color=ROAD_NOW, lw=1.2))
     # ---- row 2: remaining campaign gates
@@ -2093,11 +2095,11 @@ def roadmap(out=None):
             color="#8A8F98", ha="right", va="top", style="italic", linespacing=1.1)
     ax.plot([X1 - 0.02], [rows_y[4]], marker=">", ms=7, color=todo_c, zorder=1)
     # legend
-    lx, ly = 6.35, 4.82
-    for k, (st, lab) in enumerate((("done", "done"), ("now", "in progress"), ("future", "planned"))):
-        fc = {"done": "#3A3F47", "now": ROAD_NOW, "future": "white"}[st]
-        ax.add_patch(plt.Circle((lx + k * 1.05, ly), 0.07, fc=fc, ec="#3A3F47" if st != "now" else ROAD_NOW, lw=0.9, zorder=4))
-        ax.text(lx + k * 1.05 + 0.12, ly, lab, fontsize=5.4, va="center", color="#3A3F47")
+    lx, ly = 5.9, 4.82
+    for k, (st, lab) in enumerate((("done", "done"), ("failed", "failed"), ("now", "in progress"), ("future", "planned"))):
+        fc = {"done": "#3A3F47", "failed": "#9A9EA6", "now": ROAD_NOW, "future": "white"}[st]
+        ax.add_patch(plt.Circle((lx + k * 0.95, ly), 0.07, fc=fc, ec="#3A3F47" if st != "now" else ROAD_NOW, lw=0.9, zorder=4))
+        ax.text(lx + k * 0.95 + 0.12, ly, lab, fontsize=5.4, va="center", color="#3A3F47")
     ax.text(lx - 0.15, ly, "T = campaign gate;  boxes = planned relation entries by family", fontsize=5.4, va="center",
             ha="right", color="#3A3F47")
     out = Path(out or OUT / "figures")
@@ -2106,7 +2108,7 @@ def roadmap(out=None):
     fig.savefig(out / "fig_roadmap.png", dpi=200)
     plt.close(fig)
     (out / "fig_roadmap.json").write_text(json.dumps(dict(
-        snapshot="campaign/STATUS.md + research/decisions.md D-147 addenda, 2 Oct 2026", gates=ROAD_GATES,
+        snapshot="campaign/STATUS.md + research/decisions.md D-147 addenda, 4 Oct 2026", gates=ROAD_GATES,
         implemented_by_group=impl, planned_by_wave={w: dict(v) for w, v in waves.items()},
         out_of_scope=[f for _, f in _x]), indent=1, ensure_ascii=False))
 

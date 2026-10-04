@@ -35,14 +35,18 @@
 \makeatletter
 \twocolumn[{\@maketitle\vspace{-1.3em}
 \begin{tcolorbox}[colback=rel!9,colframe=rel!60!black,boxrule=0.6pt,arc=2pt,left=6pt,right=6pt,top=3pt,bottom=3pt,halign=center]
-{\Large\bfseries\embtotal{} total unique robot embodiments!}\\[1pt]
-{\scriptsize\color{ink}Counted by \texttt{make\_figures.py embodiments}: distinct body keys built into a simulator model and simulated in at least one recorded run (validation, teacher screen, collection, training or evaluation). \embarms{} single arms (arm $\times$ gripper; \embarmproc{} procedural), \embdual{} dual-arm rigs, \emblegged{} legged and humanoid bodies (\embphum{} procedural humanoids), the $\Psi_0$ G1 and the ComputerWorld pointer; \embtrained{} of them are in a training set. Breakdown: Table~\ref{tab:embodiments}.}
+{\Large\bfseries\embtotal{} unique simulated embodiments}\\[1pt]
+{\scriptsize\color{ink}Counted by \texttt{make\_figures.py embodiments}: distinct body keys built into a simulator model and simulated in at least one recorded run (validation, teacher screen, collection, training or evaluation). \embarms{} single arms (arm $\times$ gripper; \embarmproc{} procedural), \embdual{} dual-arm rigs, \emblegged{} legged and humanoid bodies (\embphum{} procedural humanoids), the $\Psi_0$ G1 and the ComputerWorld pointer (a UI agent, not a robot); \embtrained{} of them are in a training set. All bodies are simulated; none is a physical robot. Breakdown: Table~\ref{tab:embodiments}.}
 \end{tcolorbox}\vspace{0.6em}}]
 \makeatother
 
 \begin{abstract}\noindent
-We study robot control in which a planner (System~1) samples a continuous latent packet $z\in\mathbb{R}^{K\times M\times D}$, one slot per knot time and per body assembly, by rectified-flow matching, and a fast body-side controller (System~0) realizes the same packet as native joint targets from proprioception and touch alone. The packet is supervised to carry task meaning (target, contact, held object, goal) through probes. Every attention layer adds declared relational structure to its logits: the logit is $\langle q_i,k_j\rangle/\sqrt d$ plus a sum of factor terms (PaPE-style relative geometry, kinematic graph, contact, support and force flow, grasp, task-gated next contact, UI structure). The terms come from one declarative registry of 76 factors (75 implemented) that also drives relation-aware data generation and probe readouts, with a deploy guard that keeps simulator truth out of run-time inputs. Across arms, quadrupeds, hexapods, humanoids and a 3D UI world we record that semantic supervision raises arm competence (+0.23 [0.18, 0.28], D-134), carries a task-context halt request into legged behaviour (D-124) and lets packet edits steer a pointer (D-142), but that the latent route does not beat behaviour cloning when adapting to a new arm (D-135/D-136). A pre-registered campaign (humanoids, arm diversity, $\Psi_0$, pointer, relation factors) is running; this report states its gates and no campaign result.
+We study robot control in which a planner (System~1) samples a continuous latent packet $z\in\mathbb{R}^{K\times M\times D}$, one slot per knot time and per body assembly, by rectified-flow matching, and a fast body-side controller (System~0) realizes the same packet as native joint targets from proprioception and touch alone. The packet is supervised to carry task meaning (target, contact, held object, goal) through probes. Every attention layer adds declared relational structure to its logits: the logit is $\langle q_i,k_j\rangle/\sqrt d$ plus a sum of factor terms (PaPE-style relative geometry, kinematic graph, contact, support and force flow, grasp, task-gated next contact, UI structure). The terms come from one declarative registry of 76 factors (75 implemented) that also drives relation-aware data generation and probe readouts, with a deploy guard that keeps simulator truth out of run-time inputs. Across arms, quadrupeds, hexapods, humanoids and a 3D UI world we record that semantic supervision raises arm competence (+0.23 [0.18, 0.28], D-134), carries a task-context halt request into legged behaviour (D-124) and lets packet edits partially steer a pointer (D-142), but that the latent route does not beat behaviour cloning when adapting to a new arm (D-135/D-136). A pre-registered campaign (humanoids, arm diversity, $\Psi_0$, pointer, relation factors) is running. Its recorded outcomes so far are mostly negative or inconclusive: the arm-diversity lineage gate failed, the structured $\Psi_0$ head reaches 7/20 against 19/20 for direct fine-tuning, a relation-factor comparison was halted at a floor, and no humanoid transfer or relation-factor result exists yet; every in-progress node is labelled as such.
 \end{abstract}
+
+\begin{tcolorbox}[colback=amber!10,colframe=amber!70!black,boxrule=0.5pt,arc=2pt,left=4pt,right=4pt,top=3pt,bottom=3pt]
+\textbf{Status, 4 October 2026.} This is a living report. The training campaign of Sec.~\ref{sec:campaign} is ongoing; results are recorded to the snapshot of 4 Oct 2026 (campaign \texttt{STATUS.md} and decision ledger) and later versions will add to them. Anything marked \emph{in progress} is not a result.
+\end{tcolorbox}
 
 \begin{tcolorbox}[colback=rel!6,colframe=rel!40,boxrule=0.5pt,arc=2pt,left=4pt,right=4pt,top=3pt,bottom=3pt]
 \textcolor{rel}{\ding{72}}\;\textbf{Contributions.}\\[1pt]
@@ -221,7 +225,7 @@ All simulation is native MuJoCo~\cite{mujoco} with robot models largely from MuJ
 
 % Section 6. Fragment. Needs table_results.tex input in the main file (placed here for float order).
 \section{Results so far}\label{sec:results}
-Table~\ref{tab:results} lists every result recorded to the snapshot of 2 Oct 2026, with the setting, the comparison and the interval recorded in the cited decision. Results come from three environments (arm pick--place, legged locomotion, ComputerWorld pointer) and one third-party humanoid policy; none of them is a cross-body transfer claim. Source labels follow the repository convention: \emph{learned latent} and \emph{learned BC} are policies under test; \emph{scripted teacher} and \emph{privileged oracle} are references.
+Table~\ref{tab:results} lists every result recorded to the snapshot of 4 Oct 2026, with the setting, the comparison and the interval recorded in the cited decision. Results come from three environments (arm pick--place, legged locomotion, ComputerWorld pointer) and from our fine-tunes of one third-party pretrained humanoid policy ($\Psi_0$); none of them is a positive cross-body transfer claim. Source labels follow the repository convention: \emph{learned latent} and \emph{learned BC} are our policies under test; \emph{scripted teacher} and \emph{privileged oracle} are references; \emph{upstream} marks third-party released weights that we evaluate but did not train.
 
 \paragraph{Semantic packet supervision helps within the training bodies.} On four arm bodies and two training seeds the latent route with semfix succeeds in 425/480 R2 episodes against 314/480 for the capacity-matched nosem control, a difference of $+0.23$ [0.18, 0.28], with semfix ahead in 8/8 body$\times$seed cells (D-134). The latent route stays below the BC control on panda (135/180 against 58/60) and the binding (rebind) effect is seed-dependent for both variants. An earlier ``semantic supervision hurts'' result was a confound: the unbounded probe loss shrank System-0 updates to $\approx$0.002--0.004 against 0.70--0.92 for nosem; with the bounded loss the three variants read 81/90, 83/90 and 21/90 (bounded, nosem, original; D-085, D-087). Comparisons made before that fix are not used here.
 
@@ -229,16 +233,18 @@ Table~\ref{tab:results} lists every result recorded to the snapshot of 2 Oct 202
 
 \paragraph{Zero-shot transfer to a new arm is not supported.} On sealed xarm7 targets, latent and BC policies both score 0/200 zero-shot. With target demonstrations BC fine-tuning reaches 69--192 of 200 depending on target, whereas flow fine-tuning gives 0 and a System-0 refit at most 38 (D-135). Joint flow and realizer adaptation, added \emph{after} D-135 and therefore post-hoc, beats the refit in 12/12 cells (595 against 130 of 1{,}200 for semfix) but stays below BC fine-tuning in 12/12 (595 against 842), with every Newcombe upper bound below zero (D-136). On the known arm with a new gripper (panda\_tf3) semfix reaches 154/200 zero-shot, nosem 32 and BC 199 (D-135). A dev-seed diagnosis (D-135 addendum) attributes the D-135 failure to the protocol adapting one module at a time and not to an inability of the latent route to adapt; even so, on dev seeds the latent route adapts about half as fast per update as BC and never beats it on a new body in the data so far.
 
-\paragraph{Pointer control: close to BC in-distribution, no copy on unseen strings.} On the sealed \texttt{sealed\_id} set ($n{=}400$, one training seed, sealed once) BC solves 398 (0.995 [0.982, 0.999]), semfix 372 (0.930 [0.901, 0.951]) and nosem 368 (0.920 [0.889, 0.943]); the scripted System-0 route (\texttt{eng}) solves 185 (D-142). The semfix--nosem difference is not distinguishable ($p{=}0.68$, McNemar); BC is ahead of semfix ($p{=}2.2\times10^{-7}$). On unseen words and names every learned method scores 0/50 on typing and 0/50 on form filling; unseen calculator pairs reach 45--50/50. The learned realizers do not copy characters from the instruction; a copy head is the pre-registered test (Sec.~\ref{sec:campaign}).
+\paragraph{Pointer control: close to BC in-distribution; unseen strings fail with the v1 packet.} On the sealed \texttt{sealed\_id} set ($n{=}400$, one training seed, sealed once) BC solves 398 (0.995 [0.982, 0.999]), semfix 372 (0.930 [0.901, 0.951]) and nosem 368 (0.920 [0.889, 0.943]); a learned System~1 driving the scripted System~0 (\texttt{eng}) solves 185 (D-142). The semfix--nosem difference is not distinguishable ($p{=}0.68$, McNemar); BC is ahead of semfix ($p{=}2.2\times10^{-7}$). On unseen words and names every learned method scores 0/50 on typing and 0/50 on form filling; unseen calculator pairs reach 45--50/50. With the v1 packet the policies do not copy characters from the instruction. Campaign round~1 (T8, development seeds only, below) changes this picture for the v2 key code.
 
-\paragraph{Structure on a pretrained humanoid policy: a failed diagnosis, not a negative result.} On the released $\Psi_0$ checkpoint, 20 closed-loop episodes give 20/20 [0.84, 1.00] released, 19/20 [0.76, 0.99] direct fine-tuning and 0/20 [0.00, 0.16] with the structured head (D-141). The offline diagnosis traced the 0/20 to an integration fault: System~0 barely read the packet and acted as a state-only policy, driven by a commanded-torso state that never occurs in training; so it is not evidence against structure. The pre-registered packet-use gate that was added afterwards passed (gap 0.0782; D-146, D-147), and the closed-loop comparison is queued (Sec.~\ref{sec:campaign}).
+\paragraph{Structure on a pretrained humanoid policy: fixed, but below direct fine-tuning.} On TabletopGraspMP, 20 closed-loop episodes give 20/20 [0.84, 1.00] for the released $\Psi_0$ checkpoint (upstream weights, not ours), 19/20 [0.76, 0.99] for our direct fine-tune and 0/20 [0.00, 0.16] for our first structured head (D-141). The offline diagnosis traced that 0/20 to an integration fault: System~0 barely read the packet and acted as a state-only policy, driven by a commanded-torso state that never occurs in training. After the fix, the pre-registered packet-use gate passed (gap 0.0782; D-146, D-147) and the closed-loop campaign run (T7, seed~0) gives structured 7/20 [0.18, 0.57] against direct 19/20 [0.76, 0.99], paired McNemar $p{=}0.0018$ (13 vs 1 discordant; D-147 T7 addendum). The fix worked only partially; structure does \emph{not} match direct fine-tuning on this task (one seed, one task). Open-loop held-out error favours the structured head and does not predict closed-loop success.
+
+\paragraph{Campaign outcomes recorded so far (D-147 addenda).} \emph{Arm diversity (T6):} the G3 lineage gate failed. On the four original source bodies (development seeds, pooled over two seeds) the latent semfix route trained on 65 arm keys (v8div) succeeds in 362/480 (0.754 [0.714, 0.791]) against 425/480 for v6, below the pre-registered threshold 0.835 (difference $-0.131$ [$-0.179$, $-0.083$]); the track is \texttt{failed\_hypothesis} and, per its signed protocol, no sealed new-arm cell was run, so H1 and H2 are untested. \emph{$\Psi_0$ BendPickMP (T7):} released (upstream, not ours) 20/20, our direct fine-tune 15/20 [0.53, 0.89], packet-use gate passed (gap 0.1483); the structured closed-loop evaluation is \emph{in progress}. \emph{Pointer round~1 (T8, development seeds, three training seeds, nosem):} with the v2 discrete key code, a learned System~1 with the free key head driving the scripted System~0 types strings from the held-out bucket (open 50/50 on every seed, fill 50, 49, 50 of 50), so D-142's 0/50 does not reappear on development seeds; the pre-registered copy head is \emph{worse} on drag (mean 5.3 vs 37.3 of 50, 3/3 seeds). Nothing sealed was run. \emph{Relation factors (T9):} the first comparison (geo vs base on the v3dart F0 route) was halted at a floor, 0/360 vs 0/360, which is uninformative about factors; the re-planned comparison on the v6 lineage is \emph{in progress}. \emph{Humanoids (T1--T5):} terrain trackers failed round~2, so \texttt{h\_steps} and \texttt{h\_gap} are excluded for this campaign; the scripted-teacher quality gate passed for \texttt{h\_walk} (0.95) and \texttt{h\_turn} (1.00) only; on the sealed bodies the scripted teacher over the shared tracker failed its pre-registered check (n1 0/40, toddlerbot\_2xc 0/40) and toddlerbot\_2xc also failed after Level-1 adaptation (0/20 walk, 0/20 turn), so no sealed humanoid cell has run. The \texttt{preset:legged} vs \texttt{legged-none} comparison (T5) is \emph{in progress} and carries a fair-input caveat: the legged-none arm never receives the public terrain scan or limb and foot tokens, so a matched-input control (\texttt{legged-tokens}: same inputs, every relation term off) was pre-registered and is \emph{running}; no legged-vs-none claim is made before it lands.
 
 % Table 3 (results so far). Fragment: needs booktabs, array, tabularx, amsmath. Source of every cell: numbers_check.md.
 \begin{table*}[t]\centering\footnotesize
-\setlength{\tabcolsep}{3pt}\renewcommand{\arraystretch}{1.08}
+\setlength{\tabcolsep}{3pt}\renewcommand{\arraystretch}{1.0}
 \caption{\textbf{Results so far} (recorded results only; interim numbers of running campaign nodes are not listed). ``Latent'' = learned System~1 $\to$ packet $\to$ learned System~0, deployable route (R2); ``BC'' = learned behaviour-cloning control on the same demonstrations; ``teacher'', ``oracle'' = scripted / privileged references, never policies under test. Intervals are the 95\% intervals recorded in the cited decision (Wilson for rates, Newcombe for rate differences); ``counts'' = no interval recorded. $\mathrm{semfix}$ = semantic packet supervision with the bounded probe NLL (D-085); $\mathrm{nosem}$ = capacity-matched control without it.}
 \label{tab:results}
-\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.35cm}>{\raggedright\arraybackslash}p{4.3cm}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{1.55cm}@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.75cm}>{\raggedright\arraybackslash}p{3.9cm}>{\raggedright\arraybackslash}p{3.0cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{1.25cm}@{}}
 \toprule
 Question & Setting (env, bodies, seeds, $n$) & Comparison & Result [95\% CI as recorded] & Decision \\
 \midrule
@@ -279,7 +285,7 @@ BC 398 (0.995 [0.982, 0.999]); semfix 372 (0.930 [0.901, 0.951]); nosem 368 (0.9
 D-142 \\
 \addlinespace
 \ldots unseen words and names &
-\texttt{sealed\_heldout} $n{=}150$ (50 calc / type / form), 1 seed &
+\texttt{sealed\_heldout} $n{=}150$ (50 calc / type / form), 1 seed, v1 packet &
 all learned methods &
 Typing and form-filling 0/50 each (0/100 unseen words and names) for every learned method; unseen calculator pairs 45--50/50. No method copies characters from the instruction. &
 D-142 \\
@@ -292,15 +298,33 @@ D-142 \\
 \addlinespace
 Does adding structure to a pretrained humanoid VLA work? &
 $\Psi_0$ TabletopGraspMP L0 (SIMPLE / Isaac Sim 5.1, path-traced), 10 eval configs $\times$ 2 repeats, $n{=}20$ per arm &
-released $\Psi_0$ (third-party) vs direct fine-tune vs structured &
-Released 20/20 [0.84, 1.00]; direct 19/20 [0.76, 0.99]; structured 0/20 [0.00, 0.16], diagnosed as an integration bug (System~0 ignores the packet); not evidence against structure. &
+released $\Psi_0$ (upstream, not ours) vs our direct fine-tune vs our structured head &
+Released 20/20 [0.84, 1.00]; direct 19/20 [0.76, 0.99]; structured 0/20 [0.00, 0.16], diagnosed as an integration bug (System~0 ignores the packet). &
 D-141 \\
 \addlinespace
 \ldots after the fix: packet-use gate &
 T7 phase 1, held-out episodes; gate = err$(R(\bar z))-$err$(R(E(a)))\ge$ margin 0.05 &
 stage A with state dropout and permuted-packet hinge &
-\textbf{PASS}: gap 0.0782 (0.0843 vs 0.0060). Closed-loop structured evaluations are queued, not results. &
+\textbf{PASS}: gap 0.0782 (0.0843 vs 0.0060). &
 D-146, D-147 \\
+\addlinespace
+\ldots closed loop after the fix &
+Same task and 20 configs as D-141, campaign T7, 1 seed &
+our direct vs our structured (generated packet); released (upstream) reference &
+Structured 7/20 [0.18, 0.57] vs direct 19/20 [0.76, 0.99]; McNemar $p{=}0.0018$; released 20/20. \textbf{Structure below direct.} &
+D-147 (T7) \\
+\addlinespace
+More training arms: source competence kept? (G3) &
+Arm pick--place, 4 original source bodies, dev seeds, 2 seeds, 480 pooled &
+latent semfix v8div (65 arm keys) vs v6; threshold v6 $-0.05$ &
+362/480 (0.754 [0.714, 0.791]) vs 425/480; $-0.131$ [$-0.179$, $-0.083$]. \textbf{FAIL} (\texttt{failed\_hypothesis}); no sealed cell run. &
+D-147 (T6) \\
+\addlinespace
+Pointer v2 key code: copy head vs free head &
+Dev seeds, 50 per task, 3 training seeds, nosem; learned System~1 $\to$ scripted System~0 &
+copy vs free key head (P-COPY rule) &
+Free head types held-out-bucket strings (open 50/50 $\times3$; fill 50, 49, 50); copy head worse on drag (5.3 vs 37.3 of 50, 3/3 seeds). Dev only. &
+D-147 (T8) \\
 \bottomrule
 \end{tabularx}
 \end{table*}
@@ -308,32 +332,32 @@ D-146, D-147 \\
 
 % Section 7. Fragment.
 \section{Pre-registered campaign}\label{sec:campaign}
-The remaining claims are decided by a ten-node campaign (T0--T9; D-147, \texttt{research/readiness.md} section B) whose tests and reading rules were written before the corresponding runs. Table~\ref{tab:campaign} gives each node's state at the snapshot. GPU work is admitted by a resource broker (at most two concurrent GPU jobs per machine, humanoid first); a failed gate is recorded and not retried with other settings. Sealed splits are hash-pinned and each cell runs once; infeasible or failed cells are reported as such.
+The remaining claims are decided by a ten-node campaign (T0--T9; D-147, \texttt{research/readiness.md} section B) whose tests and reading rules were written before the corresponding runs. Table~\ref{tab:campaign} gives each node's state at the snapshot of 4 Oct 2026. GPU work is admitted by a resource broker (at most two concurrent GPU jobs per machine, humanoid first); a failed gate is recorded and not retried with other settings. Sealed splits are hash-pinned and each cell runs once; infeasible or failed cells are reported as such.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_roadmap.pdf}
-\caption{\textbf{Roadmap as of 2 Oct 2026.} The path runs from completed work (top) to the end of the current plan (bottom). Row 1: the 75 implemented relation factors by family and the campaign gates already passed (T0 pins, T2 gait trackers, T6 BC gate and G4 signature, T7 packet-use gate, T8 collection, T9 shards and stage A). Row 2: the current front (highlighted; T1 round 2, T6 phase B lineages, T7 phase 2, T8 copy and key heads, T9 factor sets), then the next humanoid gates. Row 3: the remaining campaign gates, each ending in sealed or pre-registered readouts (Table~\ref{tab:campaign}). Rows 4--5: every planned entry of Table~\ref{tab:relations-planned}, clustered by its family, wave W2 before wave P; they come after T9 because T9 is the first test of whether factor sets help. Colours follow the families of Fig.~\ref{fig:fig2} (geometry cyan, kinematics graphite, interaction amber, procedure violet; structure, time and property/affordance/language get neutral extra hues). Filled = done, highlighted = in progress, hollow = planned. Generated by \texttt{make\_figures.py roadmap} from the relation registry and catalog.}
+\caption{\textbf{Roadmap as of 4 Oct 2026.} The path runs from recorded outcomes (top) to the end of the current plan (bottom). Row 1: the 75 implemented relation factors by family and the recorded gate outcomes, including the failed ones (T1 terrain trackers, T6 G3 lineage gate, T9 v3dart run halted at a floor). Row 2: the current front (highlighted; T3 Level-1 adaptation, T5 legged vs none with the matched-input control, T7 BendPick structured, T8 P-SEEDS, T9 factor sets on the v6 lineage), then the leave-one-out comparison. Row 3: the remaining campaign gates, each ending in sealed or pre-registered readouts (Table~\ref{tab:campaign}). Rows 4--5: every planned entry of Table~\ref{tab:relations-planned}, clustered by its family, wave W2 before wave P; they come after T9 because T9 is the first test of whether factor sets help. Colours follow the families of Fig.~\ref{fig:fig2} (geometry cyan, kinematics graphite, interaction amber, procedure violet; structure, time and property/affordance/language get neutral extra hues). Filled = done, grey with a cross = failed (recorded, not retried), highlighted = in progress, hollow = planned. Generated by \texttt{make\_figures.py roadmap} from the relation registry and catalog.}
 \label{fig:roadmap}
 \end{figure*}
 
-\paragraph{Humanoid (T0--T5).} Question: with pinned, gated trackers, does the legged relation preset change dev transfer relative to the same recipe without it (\texttt{preset:legged} against \texttt{legged-none}, at least two seeds, matched data and updates)? A tracker is installed only if it passes the D-112 gate, or the labelled D-147 exception (joint margin $\ge-0.06$, peak force $\le4.2$ body weights, cost of transport $\le2.5$, task evaluation $\ge0.9$). One bounded fix per failed gate is allowed. Terrain-scan trackers failed round 1 (T1), so terrain tasks are currently \emph{unsupported}; a task with teacher success below 0.8 is held back (T4). The test is the dev transfer tables followed by a written decision before any sealed cell (T5); no humanoid transfer claim is made until then.
+\paragraph{Humanoid (T0--T5).} Question: with pinned, gated trackers, does the legged relation preset change dev transfer relative to the same recipe without it (\texttt{preset:legged} against \texttt{legged-none}, at least two seeds, matched data and updates)? A tracker is installed only if it passes the D-112 gate, or the labelled D-147 exception (joint margin $\ge-0.06$, peak force $\le4.2$ body weights, cost of transport $\le2.5$, task evaluation $\ge0.9$). One bounded fix per failed gate is allowed. Terrain-scan trackers failed rounds 1 and 2 (T1), so terrain tasks are closed for this campaign; a task with teacher success below 0.8 is held back (T4), which leaves \texttt{h\_walk} and \texttt{h\_turn}. The test is the dev transfer tables (T5, plus a leave-one-out comparison among t1, g1, h1) followed by a written decision before any sealed cell; no humanoid transfer claim is made until then. Because \texttt{legged-none} lacks the terrain scan and limb and foot tokens, a matched-input control (\texttt{legged-tokens}) is pre-registered; ``relation factors help'' needs \texttt{legged} $>$ \texttt{legged-tokens}.
 
-\paragraph{Arm diversity (T6).} H1: a latent route trained on 65 distinct arm kinematics transfers to new arms better than the v6 13-body lineages, zero-shot and at 5, 20 and 100 target demonstrations, and closes the gap to BC fine-tuning. H2: kinematic static features (\texttt{kinfeat}) help further. Success is $k/100$ per cell with Wilson intervals; three Newcombe contrasts: (a) v8div $-$ v6 latent per primary target, (b) v8div latent $-$ v8div BC fine-tuning at equal budget, (c) kinfeat $-$ no-kinfeat. A contrast counts only if its interval excludes 0; tiers are not pooled; zero-shot is reported apart from adaptation. Gate G3 requires v8div semfix $\ge$ v6 semfix $-0.05$ on the original bodies and a BC expert $\ge0.85$ on the new arms (BC half passed). A null or negative H1 is recorded as \texttt{failed\_hypothesis}; targets and budgets are not changed.
+\paragraph{Arm diversity (T6).} H1: a latent route trained on 65 arm $\times$ gripper keys (13 v6 keys, 24 procedural arms and two more menagerie arms, each with two grippers) transfers to new arms better than the v6 13-body lineages, zero-shot and at 5, 20 and 100 target demonstrations, and closes the gap to BC fine-tuning. H2: kinematic static features (\texttt{kinfeat}) help further. Success is $k/100$ per cell with Wilson intervals; three Newcombe contrasts: (a) v8div $-$ v6 latent per primary target, (b) v8div latent $-$ v8div BC fine-tuning at equal budget, (c) kinfeat $-$ no-kinfeat. A contrast counts only if its interval excludes 0; tiers are not pooled; zero-shot is reported apart from adaptation. Gate G3 requires v8div semfix $\ge$ v6 semfix $-0.05$ on the original bodies and a BC expert $\ge0.85$ on the new arms. The BC half passed; the lineage half \textbf{failed} (362/480 vs 425/480, Sec.~\ref{sec:results}), so the track is recorded as \texttt{failed\_hypothesis} and stopped without running any sealed cell; H1 and H2 remain untested.
 
-\paragraph{Packet use in $\Psi_0$ (T7).} Question: does a structured head that reads the packet change closed-loop pick--place relative to direct fine-tuning? The gate requires err\,$R(\bar z)-$err\,$R(E(a))\ge0.05$; a failure ends the node as \texttt{failed\_hypothesis}. It passed (0.0782). No numerical threshold is recorded for the closed-loop comparison (20 episodes; D-141: released 20/20, direct 19/20), so it is reported with intervals and not as pass or fail.
+\paragraph{Packet use in $\Psi_0$ (T7).} Question: does a structured head that reads the packet change closed-loop pick--place relative to direct fine-tuning? The gate requires err\,$R(\bar z)-$err\,$R(E(a))\ge0.05$; a failure ends the node as \texttt{failed\_hypothesis}. It passed on TabletopGraspMP (0.0782) and BendPickMP (0.1483). The closed-loop reading rule, fixed before the BendPickMP and HandoverTeleop results, is per task: structured vs direct with Wilson intervals and paired McNemar; ``structure helps'' only if structured $>$ direct with $p<0.05$, and ``no worse'' is never claimed from overlapping intervals. Tabletop: structured below direct (7/20 vs 19/20). BendPickMP structured and HandoverTeleop are \emph{in progress}.
 
-\paragraph{ComputerWorld pointer (T8).} Dev seeds, 50 per task, three training seeds; a difference counts only if it has the same sign in at least two of three paired seeds and exceeds the larger within-arm seed range. P-SEEDS: is the D-142 ordering stable? P-UI: do \texttt{ui.*} factors help (mean gain $\ge4$ points on $\ge2$ tasks, no task losing more than the seed range)? P-COPY: does a copy head fix unseen typing ($\ge10/50$ on both \texttt{open\_type} and \texttt{fill\_form} of \texttt{sealed\_heldout})? P-KEY: does a discrete key code help (dev gain above the seed range)? Sealed sets are evaluated once per arm and seed after the dev table is written. The scripted route cannot copy and is excluded from P-COPY.
+\paragraph{ComputerWorld pointer (T8).} Dev seeds, 50 per task, three training seeds; a difference counts only if it has the same sign in at least two of three paired seeds and exceeds the larger within-arm seed range. P-SEEDS: is the D-142 ordering stable? P-UI: do \texttt{ui.*} factors help (mean gain $\ge4$ points on $\ge2$ tasks, no task losing more than the seed range)? P-COPY: does a copy head fix unseen typing ($\ge10/50$ on both \texttt{open\_type} and \texttt{fill\_form} of \texttt{sealed\_heldout})? P-KEY: does a discrete key code help (dev gain above the seed range)? Sealed sets are evaluated once per arm and seed after the dev table is written. The scripted route cannot copy and is excluded from P-COPY. Round~1 (copy vs free key head, dev) is recorded above; P-SEEDS is \emph{in progress} and P-UI is planned.
 
-\paragraph{Relation factors (T9).} Question: do geometry, interaction and task factor sets added at stage A give probes with measurable competence, and do they interfere? The recorded tests are per-factor competence by curriculum depth and an interference table against the base set (two seeds). \textbf{No numerical success threshold is recorded for T9}; it can establish only that the diagnostics work, not downstream performance. Probes and attention maps are diagnostics; causal use is shown by edits and rollouts (Sec.~\ref{sec:results}).
+\paragraph{Relation factors (T9).} Question: do the geometry, interaction and task factor sets change arm success relative to the same pipeline without factors? The first run (v3dart, F0-only route) was halted at a floor (0/360 in both arms; uninformative), and the v8div re-plan became moot when G3 failed. The current pre-registration, written before any run, trains the factor sets \{none, geo, ix, task\} $\times$ seeds 1, 2 on the suffix of the v6 semfix lineage, with \texttt{none} on current code as the primary control. A set helps or hurts only if the Newcombe 95\% interval of set $-$ control on the 480 pooled primary cells excludes 0, and the result is valid only if every scheduled factor reaches probe competence $\ge0.5$; per-factor competence by depth and interference are reported alongside. State: \emph{in progress}. Probes and attention maps are diagnostics; causal use is shown by edits and rollouts (Sec.~\ref{sec:results}).
 
-% Table 4 (campaign T0-T9). Fragment: needs booktabs, array, tabularx. Snapshot: campaign/STATUS.md of 2026-10-02 14:00 PDT; decisions at main a9667433.
+% Table 4 (campaign T0-T9). Fragment: needs booktabs, array, tabularx. Snapshot: campaign/STATUS.md and research/decisions.md D-147 addenda of 2026-10-04 ~09:30 PDT.
 \providecommand{\st}[1]{{\ttfamily\scriptsize #1}}
 \begin{table*}[t]\centering\footnotesize
 \setlength{\tabcolsep}{3pt}\renewcommand{\arraystretch}{1.08}
-\caption{\textbf{Campaign T0--T9} (D-147; gates from \texttt{research/readiness.md} section B and the D-147 addenda), state as of 2 Oct 2026 14:00 PDT. States use the repository's progress vocabulary only. A recorded gate outcome is listed when one exists; counts of nodes that are still \st{running} are deliberately omitted. ``L'' = body leg length (step heights are given in units of L).}
+\caption{\textbf{Campaign T0--T9} (D-147; gates from \texttt{research/readiness.md} section B and the D-147 addenda), state as of 4 Oct 2026. States use the repository's progress vocabulary only. A recorded gate outcome is listed when one exists; interim counts of nodes that are still \st{running} are deliberately omitted. ``L'' = body leg length. Teacher checks use the \emph{scripted teacher} (privileged) over a learned tracker.}
 \label{tab:campaign}
-\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{4.3cm}>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{4.1cm}>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}X@{}}
 \toprule
  & Track and run & Pre-registered gate & State & Recorded gate outcome \\
 \midrule
@@ -342,50 +366,50 @@ T0 & humanoid: pinned trackers and warm starts &
 \st{verified} &
 Pins match; its D-112 report reproduces D-114 (no new run). \\
 \addlinespace
-T1 & humanoid: terrain-scan trackers, \texttt{h\_steps} (t1, g1, h1) and \texttt{h\_gap} (t1, h1) &
-D-112 gate; task eval $\ge$0.9 per height/level; labelled exception only for joint margin, peak force, CoT within caps (D-147); one bounded fix per failed gate &
-\st{failed\_hypothesis} (round 1); round 2 \st{running} (dispatcher queued for a GPU) &
-steps t1 2/20 at 0.10\,L, 0/20 above; g1 0/20 at every height; h1 10/20 at 0.10 and 0.15\,L, 0/20 above; gap t1 0/20; gap h1 20/20 at level 1.0 but stand-trial falls and force above cap. None installable. \\
+T1 & humanoid: terrain-scan trackers, \texttt{h\_steps} (t1, g1, h1) and \texttt{h\_gap} (t1, h1), rounds 1 and 2 &
+D-112 gate; task eval $\ge$0.9 per height/level; labelled exception only for joint margin, peak force, CoT within caps; one bounded fix per failed gate &
+\st{failed\_hypothesis}; \texttt{h\_steps}, \texttt{h\_gap} excluded; terrain closed for D-147 &
+Round 1: steps t1 2/20 at 0.10\,L, g1 0/20, h1 10/20 at 0.10--0.15\,L; gap t1 0/20, h1 20/20 but stand falls and force above cap. Round 2: no body passes (t1 steps 0/100). None installable. \\
 \addlinespace
-T2 & humanoid: wholebody \texttt{*\_ub} gait trackers (t1, g1, h1), then \texttt{steps\_ub} trackers &
-Lab gate; teacher check \texttt{h\_carry} $\ge$10/12 both sides, \texttt{h\_steps\_carry} $\ge$8/10, else \st{blocked\_external} and excluded &
-gait trackers \st{completed}; \texttt{steps\_ub} \st{planned} &
-t1, g1, h1 \texttt{ub\_v1} gait trackers installed under the labelled D-147 exception (lab gate pass, no falls; only the joint margin fails: 0.0183 / 0.0191 / 0.0160 against 0.02). Teacher check not yet run. \\
+T2 & humanoid: wholebody \texttt{*\_ub} gait trackers (t1, g1, h1), \texttt{steps\_ub}, \texttt{h\_carry} teacher check &
+Lab gate; teacher check \texttt{h\_carry} $\ge$10/12 both sides, \texttt{h\_steps\_carry} $\ge$8/10, else \st{blocked\_external} &
+gait trackers \st{completed}; \texttt{h\_carry} \st{blocked\_external} &
+t1, g1, h1 \texttt{ub\_v1} installed under the labelled D-147 exception (joint margin 0.0183 / 0.0191 / 0.0160 against 0.02). \texttt{steps\_ub}: h1 installed, t1 and g1 fail. \texttt{h\_carry}: no plan on g1 / h1. \\
 \addlinespace
-T3 & humanoid: shared \texttt{morph\_v2\_ub} tracker &
-Gate on every source body &
-\st{planned} &
---- \\
+T3 & humanoid: shared \texttt{morph\_v2\_ub} tracker; sealed-body teacher check; Level-1 adaptation &
+Gate on every source body; sealed-body teacher $\ge$16/20 per (body, task), else \st{blocked\_external} &
+installed (owner exception); n1 adaptation \st{running}, toddlerbot\_2xm queued &
+Gate failures carried in the label (op3, adam\_lite, apollo). Sealed-body check: n1 0/40, toddlerbot\_2xc 0/40; 2xc after adaptation 0/20 walk, 0/20 turn: \st{blocked\_external}. \\
 \addlinespace
-T4 & humanoid: collection for every \texttt{h\_*} task &
-Teacher success $\ge$0.8 per task, else the task is held back with a note &
-\st{planned} &
---- \\
+T4 & humanoid: teacher-quality gate, collection &
+Pooled teacher success $\ge$0.8 per task, else held back &
+\st{completed} &
+Pass: \texttt{h\_walk} 0.95, \texttt{h\_turn} 1.00. Held back: \texttt{h\_reach}, \texttt{h\_squat\_pick}, \texttt{h\_place} (0.33), \texttt{h\_loco\_pick} (0.05). \\
 \addlinespace
-T5 & humanoid: lineages, \texttt{preset:legged} vs \texttt{legged-none}, $\ge$2 seeds, dev transfer tables &
-Dev tables, then a \emph{written decision} before any sealed cell (D-138 methods, matched data and updates) &
-\st{planned} &
-No sealed humanoid cell has run. \\
+T5 & humanoid: \texttt{preset:legged} vs \texttt{legged-none} vs BC, $\ge$2 seeds; leave-one-out t1/g1/h1; matched-input control \texttt{legged-tokens} &
+Dev tables, then a \emph{written decision} before any sealed cell; factors help only if legged $>$ legged-tokens &
+\st{running} (fair-input caveat on every table) &
+None yet. \\
 \addlinespace
 T6 & armdiv: BC 1702, kinfeat BC 1701; G4 signature; v8div lineages $\to$ G3 $\to$ sealed &
-BC expert $\ge$0.85 on new training arms; v8div semfix $\ge$ v6 semfix $-0.05$ on original bodies; G4 protocol signed before any lineage; each sealed cell once &
-\st{running} (phase B: lineage stage A) &
-BC gate \textbf{PASS}: 117/120 new arms for both BC experts, 59/60 and 60/60 on v6 bodies, 60/60 held-out. G4 signed 2 Oct. Latent half of G3 and sealed cells: not yet. \\
+BC expert $\ge$0.85 on new training arms; v8div semfix $\ge$ v6 semfix $-0.05$ on original bodies; each sealed cell once &
+\st{failed\_hypothesis} (stopped) &
+BC gate PASS (117/120 new arms for both). G3 lineage gate \textbf{FAIL}: 362/480 vs 425/480 (threshold 0.835). No sealed cell run. \\
 \addlinespace
-T7 & $\Psi_0$: labels $\to$ stage A $\to$ packet-use gate $\to$ structured head $\to$ closed loop &
-Gate gap $\ge$ margin 0.05, else \st{failed\_hypothesis} and nothing trains after it &
-phase 1 \st{completed}; phase 2 \st{running} &
-Gate \textbf{PASS}: gap 0.0782 (err$\,R(\bar z)$ 0.0843 vs err$\,R(E)$ 0.0060). Closed-loop direct vs structured: not yet. \\
+T7 & $\Psi_0$: labels $\to$ stage A $\to$ packet-use gate $\to$ heads $\to$ closed loop; TabletopGraspMP, BendPickMP, HandoverTeleop &
+Gate gap $\ge$ 0.05, else \st{failed\_hypothesis}; closed loop: helps only if structured $>$ direct, McNemar $p<0.05$ &
+tabletop \st{completed}; bendpick \st{running}; handover \st{planned} &
+Tabletop: gate PASS 0.0782; structured 7/20 vs direct 19/20 ($p{=}0.0018$); released (upstream) 20/20. BendPick: gate PASS 0.1483; direct 15/20; released (upstream) 20/20. \\
 \addlinespace
 T8 & pointer v2: collection $\to$ copy / key heads $\to$ seeds $\to$ UI factors, dev tables &
 P-KEY, P-COPY, P-SEEDS, P-UI rules (Sec.~\ref{sec:campaign}); sealed only after a written decision &
-collection \st{completed}; copy \st{running}; seeds, UI \st{planned} &
-Collection: 4$\times$6{,}000 teacher episodes, 0 teacher failures. Oracle packets $\to$ scripted System~0: 50/50 on each task (privileged reference, not a policy result). \\
+collection, copy round \st{completed}; seeds \st{running}; UI \st{planned} &
+Collection 4$\times$6{,}000 teacher episodes. Oracle packets $\to$ scripted System~0: 50/50 per task (privileged reference). Copy head worse than free head on drag (dev). \\
 \addlinespace
-T9 & relation factors: relgen shards $\to$ shared stage A $\to$ factor sets \{geo, ix, task\} vs base, seeds 1, 2 &
-Per-factor competence by depth; interference table &
-shards, stage A, probes \st{completed}; factor-set training \st{running} &
-None yet. \\
+T9 & relation factors: \{none, geo, ix, task\} $\times$ seeds 1, 2 on the v6 semfix lineage &
+Newcombe 95\% of set $-$ none excludes 0; valid only if every factor's competence $\ge0.5$ &
+v3dart run halted (\st{failed\_hypothesis}, floor); v8div moot; v6 run \st{running} &
+v3dart: 0/360 vs 0/360, uninformative. \\
 \bottomrule
 \end{tabularx}
 \end{table*}
@@ -393,7 +417,7 @@ None yet. \\
 
 % Limitations. Fragment.
 \section{Limitations}\label{sec:limitations}
-The evidence is narrow. (i) \emph{No cross-body transfer claim.} Zero-shot transfer to new arms is 0/200 for every method, the latent route has not beaten BC on any new body, and the humanoid transfer sealed cells have not been run. (ii) \emph{Seeds.} Most ComputerWorld numbers are one training seed (D-142); the legged result has three seeds per body (D-124), with exact seed-ordering $p{=}0.05$. Intervals cover evaluation episodes, not training-seed variance. (iii) \emph{Post-hoc analysis.} The joint-adaptation method of D-136 was added after the sealed results of D-135 on the same scenes; it is labelled and not a pre-registered test. (iv) \emph{Partial edits.} Packet edits move behaviour part of the way (the probe reads the edit in 8--10 of 25 cases) and are demonstrated on calculator and form tasks only. (v) \emph{Unseen strings.} All learned pointer methods fail on unseen typing and form text (0/100); this is a negative result about the current realizers. (vi) \emph{Pretrained humanoid.} The structured arm's 0/20 was an integration fault, fixed only offline so far; the closed-loop comparison has not run. (vii) \emph{Humanoid trackers.} Terrain trackers failed their gates, and the three installed gait trackers (t1, g1, h1) are labelled exceptions to the joint-margin rule. (viii) \emph{Simulation.} All results are simulated, with scripted or privileged teachers; sim-truth labels train probes and are not deployable inputs. No physical robot was commanded. (ix) \emph{Snapshot.} The campaign table is a snapshot; running nodes may finish with results that are not shown here.
+The evidence is narrow. (i) \emph{No cross-body transfer claim.} Zero-shot transfer to new arms is 0/200 for every method, the latent route has not beaten BC on any new body, the arm-diversity lineage gate failed before any sealed new-arm cell, and no sealed humanoid cell has run (the sealed bodies checked so far failed the scripted-teacher check). (ii) \emph{Seeds.} Most ComputerWorld numbers are one training seed (D-142); the legged result has three seeds per body (D-124), with exact seed-ordering $p{=}0.05$. Intervals cover evaluation episodes, not training-seed variance. (iii) \emph{Post-hoc analysis.} The joint-adaptation method of D-136 was added after the sealed results of D-135 on the same scenes; it is labelled and not a pre-registered test. (iv) \emph{Partial edits.} Packet edits move behaviour part of the way (the probe reads the edit in 8--10 of 25 cases) and are demonstrated on calculator and form tasks only. (v) \emph{Unseen strings.} With the v1 packet all learned pointer methods fail on unseen typing and form text (0/100, sealed). The v2 key code types held-out-bucket strings on development seeds, but no sealed v2 evaluation exists yet. (vi) \emph{Pretrained humanoid.} After the integration fix the structured head reaches 7/20 against 19/20 for direct fine-tuning on one task and one seed; the other $\Psi_0$ tasks are in progress. (vii) \emph{Humanoid trackers.} Terrain trackers failed their gates, so terrain tasks are out of this campaign; the installed gait and shared trackers are labelled exceptions to the D-112 gate. The legged vs legged-none comparison mixes relation factors with extra inputs until the matched-input control lands. (viii) \emph{Simulation.} All results are simulated, with scripted or privileged teachers; sim-truth labels train probes and are not deployable inputs. No physical robot was commanded. (ix) \emph{Snapshot.} This is a living report of an ongoing campaign (snapshot 4 Oct 2026); running nodes may finish with results that are not shown here.
 
 
 \begingroup\small\setlength{\parskip}{0pt}\setlength{\itemsep}{0pt}

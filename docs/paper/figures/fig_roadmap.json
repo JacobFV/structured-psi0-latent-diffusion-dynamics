@@ -1,5 +1,5 @@
 {
- "snapshot": "campaign/STATUS.md + research/decisions.md D-147 addenda, 2 Oct 2026",
+ "snapshot": "campaign/STATUS.md + research/decisions.md D-147 addenda, 4 Oct 2026",
  "gates": [
   [
    [
@@ -8,92 +8,87 @@
     "done"
    ],
    [
-    "T2",
-    "t1/g1/h1 gait\ntrackers installed",
-    "done"
-   ],
-   [
-    "T6",
-    "BC gate pass;\nG4 signed",
-    "done"
-   ],
-   [
-    "T7",
-    "packet-use\ngate pass",
-    "done"
-   ],
-   [
-    "T8",
-    "v2 collection\n24k episodes",
-    "done"
-   ],
-   [
-    "T9",
-    "relgen shards,\nstage A, probes",
-    "done"
-   ]
-  ],
-  [
-   [
     "T1",
-    "terrain trackers\nround 2 (queued)",
-    "now"
-   ],
-   [
-    "T6",
-    "phase B: v8div\nlineages",
-    "now"
-   ],
-   [
-    "T7",
-    "phase 2 heads\n(queued)",
-    "now"
-   ],
-   [
-    "T8",
-    "copy / key\nheads training",
-    "now"
-   ],
-   [
-    "T9",
-    "factor sets\n{geo, ix, task}",
-    "now"
-   ],
-   [
-    "T2",
-    "steps_ub +\nteacher check",
-    "future"
+    "terrain trackers\nfailed; closed",
+    "failed"
    ],
    [
     "T3",
-    "shared\nmorph_v2_ub",
-    "future"
+    "gait + shared\ntrackers (exc.)",
+    "done"
+   ],
+   [
+    "T4",
+    "teacher gate:\nh_walk, h_turn",
+    "done"
+   ],
+   [
+    "T6",
+    "G3 lineage\ngate FAILED",
+    "failed"
+   ],
+   [
+    "T7",
+    "tabletop: struct.\n7/20 vs 19/20",
+    "done"
+   ],
+   [
+    "T8",
+    "copy round 1\n(dev)",
+    "done"
+   ],
+   [
+    "T9",
+    "v3dart halted\n(floor)",
+    "failed"
    ]
   ],
   [
    [
-    "T4",
-    "collection,\nevery h_* task",
-    "future"
+    "T3",
+    "Level-1 adapt\nn1, 2xm",
+    "now"
    ],
+   [
+    "T5",
+    "legged vs none\n+ matched ctrl",
+    "now"
+   ],
+   [
+    "T7",
+    "BendPick\nstructured",
+    "now"
+   ],
+   [
+    "T8",
+    "P-SEEDS\n3 seeds",
+    "now"
+   ],
+   [
+    "T9",
+    "factor sets on\nv6 lineage",
+    "now"
+   ],
+   [
+    "T5",
+    "leave-one-out\nt1 / g1 / h1",
+    "future"
+   ]
+  ],
+  [
    [
     "T5",
     "written decision\n→ sealed cells",
     "future"
    ],
    [
-    "T6",
-    "G3 → sealed\nnew-arm cells",
-    "future"
-   ],
-   [
     "T7",
-    "closed loop:\ndirect vs struct.",
+    "Handover\nstep 2",
     "future"
    ],
    [
     "T8",
-    "seeds → UI →\nsealed",
+    "UI factors →\nsealed",
     "future"
    ],
    [
