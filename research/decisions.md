@@ -2014,3 +2014,10 @@ further T8 result:
   `camp-relations-b-host`) are on local branch `t9/v6-frozen` = 25fa9063 + the host-instance commit (recipes / tests / docs only); the
   peer code dir is unchanged at ceee8b73. The previous peer-only coordinator was stopped with no T9 lease active (it had relaunched against
   the moved worktree and marked completed nodes stale; it launched nothing). First race 15:37: F0 none s1 won by the host.
+
+### D-147 addendum 2026-10-04 16:48 (T9 owner, autonomous): T9 race pause resolved
+- F0 geo s1 failed on the host 2 s after launch (lease 1791156250_753ae8, 0 heartbeats): `CUDA error: out of memory` while loading
+  (host unified-memory contention at launch), not a missing input (the geo relgen shards were on the host). Classified as an
+  infrastructure stop: the race now requeues a 0-heartbeat startup CUDA OOM like the other resumable stops (<= 10 per node), and before
+  every race it checks each planned input path of the node on the host, copying a missing one from the peer store (sha256). Resumed
+  16:48; no setting, seed or recipe changed.
