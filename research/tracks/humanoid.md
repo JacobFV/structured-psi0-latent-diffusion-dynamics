@@ -818,3 +818,8 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
   on the peer at LOWEST priority (`--yield-to-waiting`, `hlt_` labels outside the humanoid GPU reservation, shared humanoid budget); shared
   collect / pack adopted (same runs). LOO controls start when each main LOO starts (`camp-hum-ctl-tokens-loo-*`). Tables: legged / none+scan / none;
   the fair-input caveat stays until none+scan lands.
+- 2026-10-04 07:00 **infra (peer memory pressure 61 at 06:42)**: not shm (rrp.slice shmem 7.1 GB <= the guard's 8 GB target; guard healthy, last
+  offload 10-03 21:29). Cause: leases running AT their memory.high: ptr3 edits (6G decl, PSI 94 %; pointer owner re-declared 12G) and the
+  humanoid evals (8G decl, peak >= 7.22 GiB censored; htr_eval_ref / htr_ns1_eval shed 3x). Humanoid transfer / LOO eval / eval_ref / sealed
+  nodes now 12G (28150956; config hashes unchanged); own 8G eval leases stopped (--owned-only) and relaunched at 12G (cells resume).
+  Peer memory PSI 50 % -> 12 % after the relaunch.
