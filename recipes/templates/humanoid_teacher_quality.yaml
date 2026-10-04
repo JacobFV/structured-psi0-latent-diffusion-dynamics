@@ -30,7 +30,7 @@ defaults:
   placement: peer
   retries: 3          # dev cells already in results.jsonl are skipped on a retry
   max_parallel: 4
-  resources: {cpu: 4, mem: 8G, gpu: false, max_seconds: 21600}
+  resources: {cpu: 4, mem: 12G, gpu: false, max_seconds: 21600}   # D-147 10-04: h_place check 6.84 GiB throttled at 8G; >= 1.35 x 6.84
 base:
   flags: {contact_version: contact_v2}
 nodes:

@@ -212,7 +212,7 @@ nodes:
   eval:
     stage: eval_transfer
     retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped)
-    resources: {cpu: 4, mem: 12G, max_seconds: 21600}   # D-147 10-04: measured >= 7.22 GiB at memory.high (throttled, watchdog-stopped) under 8G
+    resources: {cpu: 4, mem: 16G, max_seconds: 21600}   # D-147 10-04: 8G then 12G throttled (peaks 7.2 then 10.7 GiB at memory.high); 16G >= 1.35 x 10.7; growth under investigation
     per:
       arm:
         semfix_legged:
@@ -228,6 +228,6 @@ nodes:
     tag: ref
     scope: global
     retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped)
-    resources: {cpu: 4, mem: 12G, max_seconds: 21600}   # D-147 10-04: measured >= 7.22 GiB at memory.high (throttled, watchdog-stopped) under 8G
+    resources: {cpu: 4, mem: 16G, max_seconds: 21600}   # D-147 10-04: 8G then 12G throttled (peaks 7.2 then 10.7 GiB at memory.high); 16G >= 1.35 x 10.7; growth under investigation
     config:
       options: {transfer: $transfer, variant: '-'}

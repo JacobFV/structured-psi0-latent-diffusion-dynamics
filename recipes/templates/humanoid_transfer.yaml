@@ -787,7 +787,7 @@ nodes:
   eval:
     stage: eval_transfer
     retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
-    resources: {cpu: 4, mem: 12G, max_seconds: 21600}   # D-147 10-04: measured >= 7.22 GiB at memory.high (throttled, watchdog-stopped) under 8G
+    resources: {cpu: 4, mem: 16G, max_seconds: 21600}   # D-147 10-04: 8G then 12G throttled (peaks 7.2 then 10.7 GiB at memory.high); 16G >= 1.35 x 10.7; growth under investigation
     per:
       system:
         semfix:
@@ -851,7 +851,7 @@ nodes:
     stage: sealed_eval
     deps: [eval]
     retries: 0    # D-147: 6 h lease cap; a sealed cell cut mid-run stays OPEN in the run-once log (record the infrastructure failure, then a manual retry)
-    resources: {cpu: 4, mem: 12G, max_seconds: 21600}   # D-147 10-04: measured >= 7.22 GiB at memory.high (throttled, watchdog-stopped) under 8G
+    resources: {cpu: 4, mem: 16G, max_seconds: 21600}   # D-147 10-04: 8G then 12G throttled (peaks 7.2 then 10.7 GiB at memory.high); 16G >= 1.35 x 10.7; growth under investigation
     per:
       system:
         semfix:
@@ -916,7 +916,7 @@ nodes:
     tag: ref
     scope: global
     retries: 3    # D-147: 6 h lease cap; resumes (dev cells done in results.jsonl are skipped; adapt_ppo --resume)
-    resources: {cpu: 4, mem: 12G, max_seconds: 21600}   # D-147 10-04: measured >= 7.22 GiB at memory.high (throttled, watchdog-stopped) under 8G
+    resources: {cpu: 4, mem: 16G, max_seconds: 21600}   # D-147 10-04: 8G then 12G throttled (peaks 7.2 then 10.7 GiB at memory.high); 16G >= 1.35 x 10.7; growth under investigation
     config:
       inputs: {pack: '@pack:pack.json'}
       options: {transfer: $transfer, variant: '-'}
@@ -926,7 +926,7 @@ nodes:
     scope: global
     deps: [eval_ref]
     retries: 0    # D-147: 6 h lease cap; a sealed cell cut mid-run stays OPEN in the run-once log (record the infrastructure failure, then a manual retry)
-    resources: {cpu: 4, mem: 12G, max_seconds: 21600}   # D-147 10-04: measured >= 7.22 GiB at memory.high (throttled, watchdog-stopped) under 8G
+    resources: {cpu: 4, mem: 16G, max_seconds: 21600}   # D-147 10-04: 8G then 12G throttled (peaks 7.2 then 10.7 GiB at memory.high); 16G >= 1.35 x 10.7; growth under investigation
     config:
       inputs: {pack: '@pack_sealed:pack.json'}
       options: {transfer: $transfer, variant: '-', sealed: '{sealed}'}
