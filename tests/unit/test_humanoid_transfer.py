@@ -162,3 +162,14 @@ def test_steps_tool_keeps_argv_and_json_shape(tmp_path, monkeypatch):
     d = json.loads(out.read_text())
     assert d["success"] == 1 and d["fell"] == 0 and d["rows"][0]["status"] == "success" and d["rows"][0]["h_frac"] == 0.1
     assert {"body", "actor", "n", "source", "rows"} <= set(d)
+
+
+def test_config_level_env_kw_reaches_every_method(monkeypatch):
+    """D-147 (2026-10-04): a transfer config's env_kw (the collection body tracker) applies to every method under the method's own; before,
+    learned / BC cells ran on the body's default tracker (missing on the host: 'no tracker for t1')."""
+    from rrp.harness.eval import humanoid_eval as HE
+    cfg = dict(env_kw={"tracker": "<body>:ub_v1"}, methods=[dict(name="m", kind="bc", source="bc", policy="legged_bc", kw={}, level=2,
+                                                                env_kw={"x": 1})])
+    monkeypatch.setattr("rrp.policies.base.make_policy", lambda *a, **k: type("P", (), {"info": type("I", (), {"source": "bc"})()})())
+    _, env_kw = HE.build_policy(cfg, dict(method="m", body="g1", task="h_turn", budget=None, train_seed=0), root=None)
+    assert env_kw == {"tracker": "g1:ub_v1", "x": 1}

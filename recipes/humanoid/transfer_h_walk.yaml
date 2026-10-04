@@ -17,6 +17,7 @@ lists:
   sealed_bodies: [n1, berkeley, toddlerbot_2xc]
   trackers: {t1: 't1:ub_v1', g1: 'g1:ub_v1', h1: 'h1:ub_v1'}
   transfer:
+    env_kw: {tracker: '<body>:ub_v1'}    # D-147 (10-04): every method runs on the body tracker its demos were collected with
     name: humanoid_transfer_h_walk
     task: h_walk
     latent_kw: {upper: true}

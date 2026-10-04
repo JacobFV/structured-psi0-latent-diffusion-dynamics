@@ -444,7 +444,8 @@ def build_policy(cfg: dict, cell: dict, root: Path):
     from rrp.policies.base import make_policy
     m = method_of(cfg, cell["method"])
     kv = dict(body=cell["body"], task=cell["task"], budget=cell["budget"], seed=cell["train_seed"])
-    env_kw = fmt(m.get("env_kw") or {}, **kv)
+    # config-level env_kw (e.g. {tracker: '<body>:ub_v1'}: the body tracker the demos were collected with) under the method's own (D-147)
+    env_kw = fmt({**(cfg.get("env_kw") or {}), **(m.get("env_kw") or {})}, **kv)
     if m["kind"] == "expert":
         from rrp.policies.teachers.humanoid import make_rl_expert
         spec = fmt(m["tracker"], **kv)
