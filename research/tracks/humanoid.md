@@ -833,3 +833,5 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
   said iter 99, which was the 01:45 restore point: the run progressed to 299 on the host afterwards). Same recipe, seed, budget. Host ledger
   renamed `ledger_hsa_n1_host.MOVED_TO_PEER_20261004.json`, dispatcher job line disabled: exactly one live n1 run. The T4 teacher re-gate stays
   queued on the host (moving it would overwrite the round-1 evidence in the peer store and compete for the peer's CPU).
+- 2026-10-04 11:05 requeue rule rev 2 (lead): a requeue round in which every failure is an admission timeout does not count toward the cap of 3
+  (real run failures still do); hard ceiling 20 rounds, then an ALERT. All T5 / n1 requeue units restarted on it; LOO coordinators got requeue units.
