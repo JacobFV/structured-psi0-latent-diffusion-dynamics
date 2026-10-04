@@ -19,7 +19,7 @@ separate scheduling switch that decides which recipe trees may be tracked; it st
 |---|---|---|---|---|---|
 | relations | relation-factor experiments | planned | open | T9 re-planned on the v8div lineage, PRE-REGISTERED (`research/tracks/relations.md`; `recipes/relations/relations_v8div.yaml`): waits for the armdiv G3 lineage gate; the v3dart comparison was halted (0/360 vs 0/360, floor) | D-144, D-147 |
 | humanoid | W13 humanoid transfer | running | open | D-147 campaign: T0 verified (pins); T1 terrain trackers training (`~/work/rrp-data/campaign/STATUS.md`) | D-138, D-139, D-146, D-147 |
-| armdiv | W7 training-arm diversity | planned | paused | T6: fill pins, v6 reference evals, lead signs G4, then v8div lineages (`recipes/armdiv/`) | D-137, D-146 |
+| armdiv | W7 training-arm diversity | failed_hypothesis | closed (G3) | T6 phase B: v8div semfix lineages done; G3 lineage gate FAIL 362/480 = 0.754 < 0.835 (v6 425/480); STOP per signed G4 (no nosem / kinfeat / sealed / v6ref) (`research/tracks/armdiv.md`) | D-137, D-146, D-147 |
 | psi0 | W10 Psi0 / SIMPLE | planned | paused | T7: label recording, stage A with the D-141 fix, packet-use gate (structured arm was 0/20 vs direct 19/20) | D-141, D-146 |
 | pointer | ComputerWorld pointer policy | planned | paused | T8: v2 re-collect, rep, flow / bc x 3 seeds, dev tables (`recipes/pointer/`) | D-142, D-146 |
 
@@ -71,7 +71,7 @@ All `planned`; nothing starts before the final integration check is green. Order
 | T3 | shared `morph_v2` tracker (legs + upper) | planned | `recipes/humanoid/` |
 | T4 | humanoid collect for every `h_*` task, teacher quality table | planned | `recipes/humanoid/` |
 | T5 | humanoid lineages (`preset:legged` vs `legged-none`), dev transfer tables | planned | `recipes/humanoid/` |
-| T6 | armdiv: BC 1702 / 1701 pins, v6 reference evals, G4 signature, v8div lineages | planned | `recipes/armdiv/` |
+| T6 | armdiv: BC 1702 / 1701 pins, v6 reference evals, G4 signature, v8div lineages | failed_hypothesis | `recipes/armdiv/arm_lineage_v8div.yaml`; G3 FAIL, `research/tracks/armdiv.md` |
 | T7 | Psi0: labels, stage A, packet-use gate, structured head, eval | planned | `recipes/psi0/` |
 | T8 | pointer v2 lineages, dev tables | planned | `recipes/pointer/` |
 | T9 | relation-factor experiments on the v8div lineage (geo / ix / task vs arm8div-semfix), interference table; gated on the armdiv G3 lineage gate; v3dart attempt halted (floor) | planned | `recipes/relations/relations_v8div*.yaml` |

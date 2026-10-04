@@ -1829,3 +1829,17 @@ Not touched by design: armdiv T6 (`recipes/armdiv/*`, `presets/eval-armdiv_v1.js
   remaining nodes were only waiting for admission (no lease held) and those nodes were handed to the new coordinator; nothing finished was rerun.
 - Infrastructure retries signed off (lead, 2026-10-03): the first host attempts of bc s2 / flow_eng s2 died at import before any training
   step (environment); their fresh attempts are infrastructure retries, not result-driven reruns (D-061).
+
+### D-147 addendum 2026-10-03 (T6 armdiv phase B owner): G3 lineage gate FAILED -> armdiv failed_hypothesis, STOP
+- v8div semfix lineages s1, s2 completed (44/44 nodes; learned latent; deployed `flow_ft-gdag2h` + `refit-gendag3_noqd`). G3 lineage gate per the
+  operational reading fixed 2026-10-02 12:19 before any result: original source bodies parm6_tf3, panda_pg2, parm5l_pg2, parm5s_tf3, DEV seeds, k/480 pooled over
+  seeds: v8div semfix 362/480 = 0.754 [Wilson 0.714, 0.791] vs v6 semfix 425/480 = 0.885 [0.854, 0.911]; threshold 0.835 -> FAIL
+  (difference -0.131, Newcombe 95% [-0.179, -0.083]; below v6 on every body and both seeds). Audit: same checkpoints role, seeds, route, replan/NFE,
+  prev-action, grasp contact v2.1, all episodes `learned`. Table: research/tracks/armdiv.md "G3 lineage gate result".
+- Per the signed G4 text the track records **failed_hypothesis** and STOPS: no nosem / kinfeat lineages, no v6-reference cells, no sealed cell of
+  `arm_targets_v8div_latent` / `arm_targets_v8div_bc` / `arm_targets_v6ref` was run; no sealed armdiv scene was ever evaluated (they stay sealed).
+  H1 is not tested on sealed targets, H2 not tested. Dev context: v8div semfix on the four new training arms 172/240 = 0.717 vs its BC labeller 120/120.
+- Dependants: relations T9 (`relations_T9_v8div_prereg`, "gated on armdiv G3") reads arm8div-semfix as its control; the gate result is reported to the lead for that call.
+- Operational changes during phase B (no result-driven rerun, D-061): flow nodes declare 12G (resources only; 44/44 config hashes unchanged; main e9339265);
+  coordinator wrappers relaunch with `--retry-failed` only for admission timeouts, 6 h segment ends, a slice-level peer OOM (oom_memcg = rrp.slice, 2026-10-03 03:57)
+  and watchdog sheds (live_limit_reduced, gpu_thermal_slowdown_active); each relaunch resumed from the node's checkpoint or reran an unchanged collection.
