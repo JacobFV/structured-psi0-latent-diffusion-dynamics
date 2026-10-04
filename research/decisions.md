@@ -2008,3 +2008,9 @@ further T8 result:
   after; hard limits unchanged (AGENTS.md updated).
 - Infra: `test_rollout_frees_each_group_of_closed_envs` carries the `menagerie` skip marker (failed with KeyError panda_pg2 in worktrees without
   assets). The legs-control humanoid clock origin is an explicit NotImplementedError until decided (test).
+
+- Code frozen for the whole experiment (operational, 2026-10-04 15:30): every T9 v6 node runs src_tree ceee8b73 (= main 25fa9063, the
+  pre-registration commit). Main has since moved (other tracks' src changes), so both race worktrees (`camp-relations-b-run` peer side,
+  `camp-relations-b-host`) are on local branch `t9/v6-frozen` = 25fa9063 + the host-instance commit (recipes / tests / docs only); the
+  peer code dir is unchanged at ceee8b73. The previous peer-only coordinator was stopped with no T9 lease active (it had relaunched against
+  the moved worktree and marked completed nodes stale; it launched nothing). First race 15:37: F0 none s1 won by the host.
