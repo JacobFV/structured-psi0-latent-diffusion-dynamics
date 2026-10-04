@@ -321,3 +321,19 @@ def test_loop_revokes_only_the_culprit_lease(tmp_path):
     run_loop(b2, be2, _peer(memory_reserve_bytes=1 * G, raise_high_first=True), interval_s=0.0,
              log_path=tmp_path / "wd2.jsonl", max_iterations=3, sample_fn=lambda cc, s: next(samples2))
     assert ("raise_memory_high", cu2.lease_id) in be2.calls and b2.leases()[cu2.lease_id]["state"] == "active"
+
+
+def test_system_psi_sheds_the_throttled_culprit_not_the_newest_lease():
+    """D-147 (2026-10-04, host): a lease stalled at its own memory.high drove the SYSTEM PSI (25-29 % full, 84 GB available) and the
+    system-PSI shed took the newest innocent leases (the n1 adaptation, a teacher check). Now the throttled culprit goes first."""
+    c, st = _peer(psi_full_avg10_shed=20.0), WatchdogState()
+    def hot(t):
+        s = _psi(0.0, t)
+        s["psi_full_avg10"] = 27.0
+        return s
+    vs = [evaluate(hot({"eval_8g": 30000, "n1": 0}), c, st) for _ in range(3)]
+    assert vs[2].level == "shed" and vs[2].victims == ["eval_8g"], vs[2]
+    assert "throttled_culprits:eval_8g" in vs[2].reasons[0]
+    st2 = WatchdogState()                                          # no throttled lease: the default policy as before
+    v = [evaluate(hot({}), c, st2) for _ in range(3)][2]
+    assert v.level == "shed" and v.victims is None

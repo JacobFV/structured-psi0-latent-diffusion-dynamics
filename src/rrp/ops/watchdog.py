@@ -171,29 +171,40 @@ def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
             bump("shed", f"swap_growth:{growth}")
         elif growth > cfg.swap_growth_stop_bytes:
             bump("stop_admission", f"swap_growth:{growth}")
+    deltas = {lid: e.get("delta", 0) for lid, e in (sample.get("lease_memory_high") or {}).items() if e.get("delta", 0) > 0}
+    st.recent_throttle = (st.recent_throttle + [deltas])[-max(cfg.psi_sustain_samples, 1):]
+    victims = raise_high = None
+    stepped = False
+    # D-147 (2026-10-04): a lease stalled at its own memory.high also raises the SYSTEM memory PSI (host: 25-29 % full with
+    # 84 GB available); the system-PSI shed then took the newest (innocent) leases and spared the throttled one. Sustained
+    # system PSI now sheds the throttled culprits first, with the same phases as the project PSI (D-127 addendum).
     psi = sample.get("psi_full_avg10")
     if psi is not None and psi > cfg.psi_full_avg10_shed:
         st.psi_high_count += 1
         if st.psi_high_count >= cfg.psi_sustain_samples:
-            bump("shed", f"sustained_system_memory_psi:{psi}")
+            victims, raise_high, why = _culprit_step(cfg, st)
+            stepped = True
+            if why:
+                bump("shed" if victims else "stop_admission", f"sustained_system_memory_psi:{psi}:{why}")
+            else:
+                bump("shed", f"sustained_system_memory_psi:{psi}")
         else:
             bump("stop_admission", f"system_memory_psi:{psi}")
     else:
         st.psi_high_count = 0
     ppsi = sample.get("project_psi_full_avg10")
-    deltas = {lid: e.get("delta", 0) for lid, e in (sample.get("lease_memory_high") or {}).items() if e.get("delta", 0) > 0}
-    st.recent_throttle = (st.recent_throttle + [deltas])[-max(cfg.psi_sustain_samples, 1):]
-    victims = raise_high = None
     if ppsi is not None and ppsi > cfg.project_psi_full_avg10_shed:
         st.project_psi_high_count += 1
         if st.project_psi_high_count >= cfg.psi_sustain_samples:
-            victims, raise_high, why = _culprit_step(cfg, st)
+            if not stepped:
+                victims, raise_high, why = _culprit_step(cfg, st)
             if why:
                 bump("shed" if victims else "stop_admission", f"sustained_project_memory_psi:{ppsi}:{why}")
             else:
                 bump("shed", f"sustained_project_memory_psi:{ppsi}")
     else:
         st.project_psi_high_count = 0
+    if st.psi_high_count == 0 and st.project_psi_high_count == 0:
         st.culprit_phase, st.culprit_since, st.culprits = None, 0, []
     df = sample.get("disk_free")
     if df is None:
@@ -230,7 +241,7 @@ def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
     st.stable_count = st.stable_count + 1 if level == "ok" else 0
     v = Verdict(level, reasons, live_mem, live_cpu)
     if level == "shed" and victims is not None:
-        only_psi = all(r.startswith("sustained_project_memory_psi") for r in reasons)
+        only_psi = all(r.startswith(("sustained_project_memory_psi", "sustained_system_memory_psi")) for r in reasons)
         v.victims = victims if only_psi else None          # another shed reason present: default policy
     if raise_high and level != "emergency":
         v.raise_high = raise_high
