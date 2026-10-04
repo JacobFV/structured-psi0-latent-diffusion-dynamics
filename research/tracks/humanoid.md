@@ -864,3 +864,6 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
   Scope of fix 1: wholebody only (the legs-control eval keeps settle_ticks: its pinned golden behaviour, `test_deploy_eval`). Open item: the
   collector has started direct `legs` demos at 0 since 288b3779 (09-30); a legs-control humanoid trained on such data would need the same
   origin (none is trained today).
+- 2026-10-04 15:00 **HOLD** (reversible, no lease stopped): T5 coordinators (both presets, legged-none host, legged-tokens control), their
+  requeue units and the LOO waiters are stopped; running leases finish on their own. Reason: every remaining node builds on sigma-0 data.
+  Kept running: T4 teacher re-gate (valid), toddlerbot_2xc failure clip. Restart = `hum_restart_coords.sh` once the pilot is decided.
