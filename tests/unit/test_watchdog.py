@@ -72,8 +72,13 @@ def test_disk_and_thermal():
     assert evaluate(ok_sample(thermal_c=98.0, cpu_freq_ratio=1.0), cfg(), WatchdogState()).level == "stop_admission"
     assert evaluate(ok_sample(thermal_c=93.0, cpu_freq_ratio=0.5), cfg(), WatchdogState()).level == "shed"
     assert evaluate(ok_sample(thermal_c=101.0), cfg(), WatchdogState()).level == "shed"
-    # D-147 (2026-10-03): a thermal-slowdown flag stops admission only; it never sheds by itself
-    assert evaluate(ok_sample(gpu_thermal_throttle=True, gpu_temp_c=86.0), cfg(), WatchdogState()).level == "stop_admission"
+    # D-147: a thermal-slowdown flag stops admission only (never sheds by itself), and only when it persists (2026-10-04: >= 34% of 60 s)
+    st = WatchdogState()
+    levels = [evaluate(ok_sample(gpu_thermal_throttle=(i % 8 == 0), gpu_temp_c=86.0), cfg(), st).level for i in range(60)]
+    assert set(levels) == {"ok"}                                   # a ~12% flicker (the peer at the hot edge) keeps admission open
+    st = WatchdogState()
+    levels = [evaluate(ok_sample(gpu_thermal_throttle=True, gpu_temp_c=86.0), cfg(), st).level for _ in range(15)]
+    assert levels[-1] == "stop_admission" and "shed" not in levels
 
 
 def test_gpu_shed_needs_a_sustained_critical_temperature():

@@ -54,6 +54,11 @@ class WatchdogConfig:
     # NON-reserved-track GPU lease goes first (the reserved track, e.g. humanoid, keeps its slot; reservation pseudo-leases are never shed).
     gpu_critical_c: float = 90.0
     gpu_critical_window_s: float = 60.0
+    # D-147 (2026-10-04): the slowdown flag flickers at the hot edge (peer, ONE GPU job: die 93-96 C, flag in ~12% of samples, SM clock
+    # unchanged). Stop admission only when it is set in >= slowdown_stop_frac of the last slowdown_window_s (a per-sample stop with the
+    # 15-sample resume window latched admission shut for hours). Temperature thresholds are unchanged.
+    slowdown_window_s: float = 60.0
+    slowdown_stop_frac: float = 0.34
     cpu_freq_throttle_ratio: float = 0.7   # shed if hot AND clocks dropped below this fraction of max
     stable_window_samples: int = 15
     project_disk_limit_bytes: int | None = None
@@ -79,6 +84,7 @@ class WatchdogState:
     stable_count: int = 0
     last_cpu_usage_usec: int | None = None
     gpu_hot_count: int = 0
+    slowdown_hist: list = field(default_factory=list)
     last_t: float | None = None
     shmem_excess_count: int = 0           # consecutive samples with a RAM-store-caused excess under memory pressure
     lease_high: dict = field(default_factory=dict)   # lease id -> last seen memory.events `high` count (D-117)
@@ -96,6 +102,12 @@ class Verdict:
     live_cpu_cores: float | None = None
     victims: list | None = None       # shed: these lease ids only (culprits); None = the default policy (newest lease)
     raise_high: list | None = None    # opt-in: raise memory.high to memory.max for these lease ids (no shed this sample)
+
+
+def _slowdown_frac(st, cfg, flag: bool) -> float:
+    n = max(1, int(math.ceil(cfg.slowdown_window_s / cfg.sample_interval_s)))
+    st.slowdown_hist = (st.slowdown_hist + [flag])[-n:]
+    return sum(st.slowdown_hist) / n                 # an unfilled window counts the missing samples as clear
 
 
 def thermal_victims(active: list, reserved_prefixes: list[str]) -> list:
@@ -206,7 +218,7 @@ def evaluate(sample: dict, cfg: WatchdogConfig, st: WatchdogState) -> Verdict:
         bump("shed", f"gpu_thermal:{g}")                           # hard ceiling: immediate
     elif st.gpu_hot_count >= need_hot:
         bump("shed", f"gpu_thermal_sustained:{g}C_{cfg.gpu_critical_window_s:.0f}s")
-    elif sample.get("gpu_thermal_throttle"):
+    elif _slowdown_frac(st, cfg, bool(sample.get("gpu_thermal_throttle"))) >= cfg.slowdown_stop_frac:
         bump("stop_admission", f"gpu_thermal_slowdown_active:{g}C")
     elif g is not None and g >= cfg.gpu_critical_c:
         bump("stop_admission", f"gpu_hot:{g}C")
