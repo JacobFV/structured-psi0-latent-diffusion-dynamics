@@ -347,5 +347,5 @@ def test_eval_clock_origin_matches_the_collector_for_direct_control():
     from rrp.harness.data import legged_latent_collect as LC
     from rrp.policies import legged as PL
     src = inspect.getsource(PL._LeggedPolicy.reset)
-    assert "self.ad.ticks = 0 if s.control in DIRECT_CONTROLS else s.settle_ticks" in src
+    assert 'self.ad.ticks = 0 if s.control == "wholebody" else s.settle_ticks' in src
     assert "rt.ticks = 0" in inspect.getsource(LC.collect_episode)

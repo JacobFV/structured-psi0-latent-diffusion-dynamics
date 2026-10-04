@@ -861,3 +861,6 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
   The T4 data and every T5 checkpoint so far were trained on sigma-0 data: the T5 / LOO results of that data are not the pre-registered recipe
   (`--sigmas 0,0.1,0.2,0.3` declared). Proposal to the lead: pilot first (h_turn re-collect with both fixes, retrain semfix legged s0, t1
   zero-shot on 6 then 100 dev scenes), then all arms.
+  Scope of fix 1: wholebody only (the legs-control eval keeps settle_ticks: its pinned golden behaviour, `test_deploy_eval`). Open item: the
+  collector has started direct `legs` demos at 0 since 288b3779 (09-30); a legs-control humanoid trained on such data would need the same
+  origin (none is trained today).
