@@ -867,3 +867,14 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
 - 2026-10-04 15:00 **HOLD** (reversible, no lease stopped): T5 coordinators (both presets, legged-none host, legged-tokens control), their
   requeue units and the LOO waiters are stopped; running leases finish on their own. Reason: every remaining node builds on sigma-0 data.
   Kept running: T4 teacher re-gate (valid), toddlerbot_2xc failure clip. Restart = `hum_restart_coords.sh` once the pilot is decided.
+- 2026-10-04 14:06 **T4 teacher-quality RE-GATE complete** (after TEACHERS READY f3511008; same rule, scenes, seeds as round 1; host;
+  `teacher_quality_host.yaml`):
+  | task | t1 | g1 | h1 | pooled | gate |
+  |---|---|---|---|---|---|
+  | h_reach | 20/20 | 20/20 | 20/20 | 60/60 1.00 | **pass -> T4** |
+  | h_squat_pick | 20/20 | 20/20 | 20/20 | 60/60 1.00 | **pass -> T4** |
+  | h_place | 20/20 | 20/20 | 7/20 (dropped 12, place_miss 1) | 47/60 0.78 | held back (< 0.8) |
+  | h_loco_pick | 19/20 (fell 1) | 14/20 (no_grasp 4, fell 1, timeout 1) | 0/20 (fell 10, dropped 8, hold_lost 2) | 33/60 0.55 | held back |
+  | h_carry (T2 check, 12 / body) | 12/12 | 11/12 (fell 1) | 0/12 (dropped 11, hold_lost 1) | - | blocked_external (every body >= 10/12) |
+  h1 (forearm-capsule palms) is the failing body in every held-back task (the teacher-fix agent's caveat). h_reach / h_squat_pick enter T4 / T5
+  with the DART-fixed collection (after the pilot decision). (h_reach shows `stale` only because the source tree moved after it completed.)
