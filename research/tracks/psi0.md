@@ -1,6 +1,6 @@
 # track psi0: the Ψ₀ line (W10) inside rrp
 
-State: **planned** — the closure code is merged (readiness PS, commit `a07c8f22`: gate stage, labels stage, one ext-dir resolver); the D-141 structured-arm diagnosis (Psi0 + structure 0/20 vs direct 19/20) is run T7 and has not started.
+State: **running** — T7 step 2 (D-147): tabletop and BendPick recorded (below); tabletop hand-consistency DIAGNOSTIC recorded 2026-10-05; Handover DAG relaunched after the feat memory fix (e7bc3796), then the pre-registered SEALED dr-level-2 cells (coordinator camp-psi0-p8).
 
 Owner: psi0mig agent (D-140 migration). Branch `track/psi0mig`, worktree `~/work/rrp-wt/psi0mig`. Before D-140 this work
 lived in the separate repo psi1z (github.com/JacobFV/psi1z, last commit 6f5e2b3, archived); its decisions are the
@@ -596,3 +596,15 @@ frames); labels = `privileged_teacher:sim_replay` (labels only); stage A / direc
 - Incidents (infra, not protocol): feat under-declared (fixed); `probes_gen` took 6 h (system-i sampling inside probe training); both evals then
   failed admission without running because run-dag counted time held behind our own GPU node as broker refusal -- fixed 937c0826 (+ test) and
   resumed with `--retry-failed` (finished nodes adopted, nothing re-run).
+
+### 2026-10-05 T7 tabletop: hand-consistency DIAGNOSTIC (not a result; tests DIAGNOSIS hypothesis (b))
+`rrp train psi0 handcons` on the tabletop stage A + structured checkpoint (host lease 1791186736_ab28ec, rc 0, peak 6.47 G, 00:57 10-05; output
+`artifacts/runs/psi0/psi0-tabletop/handcons_s0/handcons.json`). DEMO states only (8 held-out episodes 10/16/26/36/90/91/93/94, stride 24 -> 46
+frames, all labelled); per frame, 8 system-i packet samples decoded to an active hand; E-decode uses the TARGET actions (oracle route).
+- Agreement across the 8 samples: 0.978 (only 6.5 % of frames split). Chunk-to-chunk hand flips: sampled 0.194 (mean of 8 draws, range 0.184-0.211)
+  vs the demo label's own 0.184 and E-decode's 0.263. Hand accuracy vs label: sampled 0.674, E-decode 0.609.
+- Reading: on the demo manifold, re-sampling z per chunk does NOT make the hand choice flip more than the demonstrations themselves do, so
+  hypothesis (b) as "per-chunk sampling inconsistency" is not supported there. What IS weak is the hand identity the packet carries (0.61-0.67
+  vs the label, close to chance for two hands), consistent with the earlier probe (active_hand acc 0.74 vs metadata control 0.76).
+  The two-hand contacts seen closed loop therefore point to (a) off-manifold covariate shift and/or a weakly encoded hand, not to sampling
+  jitter. Small n (46 frames, one seed); demo states cannot test off-manifold behaviour. No change to any recorded result.

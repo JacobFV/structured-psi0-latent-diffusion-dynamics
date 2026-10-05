@@ -2070,3 +2070,23 @@ the sealed cells; one of the 2 host GPU slots sat idle, reserved for humanoid, w
   and the freed slot goes to Ψ₀. Ends (restoring `{humanoid: 1}`) when camp-psi0-p6/p7/handcons are all inactive. Running leases,
   coordinators and cgroups were not touched. Peer config backup `~/rrp-peer-data/peer-resources.local.json.bak-20261004-225818`
   (copy in the campaign dir). Log: `campaign/logs/peer_fair.log`, `campaign/logs/infra_progress.log`.
+
+### D-147 addendum 2026-10-05 ~05:40 (T7 Ψ₀ agent, under the owner's full-autonomy rule): Handover feat memory starvation fixed; coordinator p8
+Observed 05:35: Handover step-2 `feat` (lease 1791181161_1aa688, peer, declared 28G) ran 23:19-05:19 and was stopped at max_seconds (rc -10):
+THROTTLED at memory.high (0.8 x 28G) for 4.8 h, 879,485 memory.high events, peak 25.16 G (capped; true peak unknown). The VLM extraction itself
+finished in 73 min (45,530 frames, 23 shards, 20.8 G); it then stalled in build_memmap, where the shards and hidden.npy (19.6 G) coexist in
+the lease-charged /dev/shm (Handover has 2.9x BendPick's frames). run-dag's 1/1 retry (lease 1791203560_8271e5, same 28G) was stopped at
+05:39 via the peer broker (`rrp ops stop --owned-only --lease`; the host-side stop alone did not reach the peer lease); feat is `failed`.
+- Code (e7bc3796, test `test_feature_cache_resumes_whole_shards_and_frees_them_while_flattening`): build_memmap unlinks each shard after copying
+  it (shm holds ~one copy: ~21 G instead of ~40 G, which would also have broken the peer shm disk reserve); feature extraction resumes from
+  whole shards of the SAME extraction (repo/VLM/run dir/stride/frames/shard size; atomic tmp+rename writes). The 23 shards on the peer are
+  complete, so the relaunch skips the 73-min extraction.
+- Declarations from measured peaks (config hashes of all 45 Ψ₀ step-2 nodes unchanged, checked by dry-run before/after): Handover feat 28G/6h
+  -> 40G/4h; eval_* and seal_l2_* 36G -> 40G (measured 17.3-26.7 G; 26.67 x 1.35 = 36.0 left no margin, and a PSI kill of a retries-0
+  sealed cell after it wrote rows could not be re-run); direct/structured/heldout 17G -> 20G (measured 10.5-13.6 G; bendpick structured
+  THROTTLED at 13.63 G). Labels/stage_a/probes/gate/probes_gen unchanged (<= 5.3 G at 8-17G). Fits beside a humanoid lease (peer limit
+  ~108 G). The SEALED protocol is unchanged (resources are not part of it).
+- Scheduling: p6's run-dag was left running: it launched the feat-independent Handover `eval_released` (lease 1791204008_6965e6, 05:40,
+  old 36G) and will then run `seal_l2_released` once, and end. camp-psi0-p7 (only waiting) was stopped; unit camp-psi0-p8
+  (`psi0/p8.sh`) waits for p6 to end, pushes the code to the peer dir, removes the stale partial hidden.npy, reruns the Handover DAG with
+  `--retry-failed --adopt-stale`, then p7's sealed tabletop/bendpick cells (no --retry-failed). Status `psi0/p8.status`, log `psi0/p8.log`.

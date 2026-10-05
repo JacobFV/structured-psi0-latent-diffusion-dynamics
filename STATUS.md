@@ -20,7 +20,7 @@ separate scheduling switch that decides which recipe trees may be tracked; it st
 | relations | relation-factor experiments | planned | open | T9 re-planned on the v6 semfix lineage, PRE-REGISTERED (`research/tracks/relations.md` "T9 v6 pre-registration"; `recipes/relations/relations_v6.yaml`); T9-on-v8div moot (armdiv G3 FAIL); v3dart comparison halted (floor) | D-144, D-147 |
 | humanoid | W13 humanoid transfer | running | open | D-147 campaign: T1 h_steps/h_gap excluded; T2 gait ub_v1 t1/g1/h1; T3 under exception; T4 re-gate: h_reach/h_squat_pick pass; sigma-0 T5 VOID; DART pilot t1 h_turn zero-shot 97/100 (learned) -> full DART rebuild of h_walk/h_turn/h_reach/h_squat_pick, every arm + LOO, running on the peer since 10-04 21:59 (`~/work/rrp-data/campaign/STATUS.md`) | D-138, D-139, D-146, D-147 |
 | armdiv | W7 training-arm diversity | failed_hypothesis | closed (G3) | T6 phase B: v8div semfix lineages done; G3 lineage gate FAIL 362/480 = 0.754 < 0.835 (v6 425/480); STOP per signed G4 (no nosem / kinfeat / sealed / v6ref) (`research/tracks/armdiv.md`) | D-137, D-146, D-147 |
-| psi0 | W10 Psi0 / SIMPLE | planned | paused | T7: label recording, stage A with the D-141 fix, packet-use gate (structured arm was 0/20 vs direct 19/20) | D-141, D-146 |
+| psi0 | W10 Psi0 / SIMPLE | running | paused | T7: tabletop (structured 7/20 vs direct 19/20) and BendPick (18/20 vs 15/20, p=0.375) recorded; tabletop hand-consistency DIAGNOSTIC done (sampling consistent on demo states, hand identity weak); Handover DAG relaunched after the feat memory fix (e7bc3796, unit camp-psi0-p8), then SEALED dr-level-2 cells (`research/tracks/psi0.md`) | D-141, D-146, D-147 |
 | pointer | ComputerWorld pointer policy | planned | paused | T8: v2 re-collect, rep, flow / bc x 3 seeds, dev tables (`recipes/pointer/`) | D-142, D-146 |
 
 Closed tracks (W1 contact v2, W2 to W6 hygiene / provenance / restructure / pipeline / robustness, W7 arm expert, W8
@@ -72,7 +72,7 @@ All `planned`; nothing starts before the final integration check is green. Order
 | T4 | humanoid collect for every `h_*` task, teacher quality table | planned | `recipes/humanoid/` |
 | T5 | humanoid lineages (`preset:legged` vs `legged-none`), dev transfer tables | planned | `recipes/humanoid/` |
 | T6 | armdiv: BC 1702 / 1701 pins, v6 reference evals, G4 signature, v8div lineages | failed_hypothesis | `recipes/armdiv/arm_lineage_v8div.yaml`; G3 FAIL, `research/tracks/armdiv.md` |
-| T7 | Psi0: labels, stage A, packet-use gate, structured head, eval | planned | `recipes/psi0/` |
+| T7 | Psi0: labels, stage A, packet-use gate, structured head, eval | running | `recipes/psi0/`; tabletop + BendPick done, Handover running, SEALED L2 cells queued (camp-psi0-p8) |
 | T8 | pointer v2 lineages, dev tables | planned | `recipes/pointer/` |
 | T9 | relation-factor experiments on the v6 semfix lineage (none / geo / ix / task x 2 seeds), GPU nodes raced peer vs host (`relations_v6_host.yaml`), interference table; v8div attempt moot (G3 FAIL), v3dart attempt halted (floor) | running | `recipes/relations/relations_v6*.yaml` |
 
