@@ -2046,3 +2046,27 @@ further T8 result:
   run-dag has no cross-ledger lock, so two ledgers must never launch the same collect at once). Launcher `campaign/bin/hum_rebuild_b1.sh`
   (variant of `hum_restart_coords.sh`); LOO waiter `hum_loo_after_t5_b1.sh` (waits for the peer legged-none units too).
 - Declared memory vs measured peaks (pilot): collect 16G / 5.07G, pack 2G / 0.06G, rep 3G / 1.86G, flow 3G / 1.93G (all >= 1.35x).
+
+### D-147 addendum 2026-10-04 ~23:00 (infra agent, under the owner's full-autonomy rule): GPU slot re-allocation (host humanoid reservation suspended; Ψ₀ unstarved)
+Observed 22:45: both peer GPU slots held by the humanoid B1 rebuild (htr_bc0_bc, htr_fs0_flow; peer-only since the host `emergency` at
+21:26); the Ψ₀ tabletop hand-consistency DIAGNOSTIC had waited ~10 h for a peer slot ("gpu owners 3 > slots 2"), blocking Handover and
+the sealed cells; one of the 2 host GPU slots sat idle, reserved for humanoid, which has no host work.
+- **Host `reserve:humanoid` SUSPENDED** (config only, no code change): live host `ops/resources.local.json` (main checkout) `gpu_reserve`
+  -> `{}`, the old value kept as `gpu_reserve_suspended`; backup `campaign/host-resources.local.json.bak-20261004-225603`. Both host GPU
+  slots now serve non-humanoid tracks first come, first served. Unchanged: 30 % free-RAM reserve (36.5 GiB), 48 GiB declared total
+  (incl. GPU memory), CPU 8, 85 C / PSI >= 20 back-off (hum_watch), swap rule. **Restore condition:** when humanoid places work on the
+  host again (a `_host` instance / `hum_dispatch` host placement), move `gpu_reserve_suspended` back to `gpu_reserve` (written into
+  HANDOFF_humanoid.md).
+- **Ψ₀ handcons raced host vs peer**: the host has the Ψ₀ venv (torch 2.14 cu130, CUDA OK) and handcons needs no simulator, so its
+  inputs were copied to the camp-psi0-b host store (sha256 equal to the peer copies; CPU load smoke OK) and `psi0/handcons_race.sh`
+  (unit camp-psi0-handcons) tries the host, then the peer, each minute. The old peer-only loop (handcons_tt.sh) was stopped by PID while
+  it only waited (no lease); p6 then went on to the Handover DAG. Same command, same inputs, same lease size (12G + 12G GPU).
+- **Peer fair share** (Handover, sealed cells and evals need SIMPLE / Isaac Sim, which exists only on the peer): a broker-code rule
+  cannot bind the humanoid coordinators, whose leases are acquired by older broker code in their own peer code dir (reconcile on every
+  broker construction re-applies that code's rules). Config-only lever instead: `campaign/bin/peer_fair.py` (unit camp-peer-fair) sets the
+  peer `gpu_reserve` to `{psi0: 1}` while a live Ψ₀ peer GPU admission-waiter exists, humanoid holds >= 1 peer GPU lease and Ψ₀ holds
+  none; otherwise the standing `{humanoid: 1}`. Every broker version counts the pseudo-lease `reserve:psi0` for non-Ψ₀ requests, so
+  humanoid keeps at most ONE peer slot while Ψ₀ waits (its running second lease is not touched; it is just not replaced when it ends)
+  and the freed slot goes to Ψ₀. Ends (restoring `{humanoid: 1}`) when camp-psi0-p6/p7/handcons are all inactive. Running leases,
+  coordinators and cgroups were not touched. Peer config backup `~/rrp-peer-data/peer-resources.local.json.bak-20261004-225818`
+  (copy in the campaign dir). Log: `campaign/logs/peer_fair.log`, `campaign/logs/infra_progress.log`.
