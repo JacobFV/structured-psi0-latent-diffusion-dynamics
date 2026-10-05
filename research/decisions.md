@@ -1979,7 +1979,6 @@ further T8 result:
    written and dry-run before any sealed node starts. The pre-registered decision rules (P-SEEDS, P-UI, P-COPY, P-KEY) are applied to the
    sealed numbers as written; nothing is re-run after a sealed result.
 
-
 ### D-147 addendum 2026-10-04 (T9 owner, lead decision): T9 v6 host placement (placement-only amendment)
 - Why: the T9 v6 GPU nodes waited ~15 h for the one shared non-humanoid peer GPU slot (3/8 F0 done; every failure an admission timeout);
   the host GPU has free capacity (humanoid T5 on the host on hold).
@@ -2129,3 +2128,17 @@ Observed: `seal_l2_released@s0` (lease 1791212985_641358, peer, launched by p6 a
   memory-pressure sheds, gpu_thermal, max_seconds, disk reserve; `stopped_by=None` with no known signature still pauses. No T9 lease was
   active on either broker before restart; `rrp-camp-relations-b-race` was restarted with its recorded args and Fft@semfix.s1.task
   requeued, running on the host again from its last checkpoint.
+
+### D-147 addendum 2026-10-05 09:31 (T8 pointer owner, applying the 2026-10-04 autonomy rule, no new rule stated)
+`flow@nosem.s2` (pointer_seeds): host lease 1791215209_cd11d6 shed `rc=-10 stopped_by=swap_growth:1104506880` (memory_peak 2.66 GiB,
+0 memory.high events) at 09:05; run-dag's own unchanged-settings retry (lease 1791216893_d25422) was shed again the same way
+(`stopped_by=swap_growth:1469521920`, memory_peak 2.67 GiB) at 09:31, so chain2 PAUSED (rc 1). Declared mem for `flow` is the template's
+8G, already >= 1.35x the measured peak (3.6 GiB) on both attempts, so this is not an under-declaration: both kills are host-wide swap
+pressure, concurrent with the 09:05 watchdog shed of T9 (swap_growth) reported by the lead as the owner's own host load, not a pointer
+job fault. Classified as infrastructure (rule 1): this is the node's second infra stop, so one more attempt on whichever machine admits
+first is authorized (host MemAvailable 81-84 GiB throughout, but swap 12/15 GiB and load avg ~50 on the host from unrelated owner jobs;
+no recipe change needed). Moved the failed race logs + GPU ledgers to
+`campaign/pointer/race/infra_fail_0946/` and the partial host output `camp-pointer-host/.../train_flow_s2` alongside them (nothing was
+writing to it: the unit had exited and no process referenced the lease ids or the dir). Resumed with the exact RESUME command
+(`systemd-run --user --unit rrp-t8-chain2 ... pointer_seeds pointer_ui`); the race for `flow@nosem.s2` restarted cleanly (peer adopted
+collect/rep, both sides queued on admission, not an attempt yet). A third stop on this node would go to blocked_external per rule 1.
