@@ -1,0 +1,34 @@
+{
+ "bodies": [
+  "t1",
+  "g1",
+  "h1"
+ ],
+ "env": "mujoco/legged",
+ "latent_kw": {
+  "upper": true
+ },
+ "levels": {},
+ "methods": {
+  "reference": [
+   {
+    "env_kw": {
+     "tracker": "<body>:ub_v1"
+    },
+    "kind": "teacher",
+    "level": 0,
+    "name": "teacher",
+    "policy": "teacher:h_carry",
+    "source": "scripted_teacher"
+   }
+  ]
+ },
+ "name": "humanoid_teacher_quality_h_carry",
+ "pack": [],
+ "results_glob": [],
+ "scenes": 12,
+ "task": "h_carry",
+ "train_seeds": [
+  0
+ ]
+}

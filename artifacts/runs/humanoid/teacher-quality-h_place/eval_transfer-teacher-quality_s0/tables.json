@@ -1,0 +1,106 @@
+{
+ "name": "humanoid_teacher_quality_h_place",
+ "task": "h_place",
+ "tables": {
+  "dev": {
+   "0": {
+    "title": "Reference: scripted / privileged teacher (not a learned method)",
+    "unit": null,
+    "reference": null,
+    "rows": [
+     {
+      "task": "h_place",
+      "body": "g1",
+      "method": "teacher",
+      "budget": null,
+      "k": 20,
+      "n": 20,
+      "rate": 1.0,
+      "wilson95": [
+       0.8388748398148705,
+       1.0
+      ],
+      "per_seed": {
+       "0": [
+        20,
+        20
+       ]
+      },
+      "source": "scripted_teacher",
+      "failures": {},
+      "acquisition": {
+       "demos": 0,
+       "env_samples": 0,
+       "teacher_ticks": 0,
+       "updates": 0
+      }
+     },
+     {
+      "task": "h_place",
+      "body": "h1",
+      "method": "teacher",
+      "budget": null,
+      "k": 7,
+      "n": 20,
+      "rate": 0.35,
+      "wilson95": [
+       0.18119182312398308,
+       0.5671457249315559
+      ],
+      "per_seed": {
+       "0": [
+        7,
+        20
+       ]
+      },
+      "source": "scripted_teacher",
+      "failures": {
+       "dropped": 12,
+       "place_miss": 1
+      },
+      "acquisition": {
+       "demos": 0,
+       "env_samples": 0,
+       "teacher_ticks": 0,
+       "updates": 0
+      }
+     },
+     {
+      "task": "h_place",
+      "body": "t1",
+      "method": "teacher",
+      "budget": null,
+      "k": 20,
+      "n": 20,
+      "rate": 1.0,
+      "wilson95": [
+       0.8388748398148705,
+       1.0
+      ],
+      "per_seed": {
+       "0": [
+        20,
+        20
+       ]
+      },
+      "source": "scripted_teacher",
+      "failures": {},
+      "acquisition": {
+       "demos": 0,
+       "env_samples": 0,
+       "teacher_ticks": 0,
+       "updates": 0
+      }
+     }
+    ],
+    "diffs": []
+   }
+  }
+ },
+ "coverage": {
+  "dev/done": 3
+ },
+ "not_done": [],
+ "accounting_violations": [],
+ "caveats": []
+}

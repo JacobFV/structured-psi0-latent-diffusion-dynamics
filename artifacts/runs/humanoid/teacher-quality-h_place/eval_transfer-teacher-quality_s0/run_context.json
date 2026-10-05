@@ -1,0 +1,59 @@
+{
+ "schema_version": "runconfig-1",
+ "family": "humanoid",
+ "stage": "eval_transfer",
+ "variant": "na",
+ "seed": 0,
+ "lineage": "teacher-quality-h_place",
+ "track": "humanoid",
+ "tag": "teacher-quality",
+ "inputs": {},
+ "flags": {
+  "zero_prev_action": null,
+  "realizer_anchor": null,
+  "realizer_drop_qd": null,
+  "probe_lv_min": null,
+  "qd_dropout": null,
+  "contact_version": "contact_v2"
+ },
+ "params": {},
+ "options": {
+  "variant": "-",
+  "transfer": {
+   "name": "humanoid_teacher_quality_h_place",
+   "task": "h_place",
+   "env": "mujoco/legged",
+   "train_seeds": [
+    0
+   ],
+   "scenes": 20,
+   "bodies": [
+    "t1",
+    "g1",
+    "h1"
+   ],
+   "pack": [],
+   "results_glob": [],
+   "latent_kw": {
+    "upper": true
+   },
+   "levels": {},
+   "methods": {
+    "reference": [
+     {
+      "name": "teacher",
+      "level": 0,
+      "kind": "teacher",
+      "source": "scripted_teacher",
+      "policy": "teacher:h_place",
+      "env_kw": {
+       "tracker": "<body>:ub_v1"
+      }
+     }
+    ]
+   }
+  }
+ },
+ "note": "",
+ "legacy": null
+}

@@ -1,6 +1,6 @@
 # track pointer: ComputerWorld environment and the pointer policy (D-140, D-142; was research/tracks/cworld.md)
 
-State: **planned** — the env, teachers and pointer policy are merged and unit-tested (readiness PC, commit `1decd724`); the v2 lineage runs (T8) have not started.
+State: **budget_exhausted** — WOUND DOWN (owner, 2026-10-05; D-147 addendum "campaign wound down"): campaign stopped for the Ψ₀.1 pivot, state at stop recorded there. Before the stop: the env, teachers and pointer policy are merged and unit-tested (readiness PC, commit `1decd724`); the v2 lineage runs (T8) have not started.
 
 Owner decision D-140; design `docs/architecture.md` section 5. Code:
 `src/rrp/envs/computerworld.py` (env, mapping, cw/* setups + judges), `src/rrp/bodies/fixtures.py:cw_pointer_spec`,

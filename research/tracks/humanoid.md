@@ -1,6 +1,6 @@
 # track: humanoid (W13, D-138) — humanoid transfer program
 
-State: **running** — D-147 training campaign (section `D-147 campaign` at the end of this file): T0 verified, T1 running.
+State: **budget_exhausted** — WOUND DOWN (owner, 2026-10-05; D-147 addendum "campaign wound down"): campaign stopped for the Ψ₀.1 pivot, state at stop recorded there. Before the stop: D-147 training campaign (section `D-147 campaign` at the end of this file): T0 verified, T1 running.
 
 Owner request (2026-09-28): "focus more on humanoids. we need to test lots of humanoid transfer" and "the humanoid tasks need
 to be more complex". Worktree `~/work/rrp-wt/humanoid`, branch `track/humanoid`, peer code dir

@@ -1,0 +1,123 @@
+{
+ "config_hash": "87cfc66679f1614e",
+ "episodes": [],
+ "finished": 1791147945.9930644,
+ "inputs": {},
+ "manifest_hash": "85dbe755ec22bb55",
+ "metrics": {
+  "coverage": {
+   "dev/done": 3
+  },
+  "not_done": [],
+  "scope": "dev"
+ },
+ "n_episodes": 0,
+ "name": "runs/humanoid/teacher-quality-h_carry/eval_transfer-teacher-quality_s0",
+ "native_config": {
+  "name": "humanoid_teacher-quality-h_carry_eval_transfer-teacher-quality_s0",
+  "out_dir": "artifacts/runs/humanoid/teacher-quality-h_carry/eval_transfer-teacher-quality_s0"
+ },
+ "outputs": {
+  "report": {
+   "digest": "d1b5df0f20ff8b67",
+   "path": "artifacts/runs/humanoid/teacher-quality-h_carry/eval_transfer-teacher-quality_s0/tables.md"
+  },
+  "results": {
+   "digest": "65771239481abb41",
+   "path": "artifacts/runs/humanoid/teacher-quality-h_carry/eval_transfer-teacher-quality_s0/results.jsonl"
+  },
+  "tables": {
+   "digest": "4399d74f569dd0f4",
+   "path": "artifacts/runs/humanoid/teacher-quality-h_carry/eval_transfer-teacher-quality_s0/tables.json"
+  }
+ },
+ "pins": {
+  "catalog": "",
+  "factors": "",
+  "pipeline": "1"
+ },
+ "provenance": {
+  "bundle_fingerprint": null,
+  "code": {
+   "dirty": true,
+   "git_sha": "3378370acfd034d387cc2f3594c847ddf05926db",
+   "src_tree": "1336c2890adcc50e494e07e1333030d245cc6924",
+   "tree": "3f41de60a79e5d4b746702ab66b20ce44a7dca9f"
+  },
+  "created_at": 1791147945.9924817,
+  "featurizer_version": null,
+  "flags": {
+   "contact_version": "contact_v2"
+  },
+  "legacy": false,
+  "notes": "pipeline humanoid/eval_transfer runs/humanoid/teacher-quality-h_carry/eval_transfer-teacher-quality_s0",
+  "physics": null,
+  "schema_version": "provenance-1",
+  "source": "learned:transfer:humanoid_teacher_quality_h_carry",
+  "versions": {},
+  "weights": {}
+ },
+ "run_id": "runs/humanoid/teacher-quality-h_carry/eval_transfer-teacher-quality_s0",
+ "runconfig": {
+  "family": "humanoid",
+  "flags": {
+   "contact_version": "contact_v2",
+   "probe_lv_min": null,
+   "qd_dropout": null,
+   "realizer_anchor": null,
+   "realizer_drop_qd": null,
+   "zero_prev_action": null
+  },
+  "inputs": {},
+  "legacy": null,
+  "lineage": "teacher-quality-h_carry",
+  "note": "",
+  "options": {
+   "transfer": {
+    "bodies": [
+     "t1",
+     "g1",
+     "h1"
+    ],
+    "env": "mujoco/legged",
+    "latent_kw": {
+     "upper": true
+    },
+    "levels": {},
+    "methods": {
+     "reference": [
+      {
+       "env_kw": {
+        "tracker": "<body>:ub_v1"
+       },
+       "kind": "teacher",
+       "level": 0,
+       "name": "teacher",
+       "policy": "teacher:h_carry",
+       "source": "scripted_teacher"
+      }
+     ]
+    },
+    "name": "humanoid_teacher_quality_h_carry",
+    "pack": [],
+    "results_glob": [],
+    "scenes": 12,
+    "task": "h_carry",
+    "train_seeds": [
+     0
+    ]
+   },
+   "variant": "-"
+  },
+  "params": {},
+  "schema_version": "runconfig-1",
+  "seed": 0,
+  "stage": "eval_transfer",
+  "tag": "teacher-quality",
+  "track": "humanoid",
+  "variant": "na"
+ },
+ "schema": "pipeline-manifest-1",
+ "started": 1791147848.4821448,
+ "status_counts": {}
+}

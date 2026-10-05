@@ -1,6 +1,6 @@
 # track psi0: the Ψ₀ line (W10) inside rrp
 
-State: **running** — T7 step 2 (D-147): tabletop and BendPick recorded (below); tabletop hand-consistency DIAGNOSTIC recorded 2026-10-05; Handover DAG relaunched after the feat memory fix (e7bc3796), then the pre-registered SEALED dr-level-2 cells (coordinator camp-psi0-p8).
+State: **budget_exhausted** — WOUND DOWN (owner, 2026-10-05; D-147 addendum "campaign wound down"): campaign stopped for the Ψ₀.1 pivot, state at stop recorded there. Before the stop: T7 step 2 (D-147): tabletop and BendPick recorded (below); tabletop hand-consistency DIAGNOSTIC recorded 2026-10-05; Handover DAG relaunched after the feat memory fix (e7bc3796), then the pre-registered SEALED dr-level-2 cells (coordinator camp-psi0-p8).
 
 Owner: psi0mig agent (D-140 migration). Branch `track/psi0mig`, worktree `~/work/rrp-wt/psi0mig`. Before D-140 this work
 lived in the separate repo psi1z (github.com/JacobFV/psi1z, last commit 6f5e2b3, archived); its decisions are the

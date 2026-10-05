@@ -1,0 +1,113 @@
+{
+ "name": "humanoid_teacher_quality_h_loco_pick",
+ "task": "h_loco_pick",
+ "tables": {
+  "dev": {
+   "0": {
+    "title": "Reference: scripted / privileged teacher (not a learned method)",
+    "unit": null,
+    "reference": null,
+    "rows": [
+     {
+      "task": "h_loco_pick",
+      "body": "g1",
+      "method": "teacher",
+      "budget": null,
+      "k": 14,
+      "n": 20,
+      "rate": 0.7,
+      "wilson95": [
+       0.4810271799475211,
+       0.8545227559784271
+      ],
+      "per_seed": {
+       "0": [
+        14,
+        20
+       ]
+      },
+      "source": "scripted_teacher",
+      "failures": {
+       "fell": 1,
+       "no_grasp": 4,
+       "timeout": 1
+      },
+      "acquisition": {
+       "demos": 0,
+       "env_samples": 0,
+       "teacher_ticks": 0,
+       "updates": 0
+      }
+     },
+     {
+      "task": "h_loco_pick",
+      "body": "h1",
+      "method": "teacher",
+      "budget": null,
+      "k": 0,
+      "n": 20,
+      "rate": 0.0,
+      "wilson95": [
+       0.0,
+       0.16112516018512965
+      ],
+      "per_seed": {
+       "0": [
+        0,
+        20
+       ]
+      },
+      "source": "scripted_teacher",
+      "failures": {
+       "dropped": 8,
+       "fell": 10,
+       "hold_lost": 2
+      },
+      "acquisition": {
+       "demos": 0,
+       "env_samples": 0,
+       "teacher_ticks": 0,
+       "updates": 0
+      }
+     },
+     {
+      "task": "h_loco_pick",
+      "body": "t1",
+      "method": "teacher",
+      "budget": null,
+      "k": 19,
+      "n": 20,
+      "rate": 0.95,
+      "wilson95": [
+       0.7638688045357189,
+       0.9911185512976646
+      ],
+      "per_seed": {
+       "0": [
+        19,
+        20
+       ]
+      },
+      "source": "scripted_teacher",
+      "failures": {
+       "fell": 1
+      },
+      "acquisition": {
+       "demos": 0,
+       "env_samples": 0,
+       "teacher_ticks": 0,
+       "updates": 0
+      }
+     }
+    ],
+    "diffs": []
+   }
+  }
+ },
+ "coverage": {
+  "dev/done": 3
+ },
+ "not_done": [],
+ "accounting_violations": [],
+ "caveats": []
+}

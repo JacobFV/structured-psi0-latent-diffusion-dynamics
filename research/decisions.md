@@ -2218,3 +2218,49 @@ STATUS.md/pointer_progress.log are not git-tracked and were edited directly on d
   now count only rows on the same placement (rows without a placement still count); red/green `test_shared_budget_counts_only_the_same_placement`.
   The host chain was restarted on it (no node running; stopped chain -> requeue -> coordinator by PID); 12:01 h_turn legged-none adopted
   collect / pack / rep@semfix.s0 and launched rep@semfix.s1 on the host (lease 1791226871_a9dbf0). Host now: 1 humanoid + 1 other-track GPU lease.
+
+### D-147 addendum 2026-10-05: campaign wound down (owner, 2026-10-05)
+- **Decision (owner, 2026-10-05):** "commit everything and wind all the current training down". Every D-147 campaign unit and every broker
+  lease on both machines (host, peer gb10-direct) was stopped by Main on 2026-10-05 afternoon; only the two watchdogs and the peer shm guard
+  remain. GPU reservations cleared on both machines (`gpu_reserve` = {} on host and peer; backups
+  `~/work/rrp-data/campaign/{host,peer}-resources.local.json.bak-20261005-winddown`; `rrp ops status` shows 0 leases, no `reserve:*`).
+- **Why:** the project pivots to **Ψ₀.1**: a BC fine-tune of the full pretrained Ψ₀ with QK structural biases, plus morphology-node and
+  relation tokens, in a new repository (`~/Documents/psi-0.1`). This repository (rrp) is closed out. No campaign track is resumed here.
+- **State of every track at stop** (counts read from the run-dag ledgers / coordinator logs at stop; private campaign record
+  `~/work/rrp-data/campaign/WOUND_DOWN.md`, handoffs `campaign/HANDOFF_{humanoid,pointer,psi0}.md`):
+  - **humanoid T5 DART rebuild (B1): PARTIAL, no T5 table.** Ledgers (completed / nodes): h_walk legged 20/110, h_turn legged 13/110,
+    h_reach legged 17/110, h_squat_pick legged 18/110; legged-none: h_turn host 41/109, h_turn peer 12/109 (record only), h_walk 7/109,
+    h_reach 16/109, h_squat_pick 14/109. No learned eval node of the rebuild completed, so there is no valid T5 number (every pre-10-04 T5
+    number stays VOID). The DART pilot (t1 zero-shot h_turn 97/100, learned) remains the only valid post-fix learned humanoid number (an
+    ad-hoc gate cell, not a T5 table).
+  - **humanoid leave-one-out (`transfer_loo_h_{walk,turn}`): NOT started** (waiters were still waiting for T5).
+  - **humanoid legged-tokens control (`t5-legged-tokens-control`): NOT run** (its ledgers only adopted the shared collect/pack: 3/109 each;
+    no training, no eval). The fair-input caveat on legged-none therefore stays unresolved.
+  - **humanoid n1 sealed cells: NOT run.** n1 x h_turn qualified (adapted check 16/20), but the gate required valid dev T5 h_turn tables first.
+  - **pointer T8:** round 1 pointer_copy COMPLETED (recorded 8d8ace45). Round 2 pointer_seeds **13/18 GPU nodes** (flow@nosem.s2 never
+    completed after three infrastructure stops; nosem s3 bc / flow_eng / rep / flow not run), so the pre-registered P-SEEDS / P-KEY reading
+    was never applied. Round 3 pointer_ui **not started**. Sealed pass (pointer_sealed, pointer_ui_sealed, the unwritten pointer_copy sealed
+    instance) **not run**.
+  - **Ψ₀ T7:** tabletop and BendPick L0 COMPLETED (recorded). HandoverTeleop step 2 **mid-way**: feat, labels, stage_a, probes, gate (PASS,
+    gap 0.260 >= 0.05), direct training and released eval (UPSTREAM weights, not ours, 15/20) done; structured training was running and was
+    stopped; eval_direct / eval_structured / heldout not run -> **no Handover L0 result**. SEALED dr-level-2 (3 tasks x 3 arms) **NOT run**,
+    except Handover `seal_l2_released@s0`, which failed in SIMPLE worker init (infra) and **wrote no rollout rows**; its one recorded relaunch
+    was never admitted. The other 8 sealed cells were never launched.
+  - **relations T9 v6 (relations6-*): PARTIAL.** Seed 1: none / geo / ix through finalevals + heldout; task through Fgdag1 (Fgdag2h was
+    running on the host and was stopped). Seed 2: only `none` started (6 nodes); geo / ix / task s2 not started. The pre-registered pooled
+    comparison (Newcombe 95 % over s1+s2) was never computed; seed-1 dev evals are not a result under the pre-registration. Frozen code
+    branch `t9/v6-frozen` (70b986d2) stays local and unmerged (archived patch).
+- **ABANDONED (incomplete, no conclusion may be drawn):** T5 DART rebuild (all four tasks, every arm), LOO dev transfer, legged-tokens
+  control, n1 sealed cells, T8 round 2 (pointer_seeds) / round 3 (pointer_ui) / sealed pass, T7 Handover L0 and the T7 sealed dr-level-2 test,
+  T9 v6. Registry rows appended with state `budget_exhausted` and note `wound_down (owner 2026-10-05)`.
+- **COMPLETED with results (unchanged):** T1 (h_steps / h_gap failed_hypothesis), T2 gait ub_v1 installs, T3 morph_v2_ub (owner exception)
+  and the sealed-body adaptation checks, T4 teacher gate and re-gate (h_reach / h_squat_pick pass; h_place 47/60, h_loco_pick 33/60 held back,
+  h_carry blocked; the held-back tables are committed with this addendum), DART pilot, T6 armdiv phase A (BC gates pass) and phase B
+  (G3 failed_hypothesis), T7 tabletop (structured 7/20 vs direct 19/20) and BendPick (18/20 vs 15/20, p=0.375), the T7 hand-consistency
+  diagnostic, T8 round 1 pointer_copy (dev), T9 v3dart (failed_hypothesis, floor) and T9 v8div (moot), compute `enable` (nothing switched).
+- **Sealed splits never touched stay sealed:** humanoid sealed bodies (n1, berkeley, toddlerbot_2xc / 2xm sealed cells), ComputerWorld
+  `cworld_pointer_v2` sealed_id / sealed_heldout, Ψ₀ dr-level-2 cells (the one Handover released attempt wrote no rows; no sealed number was
+  observed for any task), and every other sealed split of the earlier tracks. Nothing sealed was read.
+- **Code / records collected:** every git worktree's uncommitted diff, unpushed commits and untracked files were archived privately to
+  `~/work/rrp-data/archive/worktrees-20261005/` (local only). Merged here: only the T4 re-gate held-back teacher tables; all other worktree
+  state was stale, already on main, run data, or an unmerged feature never enabled (`track/accel-seeds`, see research/tracks/compute.md).

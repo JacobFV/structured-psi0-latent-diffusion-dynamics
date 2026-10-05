@@ -1,6 +1,6 @@
 # track: relations (open) — relation-factor experiments (D-144)
 
-State: **planned** — T9 RE-PLANNED a second time, on the v6 semfix lineage (D-147 addendum 2026-10-03 night, lead): the armdiv
+State: **budget_exhausted** — WOUND DOWN (owner, 2026-10-05; D-147 addendum "campaign wound down"): campaign stopped for the Ψ₀.1 pivot, state at stop recorded there. Before the stop: T9 RE-PLANNED a second time, on the v6 semfix lineage (D-147 addendum 2026-10-03 night, lead): the armdiv
 G3 lineage gate FAILED (v8div semfix 362/480 = 0.754 < 0.835), so T9 on v8div is MOOT per its pre-registration (nothing of it ran
 beyond the CPU plumbing smoke). Pre-registration: "T9 v6 pre-registration" below; recipes `recipes/relations/relations_v6.yaml`
 (template `recipes/templates/relations_v6_factor.yaml`). The first T9 comparison (v3dart, F0-only route) was halted earlier: floor,

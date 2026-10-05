@@ -1,5 +1,10 @@
 # project status: structured-psi0-latent-diffusion-dynamics (formerly relational robot policy)
 
+> **WOUND DOWN (owner, 2026-10-05).** Every D-147 campaign unit and lease was stopped; this repository is closed out. The work moves to
+> **Ψ₀.1** (BC fine-tune of the full pretrained Ψ₀ with QK structural biases plus morphology-node and relation tokens) in a new repository.
+> Exact state of every track at stop, abandoned vs completed experiments, and the sealed splits left untouched: `research/decisions.md`
+> "D-147 addendum 2026-10-05: campaign wound down"; registry rows dated 2026-10-05 (`budget_exhausted`, note `wound_down`). Nothing is running.
+
 Updated 2026-09-30 (D-146 readiness round 2, unit X2). Overall: **code for the pre-training campaign merged; no run has
 started.** Every progress state below uses one vocabulary: planned, implementing, test_failed, verified, running,
 completed, failed_hypothesis, blocked_external, budget_exhausted (`rrp.core.runs.RunState`; `verified` and `completed`
@@ -17,11 +22,11 @@ separate scheduling switch that decides which recipe trees may be tracked; it st
 
 | track | workstream | state | schema flag | next step | decisions |
 |---|---|---|---|---|---|
-| relations | relation-factor experiments | planned | open | T9 re-planned on the v6 semfix lineage, PRE-REGISTERED (`research/tracks/relations.md` "T9 v6 pre-registration"; `recipes/relations/relations_v6.yaml`); T9-on-v8div moot (armdiv G3 FAIL); v3dart comparison halted (floor) | D-144, D-147 |
-| humanoid | W13 humanoid transfer | running | open | D-147 campaign: T1 h_steps/h_gap excluded; T2 gait ub_v1 t1/g1/h1; T3 under exception; T4 re-gate: h_reach/h_squat_pick pass; sigma-0 T5 VOID; DART pilot t1 h_turn zero-shot 97/100 (learned) -> full DART rebuild of h_walk/h_turn/h_reach/h_squat_pick, every arm + LOO, running since 10-04 21:59; 10-05 11:45 h_turn/h_walk legged-none moved to the host (reserve:humanoid restored; 1 slot per machine). ETA T5 all four tasks ~Wed 10-07 05:00, LOO ~Thu 10-08 17:00 (`~/work/rrp-data/campaign/STATUS.md`) | D-138, D-139, D-146, D-147 |
+| relations | relation-factor experiments | budget_exhausted | open | WOUND DOWN 10-05, none: T9 v6 abandoned partial (s1 none/geo/ix evaluated, task to Fgdag1, s2 only none started; no pre-registered reading); v8div moot; v3dart halted (floor) | D-144, D-147 |
+| humanoid | W13 humanoid transfer | budget_exhausted | open | WOUND DOWN 10-05, none: T1 failed, T2/T3 installed, T4 gate + re-gate done, DART pilot t1 h_turn 97/100 (learned); T5 DART rebuild abandoned partial (no T5 table), LOO and legged-tokens control not run, n1 sealed cells not run (sealed untouched) | D-138, D-139, D-146, D-147 |
 | armdiv | W7 training-arm diversity | failed_hypothesis | closed (G3) | T6 phase B: v8div semfix lineages done; G3 lineage gate FAIL 362/480 = 0.754 < 0.835 (v6 425/480); STOP per signed G4 (no nosem / kinfeat / sealed / v6ref) (`research/tracks/armdiv.md`) | D-137, D-146, D-147 |
-| psi0 | W10 Psi0 / SIMPLE | running | paused | T7: tabletop (structured 7/20 vs direct 19/20) and BendPick (18/20 vs 15/20, p=0.375) recorded; tabletop hand-consistency DIAGNOSTIC done (sampling consistent on demo states, hand identity weak); Handover DAG relaunched after the feat memory fix (e7bc3796, unit camp-psi0-p8), then SEALED dr-level-2 cells (`research/tracks/psi0.md`) | D-141, D-146, D-147 |
-| pointer | ComputerWorld pointer policy | planned | paused | T8: v2 re-collect, rep, flow / bc x 3 seeds, dev tables (`recipes/pointer/`) | D-142, D-146 |
+| psi0 | W10 Psi0 / SIMPLE | budget_exhausted | paused | WOUND DOWN 10-05, none here (continues as Ψ₀.1 in the new repo): tabletop (7/20 vs 19/20) and BendPick (18/20 vs 15/20, p=0.375) recorded; Handover abandoned mid-way (gate PASS, no L0 result); SEALED dr-level-2 not run (one failed-infra cell, no rows) | D-141, D-146, D-147 |
+| pointer | ComputerWorld pointer policy | budget_exhausted | paused | WOUND DOWN 10-05, none: round 1 pointer_copy recorded; round 2 pointer_seeds abandoned at 13/18 GPU nodes; round 3 pointer_ui and the sealed pass not run | D-142, D-146, D-147 |
 
 Closed tracks (W1 contact v2, W2 to W6 hygiene / provenance / restructure / pipeline / robustness, W7 arm expert, W8
 legged regeneration, W9 target bodies, W11, W12 and the earlier ladder / acceptance / baselines / binding lines): notes in
