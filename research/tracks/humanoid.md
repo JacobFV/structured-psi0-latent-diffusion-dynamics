@@ -878,3 +878,9 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
   | h_carry (T2 check, 12 / body) | 12/12 | 11/12 (fell 1) | 0/12 (dropped 11, hold_lost 1) | - | blocked_external (every body >= 10/12) |
   h1 (forearm-capsule palms) is the failing body in every held-back task (the teacher-fix agent's caveat). h_reach / h_squat_pick enter T4 / T5
   with the DART-fixed collection (after the pilot decision). (h_reach shows `stale` only because the source tree moved after it completed.)
+- 2026-10-04 21:50 **DART pilot PASSED step A** (learned preset:legged semfix s0 on the DART-fixed h_turn collection): t1 zero-shot h_turn
+  5/6 (6 dev scenes) and **97/100** (dev 3000000-3000099; Wilson95 0.915-0.990; drift 2, fell 1) vs 0/100 for the sigma-0 checkpoints and
+  100/100 for the scripted teacher reference. Single ad-hoc gate cell, not a T5 table. -> **B1**: full rebuild of h_walk / h_turn / h_reach /
+  h_squat_pick, every arm (legged incl. nosem + BC, legged-none, legged-tokens control for h_walk / h_turn), then LOO, all on the peer
+  (decisions.md D-147 addendum ~21:50; launcher `campaign/bin/hum_rebuild_b1.sh`).
+

@@ -2021,3 +2021,28 @@ further T8 result:
   infrastructure stop: the race now requeues a 0-heartbeat startup CUDA OOM like the other resumable stops (<= 10 per node), and before
   every race it checks each planned input path of the node on the host, copying a missing one from the peer store (sha256). Resumed
   16:48; no setting, seed or recipe changed.
+
+### D-147 addendum 2026-10-04 ~21:50 (humanoid owner, autonomous; pilot step A -> branch B1): DART rebuild of every arm, new data provenance
+- **Pilot result (learned policy, preset:legged semfix s0, trained on the DART-fixed h_turn collection; not teacher, not scripted):** t1
+  zero-shot h_turn **5/6** on dev scenes 3000000-5 (1 drift; repro.py, lease 1791174932_61b921) and **97/100** on dev scenes 3000000-3000099
+  (Wilson95 0.915-0.990; drift 2, fell 1; lease 1791174993_ff94f4, peak 1.76 GiB of 4G declared). The sigma-0 checkpoints scored 0/100 on
+  the same cell; teacher reference 100/100. Ad-hoc single-cell config (method `semfix_zeroshot` only, body t1, seed 0) at peer
+  `~/rrp-peer-data/pilot_dart/transfer_config.json`; results `artifacts/runs/humanoid/pilot-dart-h_turn-t1-zeroshot/` (peer store). This is a
+  gate check, not a T5 table cell: the T5 eval nodes re-run it under the recipe. The policy reads the public terrain scan (D-146 amendment), so
+  the repro needed `terrain_scan=True` exactly as `humanoid_eval.build_policy` serves it.
+- **Decision (pre-approved B1):** full rebuild under the SAME pre-registered recipes: h_walk (re-collect), h_turn (collect / pack / rep / flow
+  s0 from the pilot are adopted: identical recipe nodes and ledger), h_reach and h_squat_pick (passed the T4 re-gate; instances already exist,
+  dry-run clean). Arms: preset:legged (incl. nosem + BC), legged-none, legged-none+scan control (`legged-tokens`; h_walk / h_turn only, as
+  pre-registered), then LOO (h_walk / h_turn) with its tokens control. Sealed nodes excluded (same `--only` as before). Data provenance: the
+  DART-fixed collections (3378370a fixes; sigma 0/0.1/0.2/0.3 x 150 per collect verified for h_turn); every earlier dir stays `*.INVALID_sigma0_20261004`.
+- **Legged-tokens pre-registration re-taken** (dry-run of the four instances on main 086cfabe, same `--only`): node -> config-hash maps are
+  IDENTICAL to `research/prereg/legged_tokens_control_hashes.json` (109 / 109 / 17 / 17 nodes, 0 changed; digests 9b0efc3937542549,
+  1fcf9bb7870f5518, a7434b0796b60a45, f862297c3403af9d). Config hashes are recipe-level, so the pre-registration stands unchanged; the new
+  data provenance is recorded here.
+- **Placement amendment (placement only):** every arm runs on the PEER, incl. legged-none (peer instances `transfer_<task>_legged_none.yaml`,
+  not the `_host` ones). Why: the host watchdog hit `emergency` at 21:26 from the owner's own load, and the host legged-none instance would
+  re-collect h_walk on the host (no cross-ledger lock). Same node set, config hashes, data and seeds. Shared collect / pack nodes: the
+  legged-none and tokens coordinators start only after the task's collect + pack are completed in the legged ledger (`hum_gate_pack.sh`;
+  run-dag has no cross-ledger lock, so two ledgers must never launch the same collect at once). Launcher `campaign/bin/hum_rebuild_b1.sh`
+  (variant of `hum_restart_coords.sh`); LOO waiter `hum_loo_after_t5_b1.sh` (waits for the peer legged-none units too).
+- Declared memory vs measured peaks (pilot): collect 16G / 5.07G, pack 2G / 0.06G, rep 3G / 1.86G, flow 3G / 1.93G (all >= 1.35x).
