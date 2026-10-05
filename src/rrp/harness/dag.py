@@ -702,8 +702,9 @@ class Executor:
         self.log(f"done: {summary}")
         return summary
 
-    def _others_running(self) -> list[dict]:
-        """Declared resources of running nodes in the other ledgers of the shared budget dir."""
+    def _others_running(self, placement: str | None = None) -> list[dict]:
+        """Declared resources of running nodes in the other ledgers of the shared budget dir; with `placement`, only the rows on that
+        machine (the caps are a per-machine share, D-147 10-05; a row without a recorded placement still counts)."""
         if self.budget_dir is None:
             return []
         out = []
@@ -714,7 +715,8 @@ class Executor:
                 d = json.loads(f.read_text())
             except Exception:    # a ledger being replaced right now: skip this poll
                 continue
-            out += [e["resources"] for e in d.get("nodes", {}).values() if e.get("state") == "running" and e.get("resources")]
+            out += [e["resources"] for e in d.get("nodes", {}).values() if e.get("state") == "running" and e.get("resources")
+                    and (placement is None or e.get("placement", placement) == placement)]
         return out
 
     def _fits(self, nid: str, running: list[str]) -> bool:
@@ -722,7 +724,8 @@ class Executor:
         DAG ledger of the track); the broker still enforces the host/peer limits. A node larger than max_cpu /
         max_mem_gib alone may still run when nothing else is running."""
         r = self.plan.nodes[nid].resources
-        live = [self.plan.nodes[k].resources.__dict__ for k in running] + self._others_running()
+        live = [self.plan.nodes[k].resources.__dict__ for k in running if self.plan.nodes[k].placement == self.plan.nodes[nid].placement] \
+            + self._others_running(self.plan.nodes[nid].placement)
         if r.gpu and self.max_parallel_gpu is not None and sum(bool(x.get("gpu")) for x in live) >= self.max_parallel_gpu:
             return False
         if self.max_cpu is not None and live and sum(float(x.get("cpu", 0)) for x in live) + r.cpu > self.max_cpu:

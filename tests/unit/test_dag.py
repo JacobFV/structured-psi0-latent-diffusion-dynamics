@@ -445,3 +445,22 @@ def test_void_ledgers_do_not_hold_the_shared_budget(tmp_path):
     ex.budget_dir = bd
     ex.ledger = type("L", (), {"path": bd / "mine" / "ledger.json"})()
     assert ex._others_running() == [dict(gpu=True, cpu=1)]
+
+
+def test_shared_budget_counts_only_the_same_placement(tmp_path):
+    """D-147 (2026-10-05): the shared-budget caps are a per-machine share; a host DAG capped at 1 GPU node was held by the PEER ledgers'
+    running GPU nodes of the same track (never launched while the peer ran humanoid work). A row without a placement still counts."""
+    import json
+    from rrp.harness.dag import Executor
+    bd = tmp_path / "_dags"
+    (bd / "peer").mkdir(parents=True)
+    (bd / "peer" / "ledger.json").write_text(json.dumps(dict(nodes={
+        "p": dict(state="running", placement="peer", resources=dict(gpu=True, cpu=2)),
+        "h": dict(state="running", placement="host", resources=dict(gpu=True, cpu=1)),
+        "u": dict(state="running", resources=dict(gpu=False, cpu=3))})))
+    ex = Executor.__new__(Executor)
+    ex.budget_dir = bd
+    ex.ledger = type("L", (), {"path": bd / "mine" / "ledger.json"})()
+    assert ex._others_running("host") == [dict(gpu=True, cpu=1), dict(gpu=False, cpu=3)]
+    assert ex._others_running("peer") == [dict(gpu=True, cpu=2), dict(gpu=False, cpu=3)]
+    assert len(ex._others_running()) == 3
