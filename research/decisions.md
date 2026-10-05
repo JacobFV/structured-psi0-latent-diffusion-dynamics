@@ -2099,3 +2099,24 @@ no ssh added): `stop_lease` (`rrp.ops.runtime`) now refuses with a clear `LeaseN
 in neither this node's broker state nor its local systemd units, and otherwise verifies `ActiveState` is inactive/failed after stopping
 before the CLI reports success (`SystemExit(1)` + no `stopped_leases` line otherwise). Red/green: `tests/unit/test_ops_stop.py` (fails
 importing `stop_lease` on the old code, passes on the fix; verified both ways).
+
+### D-147 addendum 2026-10-05 ~08:35 (T7 Ψ₀ agent, under the owner's full-autonomy rule): SEALED cell Handover `seal_l2_released@s0` relaunched once (infra failure before any rollout row)
+Observed: `seal_l2_released@s0` (lease 1791212985_641358, peer, launched by p6 at 08:09) ended rc=1 at 08:27 (StageError from
+`rrp.cli eval ... --env simple --task simple/G1WholebodyHandoverTeleop-v0 --env-kw level=2`; peak 24.78 G, memory_high_events 0).
+- Cause (eval.log in the run dir): the policy server came up (08:17:57), then the FIRST `SimpleEnv(...)` died inside
+  `SimpleEnv.__init__ -> _call("init")` with `EOFError`: the SIMPLE/Isaac worker subprocess exited during simulator start-up, ~10 min after
+  launch, before `reset` and before any episode. `init` is level-independent (level is only stored; it is used at `reset` to pick the
+  dr-level-2 config), so this is a sim-launch (infra) failure, not a policy or eval outcome. The worker's own stdout goes to DEVNULL, so
+  its exact crash reason (OOM / Isaac start-up / EGL) is not recoverable; no kernel/journal record was readable on the peer.
+  The 08:28 code push did not race it (the cell had already failed at 08:27; push requires no running job).
+- Rows: NONE. The run dir holds only `run_context.json` and `eval.log`; no `released.jsonl`, no summary, no manifest.
+- Decision (pre-registration rule "relaunch only for an infra failure BEFORE any rollout row is written, recorded here"): the cell is
+  NOT spent; it is relaunched ONCE, unchanged (same command, options, seeds, level 2; config hash unchanged; only the code tree moved by
+  e7bc3796, which touches build_memmap and resource declarations only). The relaunch is p8's Handover run-dag: its `--retry-failed`
+  reset the failed node at 08:28 (the failed attempt is kept in the ledger's `previous_attempts`) and `retries: 0` gives exactly one more
+  attempt. No code fix is applied: changing the cell's code path (e.g. capturing the worker log) now would make the relaunch not
+  "unchanged", and the peer code dir cannot be pushed while p8's jobs run.
+- Once-only guarantee from here: if this relaunch fails for any reason, or writes any row, the cell is spent: do NOT run the Handover DAG
+  with `--retry-failed` again without excluding `seal_l2_*` (use `--only` on the non-sealed nodes). The other sealed cells (Handover
+  `seal_l2_direct` / `seal_l2_structured`, all six tabletop/bendpick cells) have never launched (no `eval_r2-seal-*` dir anywhere on the
+  peer, the host worktree or the archive); each gets exactly one attempt in p8 (retries 0; the tabletop/bendpick runs use no --retry-failed).
