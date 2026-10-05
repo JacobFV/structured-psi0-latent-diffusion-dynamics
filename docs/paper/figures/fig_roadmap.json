@@ -1,5 +1,5 @@
 {
- "snapshot": "campaign/STATUS.md + research/decisions.md D-147 addenda, 4 Oct 2026",
+ "snapshot": "campaign/STATUS.md + research/decisions.md D-147 addenda, 5 Oct 2026",
  "gates": [
   [
    [
@@ -14,12 +14,12 @@
    ],
    [
     "T3",
-    "gait + shared\ntrackers (exc.)",
+    "shared tracker;\nadapt: n1 h_turn",
     "done"
    ],
    [
     "T4",
-    "teacher gate:\nh_walk, h_turn",
+    "teacher gate:\n4 tasks pass",
     "done"
    ],
    [
@@ -29,7 +29,7 @@
    ],
    [
     "T7",
-    "tabletop: struct.\n7/20 vs 19/20",
+    "tabletop 7/20;\nBendPick n.s.",
     "done"
    ],
    [
@@ -45,18 +45,18 @@
   ],
   [
    [
-    "T3",
-    "Level-1 adapt\nn1, 2xm",
+    "T5",
+    "rebuild (first\nruns void)",
     "now"
    ],
    [
     "T5",
-    "legged vs none\n+ matched ctrl",
+    "matched-input\ncontrol",
     "now"
    ],
    [
     "T7",
-    "BendPick\nstructured",
+    "Handover +\nsealed L2",
     "now"
    ],
    [
@@ -78,12 +78,7 @@
   [
    [
     "T5",
-    "written decision\n→ sealed cells",
-    "future"
-   ],
-   [
-    "T7",
-    "Handover\nstep 2",
+    "written decision\n→ n1 sealed",
     "future"
    ],
    [

@@ -1941,7 +1941,7 @@ def embodiments(recompute: bool = True) -> dict:
 
 # =================================================================== [U5] roadmap "snake" (full-width figure)
 # Milestones: implemented relation families (done), campaign gates T0-T9 (D-147; state from campaign/STATUS.md and the
-# D-147 addenda as of 4 Oct 2026), then the planned relation entries of Table 7 clustered by family, wave W2 before P.
+# D-147 addenda as of 5 Oct 2026), then the planned relation entries of Table 7 clustered by family, wave W2 before P.
 # Colours follow Fig. 2's families (geometry cyan, kinematics/UI graphite, interaction amber, procedure violet); the
 # families Fig. 2 has no panel for get neutral extra hues. done = filled, now = highlighted, future = hollow.
 ROAD_FAM = {"structure": ("#8A8F98", "structure"), "geometry": ("#2BB3C0", "geometry"),
@@ -1952,14 +1952,14 @@ ROAD_NOW = "#E4572E"
 # (id, label, state) in path order; states: done | failed | now | future (failed = gate failed or run halted)
 ROAD_GATES = [
     [("T0", "tracker pins\nverified", "done"), ("T1", "terrain trackers\nfailed; closed", "failed"),
-     ("T3", "gait + shared\ntrackers (exc.)", "done"), ("T4", "teacher gate:\nh_walk, h_turn", "done"),
-     ("T6", "G3 lineage\ngate FAILED", "failed"), ("T7", "tabletop: struct.\n7/20 vs 19/20", "done"),
+     ("T3", "shared tracker;\nadapt: n1 h_turn", "done"), ("T4", "teacher gate:\n4 tasks pass", "done"),
+     ("T6", "G3 lineage\ngate FAILED", "failed"), ("T7", "tabletop 7/20;\nBendPick n.s.", "done"),
      ("T8", "copy round 1\n(dev)", "done"), ("T9", "v3dart halted\n(floor)", "failed")],
-    [("T3", "Level-1 adapt\nn1, 2xm", "now"), ("T5", "legged vs none\n+ matched ctrl", "now"),
-     ("T7", "BendPick\nstructured", "now"), ("T8", "P-SEEDS\n3 seeds", "now"),
+    [("T5", "rebuild (first\nruns void)", "now"), ("T5", "matched-input\ncontrol", "now"),
+     ("T7", "Handover +\nsealed L2", "now"), ("T8", "P-SEEDS\n3 seeds", "now"),
      ("T9", "factor sets on\nv6 lineage", "now"), ("T5", "leave-one-out\nt1 / g1 / h1", "future")],
-    [("T5", "written decision\n→ sealed cells", "future"), ("T7", "Handover\nstep 2", "future"),
-     ("T8", "UI factors →\nsealed", "future"), ("T9", "competence +\ninterference", "future")],
+    [("T5", "written decision\n→ n1 sealed", "future"), ("T8", "UI factors →\nsealed", "future"),
+     ("T9", "competence +\ninterference", "future")],
 ]
 
 
@@ -2070,7 +2070,7 @@ def roadmap(out=None):
     for x, (tid, lab, st) in zip(xs, ROAD_GATES[1]):
         gate(x, y, tid, lab, st)
     px = min(now_x) - 0.42
-    ax.annotate("WE ARE HERE\n4 Oct 2026", xy=(px, y + 0.1), xytext=(px - 0.95, y + 0.47), fontsize=6.4, weight="bold",
+    ax.annotate("WE ARE HERE\n5 Oct 2026", xy=(px, y + 0.1), xytext=(px - 0.95, y + 0.47), fontsize=6.4, weight="bold",
                 color=ROAD_NOW, ha="center", va="center", zorder=7,
                 arrowprops=dict(arrowstyle="-|>", color=ROAD_NOW, lw=1.2))
     # ---- row 2: remaining campaign gates
@@ -2108,7 +2108,7 @@ def roadmap(out=None):
     fig.savefig(out / "fig_roadmap.png", dpi=200)
     plt.close(fig)
     (out / "fig_roadmap.json").write_text(json.dumps(dict(
-        snapshot="campaign/STATUS.md + research/decisions.md D-147 addenda, 4 Oct 2026", gates=ROAD_GATES,
+        snapshot="campaign/STATUS.md + research/decisions.md D-147 addenda, 5 Oct 2026", gates=ROAD_GATES,
         implemented_by_group=impl, planned_by_wave={w: dict(v) for w, v in waves.items()},
         out_of_scope=[f for _, f in _x]), indent=1, ensure_ascii=False))
 
