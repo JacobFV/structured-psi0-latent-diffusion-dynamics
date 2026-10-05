@@ -429,3 +429,19 @@ def test_a_planned_node_records_the_config_it_runs_not_a_stale_planned_hash(tmp_
     e = json.loads(led.read_text())["nodes"]["a@sem.s1"]
     assert e["state"] == "completed" and e["config_hash"] == plan_dag(loads(TOY)).nodes["a@sem.s1"].rc.config_hash()
     _ex(tmp_path, FakeRunner(tmp_path)).run()                       # a further start accepts the ledger
+
+
+def test_void_ledgers_do_not_hold_the_shared_budget(tmp_path):
+    """D-147 (2026-10-04): renamed void ledgers (*.INVALID_<reason>/ledger.json) still carried "running" GPU rows of stopped leases; the
+    shared-budget cap counted them and silently held a new DAG's GPU node for 2 h."""
+    import json
+    from rrp.harness.dag import Executor
+    bd = tmp_path / "_dags"
+    (bd / "old.INVALID_x").mkdir(parents=True)
+    (bd / "old.INVALID_x" / "ledger.json").write_text(json.dumps(dict(nodes={"n": dict(state="running", resources=dict(gpu=True, cpu=1))})))
+    (bd / "live").mkdir()
+    (bd / "live" / "ledger.json").write_text(json.dumps(dict(nodes={"m": dict(state="running", resources=dict(gpu=True, cpu=1))})))
+    ex = Executor.__new__(Executor)
+    ex.budget_dir = bd
+    ex.ledger = type("L", (), {"path": bd / "mine" / "ledger.json"})()
+    assert ex._others_running() == [dict(gpu=True, cpu=1)]

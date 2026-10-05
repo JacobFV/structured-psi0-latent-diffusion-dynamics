@@ -638,6 +638,7 @@ class Executor:
         return "stale"
 
     def run(self) -> dict:
+        self._held_logged: set = set()
         self._check_ledger()
         waiting_since: dict[str, float] = {}
         while True:
@@ -653,7 +654,11 @@ class Executor:
                     break
                 if not self._fits(nid, running):
                     waiting_since.pop(nid, None)   # held by OUR caps (e.g. max_parallel_gpu): not a broker refusal, the
-                    continue                       # admission clock restarts when the node may try again
+                    if nid not in self._held_logged:   # admission clock restarts when the node may try again
+                        self._held_logged.add(nid)
+                        self.log(f"{nid}: held by this DAG's own caps (max_parallel_gpu / max_cpu / max_mem_gib, incl. the shared "
+                                 f"budget dir's running nodes); waiting")
+                    continue
                 if self._adopt_existing(nid):
                     continue
                 if self.yield_to_waiting and self._others_waiting(nid):
@@ -703,8 +708,8 @@ class Executor:
             return []
         out = []
         for f in Path(self.budget_dir).glob("*/ledger.json"):
-            if f.resolve() == self.ledger.path.resolve():
-                continue
+            if f.resolve() == self.ledger.path.resolve() or ".INVALID_" in f.parent.name:
+                continue                  # a void ledger (renamed *.INVALID_<reason>) holds nothing: its "running" rows are dead
             try:
                 d = json.loads(f.read_text())
             except Exception:    # a ledger being replaced right now: skip this poll
