@@ -156,6 +156,57 @@ def wait_unit(be: SystemdUserBackend, unit: str, log: Path, poll_s: float = 2.0,
     return {"returncode": rc, "unit_result": state.get("Result"), "exec_status": state.get("ExecMainStatus")}
 
 
+class LeaseNotLocal(RuntimeError):
+    """Raised by stop_lease (bug fix, D-147 addendum 2026-10-05) when a lease id is not known to THIS
+    node: neither this node's broker state nor its systemd --user manager has any record of it. Before
+    the fix, `rrp ops stop --owned-only --lease ID` called the backend directly for any id, and
+    `systemctl --user stop` on a unit that was never loaded here is a silent no-op (exit 0, nothing
+    stopped) -- so a lease that actually lives on the peer was reported "stopped" while it kept running
+    there. The fix: never touch the backend for an id this node doesn't recognize, and say so loudly
+    instead of guessing. We never add remote (ssh) stopping -- the fix is to refuse clearly, not to reach
+    across nodes."""
+
+
+def stop_lease(lease_id: str, *, broker: ResourceBroker | None = None, backend: SystemdUserBackend | None = None) -> dict:
+    """Stop ONE lease's job + slice on THIS node only, local-only and explicit, and verify the unit is
+    actually inactive before returning -- a stop must never report success without having confirmed it
+    stopped something. `broker`/`backend` are injectable for tests; production callers omit them and get
+    this node's real broker state and real systemd --user manager.
+
+    Raises LeaseNotLocal if the lease id is in neither this node's broker state nor its local systemd
+    units (e.g. it was acquired on the peer): no backend call is made for such an id. Raises RuntimeError
+    if, after stopping, the unit is still active (the stop did not actually work).
+    """
+    role = node_role()
+    be = backend if backend is not None else SystemdUserBackend()
+    br = broker
+    if br is None:
+        br, _ = make_broker(role, require_watchdog=False)
+    unit = job_unit(lease_id)
+    slc = lease_slice(lease_id)
+    known_in_broker = lease_id in br.leases()
+    load_state = be.unit_state(unit).get("LoadState", "not-found")
+    known_here = known_in_broker or load_state not in ("not-found", "")
+    if not known_here:
+        peer_hint = ""
+        try:
+            alias = load_config().get("peer_alias")
+            if alias:
+                peer_hint = f" it may live on the peer ({alias}) -- rerun this exact command there (no remote stop is performed)"
+        except Exception:  # noqa: BLE001 - config may be unreadable; the refusal itself still stands
+            pass
+        raise LeaseNotLocal(f"lease {lease_id!r} is not known to this node's ({role!r}) broker state "
+                            f"({state_dir(role)}) and no unit {unit!r} is loaded here; refusing to report "
+                            f"success for a lease this node cannot verify it controls." + peer_hint)
+    be.remove_lease(lease_id)      # best-effort stop of job unit then lease slice
+    final = be.unit_state(unit)
+    active = final.get("ActiveState")
+    if active not in (None, "", "inactive", "failed"):
+        raise RuntimeError(f"lease {lease_id}: unit {unit!r} is still {active!r} after stop_unit; refusing to "
+                           f"report success (slice {slc!r} may also still be running)")
+    return {"lease_id": lease_id, "unit": unit, "active_state": active or "inactive"}
+
+
 def stop_owned(role: str | None = None) -> list[str]:
     """Stop ONLY project-owned units (rrp-* in the user manager, inside rrp.slice)."""
     be = SystemdUserBackend()

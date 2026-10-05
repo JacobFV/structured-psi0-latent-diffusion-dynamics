@@ -2090,3 +2090,12 @@ the lease-charged /dev/shm (Handover has 2.9x BendPick's frames). run-dag's 1/1 
   old 36G) and will then run `seal_l2_released` once, and end. camp-psi0-p7 (only waiting) was stopped; unit camp-psi0-p8
   (`psi0/p8.sh`) waits for p6 to end, pushes the code to the peer dir, removes the stale partial hidden.npy, reruns the Handover DAG with
   `--retry-failed --adopt-stale`, then p7's sealed tabletop/bendpick cells (no --retry-failed). Status `psi0/p8.status`, log `psi0/p8.log`.
+
+### D-147 addendum 2026-10-05 (infra, bug fix): `ops stop --lease` no longer reports success for a lease it didn't stop
+`rrp ops stop --owned-only --lease ID` used to call the local systemd backend for any id unconditionally (`systemctl --user stop` on a
+unit never loaded here is a silent exit-0 no-op), so stopping a peer lease from the host printed `stopped_leases` while the peer job kept
+running (matches the Handover feat relaunch note above, where "the host-side stop alone did not reach the peer lease"). Fixed (local-only,
+no ssh added): `stop_lease` (`rrp.ops.runtime`) now refuses with a clear `LeaseNotLocal` error, naming the peer alias, when the lease id is
+in neither this node's broker state nor its local systemd units, and otherwise verifies `ActiveState` is inactive/failed after stopping
+before the CLI reports success (`SystemExit(1)` + no `stopped_leases` line otherwise). Red/green: `tests/unit/test_ops_stop.py` (fails
+importing `stop_lease` on the old code, passes on the fix; verified both ways).

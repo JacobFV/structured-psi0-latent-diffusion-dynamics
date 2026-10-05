@@ -139,15 +139,24 @@ def cmd_ops_shrink(a):
 
 
 def cmd_ops_stop(a):
-    from rrp.ops.runtime import stop_owned
-    from rrp.ops.cgroup import SystemdUserBackend, job_unit
+    from rrp.ops.runtime import stop_owned, stop_lease, LeaseNotLocal
     if not a.owned_only:
         raise SystemExit("refusing: pass --owned-only (this tool never stops unrelated processes)")
     if a.lease:
-        be = SystemdUserBackend()
+        stopped, errors = [], []
         for lid in a.lease:
-            be.remove_lease(lid)
-        print(json.dumps({"stopped_leases": a.lease}))
+            try:
+                stopped.append(stop_lease(lid))
+            except LeaseNotLocal as e:
+                errors.append(str(e))
+            except Exception as e:  # noqa: BLE001 - stop could not be verified; never claim success for it
+                errors.append(f"lease {lid}: {e}")
+        if errors:
+            # never report success overall when any lease could not be verified stopped (D-147 addendum 2026-10-05)
+            print(json.dumps({"stopped_leases": [s["lease_id"] for s in stopped], "errors": errors}, indent=1),
+                 file=sys.stderr)
+            raise SystemExit(1)
+        print(json.dumps({"stopped_leases": [s["lease_id"] for s in stopped]}))
         return
     if not a.all_project_jobs:
         raise SystemExit("refusing: several engineers share this project; pass --lease ID (your own jobs) or "

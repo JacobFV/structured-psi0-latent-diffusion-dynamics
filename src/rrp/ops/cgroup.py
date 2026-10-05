@@ -128,7 +128,7 @@ class SystemdUserBackend:
     def unit_state(self, unit: str) -> dict:
         r = self._run(["systemctl", "--user", "show", unit, "-p", "ActiveState", "-p", "SubState",
                        "-p", "MainPID", "-p", "ExecMainStartTimestampMonotonic", "-p", "ControlGroup",
-                       "-p", "Result", "-p", "ExecMainStatus"], check=False)
+                       "-p", "Result", "-p", "ExecMainStatus", "-p", "LoadState"], check=False)
         out = {}
         for line in r.stdout.splitlines():
             if "=" in line:
