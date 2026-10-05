@@ -2120,3 +2120,12 @@ Observed: `seal_l2_released@s0` (lease 1791212985_641358, peer, launched by p6 a
   with `--retry-failed` again without excluding `seal_l2_*` (use `--only` on the non-sealed nodes). The other sealed cells (Handover
   `seal_l2_direct` / `seal_l2_structured`, all six tabletop/bendpick cells) have never launched (no `eval_r2-seal-*` dir anywhere on the
   peer, the host worktree or the archive); each gets exactly one attempt in p8 (retries 0; the tabletop/bendpick runs use no --retry-failed).
+
+### D-147 addendum 2026-10-05 (T9 owner, autonomous): T9 race pause resolved (swap_growth)
+- Fft@semfix.s1.task failed on the host (lease 1791213440_5bcfa9, rc=1, stopped_by=swap_growth:1101414400, heartbeats=564, peak 5.17G,
+  no memory.high events): system swap grew from the owner's own non-project load, an infrastructure shed like the resumable startup CUDA
+  OOM (8b725294). The race classifier (campaign-only `t9_race.py`, not tracked in this repo) now treats any lease log with a watchdog/
+  broker-reported `stopped_by` (not None) as resumable infra and requeues it (<= 10/node) -- covers swap_growth, live_limit_reduced,
+  memory-pressure sheds, gpu_thermal, max_seconds, disk reserve; `stopped_by=None` with no known signature still pauses. No T9 lease was
+  active on either broker before restart; `rrp-camp-relations-b-race` was restarted with its recorded args and Fft@semfix.s1.task
+  requeued, running on the host again from its last checkpoint.
