@@ -2213,3 +2213,8 @@ STATUS.md/pointer_progress.log are not git-tracked and were edited directly on d
 - **ETA (11:50, at ~1.1-1.3 peer slots and 40-70 % host availability):** host legged-none h_turn + h_walk ~Tue 10-06 20:00 (09:00 - Wed 01:00);
   T5 all four tasks (peer-bound) ~Wed 10-07 05:00 (Tue 23:00 - Wed 12:00); LOO h_walk + h_turn (~47 GPU-h, peer) ~Thu 10-08 17:00
   (Thu 08:00 - Fri 10-09 08:00); legged-tokens controls (lowest priority) after that, ~Sat 10-10. All earlier if Ψ₀ frees the 2nd peer slot.
+- **Follow-up 12:01 (code, 76253ca4):** `run-dag`'s shared-budget caps summed the running nodes of EVERY humanoid ledger regardless of placement,
+  so the host DAG's `--max-parallel-gpu 1` was held by the peer's running GPU nodes (host would never launch while the peer trained). The caps
+  now count only rows on the same placement (rows without a placement still count); red/green `test_shared_budget_counts_only_the_same_placement`.
+  The host chain was restarted on it (no node running; stopped chain -> requeue -> coordinator by PID); 12:01 h_turn legged-none adopted
+  collect / pack / rep@semfix.s0 and launched rep@semfix.s1 on the host (lease 1791226871_a9dbf0). Host now: 1 humanoid + 1 other-track GPU lease.
