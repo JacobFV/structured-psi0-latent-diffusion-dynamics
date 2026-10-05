@@ -2142,3 +2142,38 @@ no recipe change needed). Moved the failed race logs + GPU ledgers to
 writing to it: the unit had exited and no process referenced the lease ids or the dir). Resumed with the exact RESUME command
 (`systemd-run --user --unit rrp-t8-chain2 ... pointer_seeds pointer_ui`); the race for `flow@nosem.s2` restarted cleanly (peer adopted
 collect/rep, both sides queued on admission, not an attempt yet). A third stop on this node would go to blocked_external per rule 1.
+
+### D-147 addendum 2026-10-05 11:31 (T8 pointer owner, Main relay 2026-10-05: full autonomy, "owner decision needed" in the logs overridden)
+`flow@nosem.s2` (pointer_seeds) PAUSED chain2 a third time. Cause confirmed from the lease log, not a code error:
+1. Host lease 1791220744_696647 (launched 10:19) ran to step 7000/30000 (flow.log) then was shed `rc=-10
+   stopped_by=swap_growth:1534681088` at 11:07 (memory_peak 2.65 GiB -- in line with the two 09:05/09:31 stops, still well under the
+   declared 8G x 1.35). run-dag's own single unchanged-settings retry then launched lease 1791224684_cd8ffb at 11:24:45, which crashed
+   30 s later, before the training loop, in `Demos.__init__` on `torch.tensor(geom.half_m, device=device)`:
+   `torch.AcceleratorError: CUDA error: out of memory (cudaErrorMemoryAllocation)`, 0 heartbeats, memory_peak 0.37 GiB. This host
+   (`nvidia-smi`: NVIDIA GB10, "Memory-Usage: Not Supported") is a unified-memory Grace-Blackwell box, so GPU allocation competes
+   directly with host RAM/swap; `free -h` at the time showed Swap 15Gi/15Gi used (946Mi free) and the watchdog sample stream shows
+   swap_free pinned near ~1 GiB through 11:24-11:29 -- i.e. a tiny constant-size allocation failing immediately is a direct symptom of
+   the same swap exhaustion, not a bug in `setup()`/`Demos`. Cross-checked against `relations-b` (T9): `relations_progress.log` shows
+   its own race PAUSED by `stopped_by=swap_growth` at 09:05 and again a `resumable:host` swap_growth shed at 11:07:53, i.e. the host is
+   shedding multiple unrelated tracks' jobs all morning, confirming host-wide instability, not a pointer-node or pointer-recipe fault.
+2. Per Main's relay: this is NOT marked blocked_external despite being the third infra stop (overriding rule 1's default for this node
+   only, and overriding "owner decision needed" in chain2.log, per the owner autonomy rule cd40a465). Final attempt given, PINNED TO THE
+   PEER (same recipe/settings/seed/config hash -- hashes don't change, placement only):
+   - Verified nothing was writing to the failed artifacts (`rrp-t8-chain2.service` had exited, no process referenced lease 696647/cd8ffb
+     or the output dir; `systemctl --user is-active` = inactive).
+   - Moved the failed race logs (`pointer_seeds__flow_nosem.s2_{host,peer}.log`), both GPU race ledgers (+ .lock files), and the partial
+     host output `camp-pointer-host/artifacts/runs/pointer/pointer-s3-nosem/train_flow_s2` to `campaign/pointer/race/infra_fail_1131/`.
+   - Disabled host racing: moved `campaign/pointer/HOST_OK` aside to `HOST_OK.disabled_swap_pressure_20261005_1131` (with a note on
+     when/how to restore it). `t8_chain2.py race()` only adds the host side (`sides = (False, True) if HOST_OK.exists() else (False,)`)
+     when that file exists, so this is a one-file, fully reversible toggle already built into the coordinator -- no src/recipe edit, no
+     config-hash change. This both pins `flow@nosem.s2`'s retry to the peer (item 2) AND answers item 3 (prefer the peer for the
+     remaining GPU nodes while host swap pressure lasts): simple and safe, so applied for the rest of pointer_seeds + pointer_ui.
+   - Restarted with the handoff's exact RESUME command (`systemd-run --user --unit rrp-t8-chain2 ... pointer_seeds pointer_ui`); chain2.log
+     confirms `flow@nosem.s2: race started (peer)` with no host subprocess spawned (`systemctl --user status` shows only one run-dag
+     child, `--ledger .../pointer_seeds_peer_gpu.json`); deps re-adopted (collect, rep@nosem.s2), node queued on peer GPU admission.
+   - A failure on this pinned peer attempt (code error or a further infra stop) goes to blocked_external / failed per rule 1, recorded,
+     and chain2 carries on with SKIP_NODES; its dependants (eval_dev/probes/edits@nosem.s2) stay unrun and the round ends NOT complete.
+3. HOST_OK re-enable condition written into the disabled-file note: restore once host swap has recovered and held clear and the T9 host
+   race has stopped shedding (check `ops/watchdog/host.jsonl` swap_free and `relations_progress.log`).
+Recorded: `campaign/logs/pointer_progress.log`, `campaign/STATUS.md` pointer row. Merge via `merge.sh camp-pointer-b` (this file only;
+STATUS.md/pointer_progress.log are not git-tracked and were edited directly on disk).
