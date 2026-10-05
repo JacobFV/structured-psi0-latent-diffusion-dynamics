@@ -35,3 +35,12 @@ artifacts/runs/**/episodes/
 artifacts/runs/**/*.npz
 artifacts/runs/**/*.mp4
 artifacts/runs/**/*.pt
+
+# run data must never be committed (2026-10-05 wind-down audit)
+*.npy
+*.npz
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.mp4
