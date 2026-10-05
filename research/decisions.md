@@ -2177,3 +2177,39 @@ collect/rep, both sides queued on admission, not an attempt yet). A third stop o
    race has stopped shedding (check `ops/watchdog/host.jsonl` swap_free and `relations_progress.log`).
 Recorded: `campaign/logs/pointer_progress.log`, `campaign/STATUS.md` pointer row. Merge via `merge.sh camp-pointer-b` (this file only;
 STATUS.md/pointer_progress.log are not git-tracked and were edited directly on disk).
+
+### D-147 addendum 2026-10-05 ~11:45 (humanoid owner, autonomous): host reservation restored; h_turn / h_walk legged-none back on the host
+- **Why:** the peer-only B1 rebuild got ~1 peer GPU slot (camp-peer-fair gives the 2nd to Ψ₀ while its Handover chain waits); four tasks x
+  all arms queued behind it ("gpu owners 4 > slots 2" admission timeouts every few hours). Realized throughput since 10-04 21:59: 18.0 GPU-h in
+  13.7 h (1.31 slots incl. the pilot tail). The host had no humanoid slot (reservation suspended 10-04 23:00).
+- **Bug found + fixed (`campaign/bin/hum_requeue_on_timeout.sh`):** `echo "$new" | grep -q ... || exit 0` under `pipefail`: on a large log
+  grep -q exits early, echo gets SIGPIPE, the pipeline "fails", and the requeue exited as if nothing had failed. The h_turn LEGGED ledger lost
+  its coordinator at 02:41 with 21 admission-only failures (journal: "echo: write error: Broken pipe"); ~9 h idle. Now here-strings + counts
+  (red/green on a 200k-line input). Every live requeue unit was re-armed with the fix (bash waiters only; coordinators and leases untouched);
+  t5_h_turn legged coordinator + requeue restarted (no running node, no lease).
+- **Host reservation restored** per HANDOFF_humanoid.md section 0: `gpu_reserve_suspended` -> `gpu_reserve` = {humanoid: 1 slot, same prefixes}
+  in the main checkout's `ops/resources.local.json` (backup `campaign/host-resources.local.json.bak-20261005-113601`); every other field
+  byte-identical (diffed); applied by `rrp ops status` (pseudo-lease `reserve:humanoid` active; running lease r6none2_Fft untouched).
+- **Placement amendment (placement only; same recipes, nodes, config hashes, data, seeds):** the h_turn and h_walk `legged-none` arms move to
+  the HOST via the existing `_host` instances (`transfer_h_<task>_legged_none_host.yaml`, own ledgers `humanoid_transfer_h_<task>_legged_none_host`).
+  Dry-run: 109/109 node config hashes per task equal to the peer legged-none ledger; collect / pack hashes equal to the legged ledger.
+  One live coordinator per node set: the peer legged-none coordinators + requeue units of h_turn / h_walk were stopped by PID while their
+  ledgers had NO running node (both only waiting for admission); the peer ledgers are kept (not reset) as the record. h_reach / h_squat_pick
+  legged-none stay on the peer. Split: peer ~45 GPU-h T5 (4 legged + 2 legged-none) vs host ~15 GPU-h (2 legged-none), median node times.
+- **Data:** the DART h_turn / h_walk collect-src / collect-tgt / pack, the two eval refs, and the 13 completed peer legged-none node outputs
+  (adopted by the host ledger, no recompute) are copied peer -> host under a host broker lease (`hum_copy_retry.sh` ->
+  `hum_copy_dart_to_host.sh`, list `campaign/hum_host_copylist_20261005.txt`; no-clobber; sha256 of every file compared, marker
+  `logs/hum_copy_dart_20261005.ok`). The sigma-0 data cannot be told apart by config hash (the bug was in code: identical hashes), so the
+  launcher additionally requires >= 70 % of episodes with sigma > 0 in the shard json (DART cycles 0/0.1/0.2/0.3 -> 0.750 on the peer data;
+  the INVALID sigma-0 copy -> 0.000; checked both). `*.INVALID_sigma0_20261004` dirs are never touched.
+- **Launcher** `campaign/bin/hum_host_chain.sh` (unit camp-hum-host-chain; NOT `hum_restart_coords.sh`, which would start the old host instances
+  and the old LOO waiter): gates (copy verified, DART check, peer legged-none units inactive and no running node), then h_turn, then h_walk,
+  each as coordinator unit `camp-hum-t5-h-<task>-legged-none-host` + requeue unit `camp-hum-requeue-t5-h-<task>-legged-none-host`, caps
+  `--max-parallel 3 --max-parallel-gpu 1 --max-cpu 8 --max-mem-gib 40`: ONE host GPU slot for humanoid (the reservation guarantees it; the cap
+  and one ledger at a time keep humanoid off the 2nd host slot, so pointer / T9 keep it); peer stays at 1 reserved slot (camp-peer-fair).
+  LOO waiters replaced by `hum_loo_after_t5_b2.sh` (waits for peer legged T5 + the host legged-none arm of the task); LOO requeue units re-armed.
+- **Host admission caveat:** the owner's load currently holds the host live CPU limit < 1 core and swap ~0 free (watchdog stop_admission on
+  swap growth; sheds 09:xx / 11:07). All caps are unchanged; host humanoid nodes simply wait (admission-only rounds are free in the requeue).
+- **ETA (11:50, at ~1.1-1.3 peer slots and 40-70 % host availability):** host legged-none h_turn + h_walk ~Tue 10-06 20:00 (09:00 - Wed 01:00);
+  T5 all four tasks (peer-bound) ~Wed 10-07 05:00 (Tue 23:00 - Wed 12:00); LOO h_walk + h_turn (~47 GPU-h, peer) ~Thu 10-08 17:00
+  (Thu 08:00 - Fri 10-09 08:00); legged-tokens controls (lowest priority) after that, ~Sat 10-10. All earlier if Ψ₀ frees the 2nd peer slot.

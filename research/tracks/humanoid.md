@@ -884,3 +884,8 @@ standing up / turning with forearm-palm grip), h1 h_place ~half.
   h_squat_pick, every arm (legged incl. nosem + BC, legged-none, legged-tokens control for h_walk / h_turn), then LOO, all on the peer
   (decisions.md D-147 addendum ~21:50; launcher `campaign/bin/hum_rebuild_b1.sh`).
 
+- 2026-10-05 11:45 — **Placement: h_turn / h_walk legged-none back on the host** (decisions.md D-147 addendum ~11:45). Host `reserve:humanoid`
+  restored (1 slot); `campaign/bin/hum_host_chain.sh` (copy + DART sigma gate, then h_turn then h_walk, `--max-parallel-gpu 1`); h_reach /
+  h_squat_pick legged-none and every legged arm stay on the peer (1 slot under camp-peer-fair). Requeue SIGPIPE bug fixed (the h_turn legged
+  coordinator had been dead since 02:41). Results of the two host arms live in the HOST store (`~/work/rrp-wt/camp-humanoid/artifacts/runs/humanoid/`);
+  tables pool both stores. ETA: T5 all four ~Wed 10-07 05:00, LOO ~Thu 10-08 17:00.
