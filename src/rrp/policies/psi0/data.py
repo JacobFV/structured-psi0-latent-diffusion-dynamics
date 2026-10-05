@@ -105,9 +105,14 @@ def cache_features(argv=None):
     tok = proc.tokenizer
     meta = dict(repo_id=a.repo_id, vlm=a.vlm, run_dir=a.run_dir, frames=len(idx), stride=a.stride, episodes=n_eps,
                 augmentation=False, created=time.strftime("%Y-%m-%dT%H:%M:%S"), shards=[])
+    done = resumable_shards(out, meta, a.shard)
     t0 = time.time()
     for s0 in range(0, len(idx), a.shard):
         chunk = idx[s0:s0 + a.shard]
+        if f"shard_{s0 // a.shard:04d}.pt" in done:          # resume: a complete shard of the SAME extraction (D-147 T7, Handover feat)
+            meta["shards"].append(f"shard_{s0 // a.shard:04d}.pt"); meta["resumed_shards"] = meta.get("resumed_shards", 0) + 1
+            print(f"[features] {s0 + len(chunk)}/{len(idx)} frames (resumed shard)", flush=True)
+            continue
         rec = dict(hidden=[], ids=[], state=[], actions=[], amask=[], raw_actions=[], ep=[], fr=[], ent=[], instr=[])
         for b0 in range(0, len(chunk), a.batch):
             items = [ds[g] for (_, _, g) in chunk[b0:b0 + a.batch]]
@@ -143,7 +148,7 @@ def cache_features(argv=None):
                 rec["instr"].append(it["instruction"])
             rec["ep"] += [c[0] for c in chunk[b0:b0 + a.batch]]; rec["fr"] += [c[1] for c in chunk[b0:b0 + a.batch]]
         p = out / f"shard_{s0 // a.shard:04d}.pt"
-        torch.save(rec, p)
+        torch.save(rec, p.with_suffix(".tmp")); p.with_suffix(".tmp").replace(p)     # atomic: a stopped job never leaves a torn shard
         meta["shards"].append(p.name)
         print(f"[features] {s0 + len(chunk)}/{len(idx)} frames, {time.time() - t0:.0f}s", flush=True)
     meta["seconds"] = time.time() - t0
@@ -248,6 +253,22 @@ class EpisodeLabels:
         return dict(grasp_pt=pt, grasp_face=face, grasp_valid=valid)
 
 
+def resumable_shards(out, meta, shard):
+    """Shard names a stopped extraction left complete in `out`: only when its meta.json is the SAME extraction (repo, VLM,
+    run dir, stride, frame count) with the same shard size, and only before the memmap was built. Shards are written whole
+    (tmp + rename; the pre-fix writer only ever saved whole shards before meta.json listed them)."""
+    mp = Path(out) / "meta.json"
+    if not mp.exists() or (Path(out) / "small.pt").exists():
+        return set()
+    old = json.loads(mp.read_text())
+    if any(old.get(k) != meta[k] for k in ("repo_id", "vlm", "run_dir", "stride", "frames")):
+        return set()
+    names = [f"shard_{i:04d}.pt" for i in range(-(-meta["frames"] // shard))]
+    if old.get("shards") != names:
+        return set()
+    return {n for n in names if (Path(out) / n).exists()}
+
+
 def build_memmap(feat_dir):
     """Flatten the shards into hidden.u16 (memmap, [N, L, 2048] bf16 bits; all prompts have the same length for a
     single-instruction task, else right-padded with lengths stored) + small.pt. Page-cache backed: keeps resident
@@ -272,6 +293,7 @@ def build_memmap(feat_dir):
             for k in ("state", "actions", "amask", "ent", "ep", "fr"):
                 small[k].append(r[k][i])
             n += 1
+        del r; (feat_dir / sh).unlink()   # free each shard as it is flattened: shm (charged to the lease) holds ~one copy, not shards + memmap
     mm.flush(); del mm
     torch.save(small, feat_dir / "small.pt")
 

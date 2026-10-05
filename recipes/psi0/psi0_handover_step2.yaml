@@ -14,5 +14,9 @@ vars:
   task: G1WholebodyHandoverTeleop-v0
   task_key: handover
 nodes:
-  feat:      # D-147 T7: tabletop feat peaked 13.6 G THROTTLED at memory.high (0.8 x 17G); bendpick feat 14.06 G throttled, killed by memory PSI.
-    resources: {cpu: 2, mem: 28G, gpu: true, gpu_mem: 18G, max_seconds: 21600}   # shm-charged: shards (~5 G) + hidden.npy (~6.5 G) coexist at build_memmap, + RSS; throttled peaks underestimate
+  feat:      # D-147 T7: tabletop feat peaked 13.6 G THROTTLED at memory.high (0.8 x 17G); bendpick feat 15.98 G (6.1 G memmap, 15.5k frames).
+    # Handover has 45.5k frames: 23 shards (20.8 G) + hidden.npy (19.6 G), both shm-charged. At 28G the first attempt (10-04 23:19) extracted
+    # all shards in 73 min, then sat THROTTLED in build_memmap for 4.8 h (peak 25.16 G, 879k memory.high events) and hit max_seconds.
+    # Since D-147 addendum 2026-10-05: build_memmap frees each shard as it is copied (shm holds ~one copy) and extraction resumes from whole
+    # shards, so the expected peak is ~21-25 G; declared 40G (>= 1.35 x the capped 25.16 G, unknown true peak) and 4 h.
+    resources: {cpu: 2, mem: 40G, gpu: true, gpu_mem: 18G, max_seconds: 14400}

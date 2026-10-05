@@ -65,18 +65,21 @@ nodes:
       options: {task: '{task}'}
   direct:
     stage: train_bc
+    resources: {cpu: 2, mem: 20G, gpu: true, gpu_mem: 18G, max_seconds: 21600}   # measured 10.5-13.6 G (bendpick structured THROTTLED at 0.8 x 17G); x1.35 -> 20G (D-147 addendum 2026-10-05)
     config:
       params: {steps: '{steps}', batch: 32}
       inputs: {features: '@feat:feat', labels: '@labels:labels'}
       options: {task: '{task}'}
   structured:
     stage: train_flow
+    resources: {cpu: 2, mem: 20G, gpu: true, gpu_mem: 18G, max_seconds: 21600}   # measured 10.5-13.6 G (bendpick structured THROTTLED at 0.8 x 17G); x1.35 -> 20G (D-147 addendum 2026-10-05)
     config:
       params: {steps: '{steps}', batch: 32, w_sem: 0.1}
       inputs: {features: '@feat:feat', labels: '@labels:labels', stage_a: '@stage_a:stage_a.pt', gate: '@gate:packet_gate.json'}
       options: {task: '{task}'}
   heldout:
     stage: heldout
+    resources: {cpu: 2, mem: 20G, gpu: true, gpu_mem: 18G, max_seconds: 21600}   # measured 10.5-13.6 G (bendpick structured THROTTLED at 0.8 x 17G); x1.35 -> 20G (D-147 addendum 2026-10-05)
     config:
       inputs: {features: '@feat:feat', summary: '@stage_a:summary.json', stage_a: '@stage_a:stage_a.pt', direct: '@direct:final.pt', structured: '@structured:final.pt'}
       options: {task: '{task}'}
@@ -89,20 +92,20 @@ nodes:
   eval_released:
     stage: eval_r2
     tag: released
-    resources: {cpu: 3, mem: 36G, gpu: true, gpu_mem: 26G, max_seconds: 21600}
+    resources: {cpu: 3, mem: 40G, gpu: true, gpu_mem: 26G, max_seconds: 21600}   # measured peaks 17.3-26.7 G (T7 evals, smoke); x1.35 + margin (D-147 addendum 2026-10-05)
     config:
       options: {task: '{task}', arm: released, seeds: '0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9', batch: 2}
   eval_direct:
     stage: eval_r2
     tag: direct
-    resources: {cpu: 3, mem: 36G, gpu: true, gpu_mem: 26G, max_seconds: 21600}
+    resources: {cpu: 3, mem: 40G, gpu: true, gpu_mem: 26G, max_seconds: 21600}   # measured peaks 17.3-26.7 G (T7 evals, smoke); x1.35 + margin (D-147 addendum 2026-10-05)
     config:
       inputs: {checkpoint: '@direct:final.pt'}
       options: {task: '{task}', arm: direct, seeds: '0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9', batch: 2}
   eval_structured:
     stage: eval_r2
     tag: structured
-    resources: {cpu: 3, mem: 36G, gpu: true, gpu_mem: 26G, max_seconds: 21600}
+    resources: {cpu: 3, mem: 40G, gpu: true, gpu_mem: 26G, max_seconds: 21600}   # measured peaks 17.3-26.7 G (T7 evals, smoke); x1.35 + margin (D-147 addendum 2026-10-05)
     config:
       inputs: {checkpoint: '@structured:final.pt', stage_a: '@stage_a:stage_a.pt'}
       options: {task: '{task}', arm: structured, seeds: '0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9', batch: 2}
@@ -112,14 +115,14 @@ nodes:
     stage: eval_r2
     tag: seal-l2-released
     retries: 0
-    resources: {cpu: 3, mem: 36G, gpu: true, gpu_mem: 26G, max_seconds: 21600}
+    resources: {cpu: 3, mem: 40G, gpu: true, gpu_mem: 26G, max_seconds: 21600}   # measured peaks 17.3-26.7 G (T7 evals, smoke); x1.35 + margin (D-147 addendum 2026-10-05)
     config:
       options: {task: '{task}', arm: released, level: 2, seeds: '0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9', batch: 2}
   seal_l2_direct:
     stage: eval_r2
     tag: seal-l2-direct
     retries: 0
-    resources: {cpu: 3, mem: 36G, gpu: true, gpu_mem: 26G, max_seconds: 21600}
+    resources: {cpu: 3, mem: 40G, gpu: true, gpu_mem: 26G, max_seconds: 21600}   # measured peaks 17.3-26.7 G (T7 evals, smoke); x1.35 + margin (D-147 addendum 2026-10-05)
     config:
       inputs: {checkpoint: '@direct:final.pt'}
       options: {task: '{task}', arm: direct, level: 2, seeds: '0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9', batch: 2}
@@ -127,7 +130,7 @@ nodes:
     stage: eval_r2
     tag: seal-l2-structured
     retries: 0
-    resources: {cpu: 3, mem: 36G, gpu: true, gpu_mem: 26G, max_seconds: 21600}
+    resources: {cpu: 3, mem: 40G, gpu: true, gpu_mem: 26G, max_seconds: 21600}   # measured peaks 17.3-26.7 G (T7 evals, smoke); x1.35 + margin (D-147 addendum 2026-10-05)
     config:
       inputs: {checkpoint: '@structured:final.pt', stage_a: '@stage_a:stage_a.pt'}
       options: {task: '{task}', arm: structured, level: 2, seeds: '0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9', batch: 2}

@@ -233,3 +233,28 @@ def test_gate_stage_is_the_gate_only_call_and_heldout_the_comparison(tmp_path, m
     B._REGISTRY[("psi0", "heldout")].fn(ctx)
     a = calls[0]
     assert a[4] == "heldout" and a[a.index("--run-dir") + 1] == "run" and "--structured" in a and not (ctx.out / "gate_report.json").exists()
+
+
+def test_feature_cache_resumes_whole_shards_and_frees_them_while_flattening(tmp_path):
+    """Handover feat (D-147 T7): a stopped extraction resumes from its complete shards (same extraction only), and the
+    memmap build unlinks each shard after copying it, so shm never holds shards + memmap at once."""
+    from rrp.policies.psi0.data import build_memmap, resumable_shards
+    d = tmp_path / "feat"; d.mkdir()
+    meta = dict(repo_id="r", vlm="v", run_dir="d", stride=1, frames=5, shards=["shard_0000.pt", "shard_0001.pt", "shard_0002.pt"])
+    (d / "meta.json").write_text(json.dumps(meta))
+    for k, n in enumerate((2, 2, 1)):
+        rec = dict(hidden=[torch.full((1 + i, 2048), k + 1, dtype=torch.bfloat16) for i in range(n)],
+                   state=[torch.zeros(3)] * n, actions=[torch.zeros(30, 36)] * n, amask=[torch.ones(30, 36, dtype=torch.bool)] * n,
+                   ent=[torch.zeros(0, dtype=torch.int32)] * n, ep=[k] * n, fr=list(range(n)))
+        if k < 2:
+            torch.save(rec, d / f"shard_{k:04d}.pt")
+        last = rec
+    assert resumable_shards(d, dict(meta, shards=[]), 2) == {"shard_0000.pt", "shard_0001.pt"}
+    assert resumable_shards(d, dict(meta, vlm="other"), 2) == set()          # a different extraction never resumes
+    assert resumable_shards(d, dict(meta), 3) == set()                        # different shard size
+    torch.save(last, d / "shard_0002.pt")
+    build_memmap(d)
+    assert not list(d.glob("shard_*.pt"))                                     # freed while flattening
+    h = np.load(d / "hidden.npy"); small = torch.load(d / "small.pt", weights_only=False)
+    assert h.shape == (5, 2, 2048) and small["length"] == [1, 2, 1, 2, 1] and small["ep"] == [0, 0, 1, 1, 2]
+    assert resumable_shards(d, meta, 2) == set()                              # built: nothing to resume
